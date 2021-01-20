@@ -12,8 +12,6 @@ import numpy as np
 # TODO: Testing
 import pandas as pd
 
-©
-
 # Imports
 __FOLDER__ = r'/Users/Ray/Documents/Python/9 - Oil and Gas/IPC'
 PATH_INJECTION = __FOLDER__ + r'/OLT injection data.xlsx'
