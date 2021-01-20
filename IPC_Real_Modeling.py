@@ -2,16 +2,17 @@
 # SELECT USAGES: CTRL + OPTION + U
 # DOCBLOCK: CTRL + SHIFT + C
 #
-# juST TESTIN
 
-# TODO: Testing
 import os
 from functools import reduce
 
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
+# TODO: Testing
 import pandas as pd
+
+©
 
 # Imports
 __FOLDER__ = r'/Users/Ray/Documents/Python/9 - Oil and Gas/IPC'
