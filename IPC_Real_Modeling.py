@@ -3,11 +3,12 @@
 # DOCBLOCK: CTRL + SHIFT + C
 
 import os
-from functools import reduce
 
-import matplotlib.cm as cm
-import matplotlib.pyplot as plt
-import numpy as np
+# from functools import reduce
+#
+# import matplotlib.cm as cm
+# import matplotlib.pyplot as plt
+# import numpy as np
 import pandas as pd
 
 # TODO: Testing
@@ -41,6 +42,7 @@ def reshape_well_data(original):
     return df
 
 
+# Reformat all individual well data
 well_set = {}
 well_docs = [x[0] for x in os.walk(
     r'/Users/Ray/Documents/Python/9 - Oil and Gas/IPC/DTS')][1:]
@@ -118,6 +120,9 @@ DATA_TEST['Start_Time'] = [d.date() for d in DATA_TEST['Start_Time']]
 DATA_TEST['Start_Time'] = pd.to_datetime(DATA_TEST['Start_Time'])
 DATA_TEST.rename(columns={'Start_Time': 'Date'}, inplace=True)
 
+# Create Analytics Base Table
+
+
 # # Diagnostics
 # df = DATA_INJECTION[['Date', 'Well', 'Casing_Pressure', 'Tubing_Pressure']
 #                     ][DATA_INJECTION['Well'] == 'CI06'].reset_index(drop=True)
@@ -146,20 +151,19 @@ DATA_TEST.rename(columns={'Start_Time': 'Date'}, inplace=True)
 # DATA_PRODUCTION.describe()
 # DATA_INJECTION.describe()
 
-
 #################
 #################
-vis_date_range = list(set(BP1DTS['Date']))[:60]
-colors = cm.bwr(np.linspace(0, 1, len(vis_date_range)))
-plt.figure(figsize=(16, 8))
-for date in vis_date_range:
-    plt.scatter(BP1DTS[BP1DTS['Date'] == date]['Distance'], BP1DTS[BP1DTS['Date'] == date]
-                ['Temperature'], s=1, color=colors[list(set(BP1DTS['Date'])).index(date)])
-plt.title('Temperature VS. Distance')
-plt.xlabel('Distance')
-plt.ylabel('Temperature')
-plt.show()
-plt.close()
+# vis_date_range = list(set(BP1DTS['Date']))[:60]
+# colors = cm.bwr(np.linspace(0, 1, len(vis_date_range)))
+# plt.figure(figsize=(16, 8))
+# for date in vis_date_range:
+#     plt.scatter(BP1DTS[BP1DTS['Date'] == date]['Distance'], BP1DTS[BP1DTS['Date'] == date]
+#                 ['Temperature'], s=1, color=colors[list(set(BP1DTS['Date'])).index(date)])
+# plt.title('Temperature VS. Distance')
+# plt.xlabel('Distance')
+# plt.ylabel('Temperature')
+# plt.show()
+# plt.close()
 #################
 #################
 
