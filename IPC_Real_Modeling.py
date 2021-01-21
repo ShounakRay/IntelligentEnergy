@@ -118,33 +118,33 @@ DATA_TEST['Start_Time'] = [d.date() for d in DATA_TEST['Start_Time']]
 DATA_TEST['Start_Time'] = pd.to_datetime(DATA_TEST['Start_Time'])
 DATA_TEST.rename(columns={'Start_Time': 'Date'}, inplace=True)
 
-# Diagnostics
-df = DATA_INJECTION[['Date', 'Well', 'Casing_Pressure', 'Tubing_Pressure']
-                    ][DATA_INJECTION['Well'] == 'CI06'].reset_index(drop=True)
-plt.figure(figsize=(24, 19))
-plt.scatter(df['Date'], df['Casing_Pressure'], s=10)
-plt.scatter(df['Date'], df['Tubing_Pressure'], s=10)
+# # Diagnostics
+# df = DATA_INJECTION[['Date', 'Well', 'Casing_Pressure', 'Tubing_Pressure']
+#                     ][DATA_INJECTION['Well'] == 'CI06'].reset_index(drop=True)
+# plt.figure(figsize=(24, 19))
+# plt.scatter(df['Date'], df['Casing_Pressure'], s=10)
+# plt.scatter(df['Date'], df['Tubing_Pressure'], s=10)
+#
+# DATA_INJECTION['Pad'].unique()
+# DATA_PRODUCTION['Pad'].unique()
+# DATA_TEST['Pad'].unique()
+#
+# DATA_INJECTION['Well'].unique()
+# DATA_PRODUCTION['Well'].unique()
+# DATA_TEST['Well'].unique()
 
-DATA_INJECTION['Pad'].unique()
-DATA_PRODUCTION['Pad'].unique()
-DATA_TEST['Pad'].unique()
-
-DATA_INJECTION['Well'].unique()
-DATA_PRODUCTION['Well'].unique()
-DATA_TEST['Well'].unique()
-
-# Merging
-dfs = [DATA_INJECTION.copy(), DATA_PRODUCTION.copy(), DATA_TEST.copy()]
-# > Very Long DataFrame
-df_final = reduce(lambda left, right: pd.merge(
-    left, right, on=['Date', 'Well', 'Pad'], how='outer'), dfs)
-# > Better Option to retain most data
-pd.merge(DATA_PRODUCTION, DATA_TEST, on=['Date', 'Well', 'Pad'], how='outer')
-
-BP1DTS.describe()
-DATA_TEST.describe()
-DATA_PRODUCTION.describe()
-DATA_INJECTION.describe()
+# # Merging
+# dfs = [DATA_INJECTION.copy(), DATA_PRODUCTION.copy(), DATA_TEST.copy()]
+# # > Very Long DataFrame
+# df_final = reduce(lambda left, right: pd.merge(
+#     left, right, on=['Date', 'Well', 'Pad'], how='outer'), dfs)
+# # > Better Option to retain most data
+# pd.merge(DATA_PRODUCTION, DATA_TEST, on=['Date', 'Well', 'Pad'], how='outer')
+#
+# BP1DTS.describe()
+# DATA_TEST.describe()
+# DATA_PRODUCTION.describe()
+# DATA_INJECTION.describe()
 
 
 #################
