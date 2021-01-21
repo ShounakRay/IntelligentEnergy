@@ -1,7 +1,6 @@
 # G0TO: CTRL + OPTION + G
 # SELECT USAGES: CTRL + OPTION + U
 # DOCBLOCK: CTRL + SHIFT + C
-# Testing again...
 
 import os
 from functools import reduce
