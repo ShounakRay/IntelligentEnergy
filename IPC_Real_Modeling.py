@@ -21,7 +21,6 @@ PATH_TEST = __FOLDER__ + r'/OLT well test data.xlsx'
 DATA_INJECTION_ORIG = pd.read_excel(PATH_INJECTION)
 DATA_PRODUCTION_ORIG = pd.read_excel(PATH_PRODUCTION)
 DATA_TEST_ORIG = pd.read_excel(PATH_TEST)
-DATA_PRODUCTION_ORIG.columns
 
 
 def reshape_well_data(original):
@@ -43,9 +42,9 @@ def reshape_well_data(original):
 
 
 well_set = {}
-wells = [x[0] for x in os.walk(
+well_docs = [x[0] for x in os.walk(
     r'/Users/Ray/Documents/Python/9 - Oil and Gas/IPC/DTS')][1:]
-for well in wells:
+for well in well_docs:
     files = os.listdir(well)
     well_var_names = []
     for file in files:
@@ -73,28 +72,46 @@ for well in wells:
     well_set[well.split('/')[-1]] = well_var_names.copy()
     well_var_names.clear()
 
-# Data Processing
+# Data Processing - DATA_INJECTION
 DATA_INJECTION = DATA_INJECTION_ORIG.reset_index(drop=True)
 DATA_INJECTION.columns = ['Date', 'Pad', 'Well', 'UWI_Identifier', 'Time_On',
-                          'Alloc_Steam', 'Meter_Steam', 'Casing_Pressure', 'Tubing_Pressure', 'Reason', 'Comment']
+                          'Alloc_Steam', 'Meter_Steam', 'Casing_Pressure',
+                          'Tubing_Pressure', 'Reason', 'Comment']
 DATA_INJECTION_KEYS = ['Date', 'Pad', 'Well', 'Time_On',
                        'Meter_Steam', 'Casing_Pressure', 'Tubing_Pressure']
 DATA_INJECTION = DATA_INJECTION[DATA_INJECTION_KEYS]
 DATA_INJECTION['Date'] = pd.to_datetime(DATA_INJECTION['Date'])
 
+# Data Processing - DATA_PRODUCTION
 DATA_PRODUCTION = DATA_PRODUCTION_ORIG.reset_index(drop=True)
-DATA_PRODUCTION.columns = ['Date', 'Pad', 'Well', 'UWI_Identifier', 'Time_On', 'Downtime_Code', 'Alloc_Oil', 'Alloc_Water', 'Alloc_Gas', 'Alloc_Steam', 'Steam_To_Producer',
-                           'Hourly_Meter_Steam', 'Daily_Meter_Steam', 'Pump_Speed', 'Tubing_Pressure', 'Casing_Pressure', 'Heel_Pressure', 'Toe_Pressure', 'Heel_Temp', 'Toe_Temp', 'Last_Test_Date', 'Reason', 'Comment']
-DATA_PRODUCTION_KEYS = ['Date', 'Pad', 'Well', 'Time_On', 'Hourly_Meter_Steam', 'Daily_Meter_Steam', 'Pump_Speed',
-                        'Tubing_Pressure', 'Casing_Pressure', 'Heel_Pressure', 'Toe_Pressure', 'Heel_Temp', 'Toe_Temp', 'Last_Test_Date']
+DATA_PRODUCTION.columns = ['Date', 'Pad', 'Well', 'UWI_Identifier', 'Time_On',
+                           'Downtime_Code', 'Alloc_Oil', 'Alloc_Water',
+                           'Alloc_Gas', 'Alloc_Steam', 'Steam_To_Producer',
+                           'Hourly_Meter_Steam', 'Daily_Meter_Steam',
+                           'Pump_Speed', 'Tubing_Pressure', 'Casing_Pressure',
+                           'Heel_Pressure', 'Toe_Pressure', 'Heel_Temp',
+                           'Toe_Temp', 'Last_Test_Date', 'Reason', 'Comment']
+DATA_PRODUCTION_KEYS = ['Date', 'Pad', 'Well', 'Time_On', 'Hourly_Meter_Steam',
+                        'Daily_Meter_Steam', 'Pump_Speed',
+                        'Tubing_Pressure', 'Casing_Pressure', 'Heel_Pressure',
+                        'Toe_Pressure', 'Heel_Temp', 'Toe_Temp',
+                        'Last_Test_Date']
 DATA_PRODUCTION = DATA_PRODUCTION[DATA_PRODUCTION_KEYS]
 DATA_PRODUCTION['Date'] = pd.to_datetime(DATA_PRODUCTION['Date'])
 
+# Data Processing - DATA_TEST
 DATA_TEST = DATA_TEST_ORIG.reset_index(drop=True)
-DATA_TEST.columns = ['Pad', 'Well', 'Start_Time', 'End_Time', 'Duration', 'Effective_Date', '24_Fluid', '24_Oil', '24_Hour', 'Oil', 'Water', 'Gas', 'Fluid', 'BSW', 'Chlorides',
-                     'Pump_Speed', 'Pump_Efficiency', 'Pump_Size', 'Operator_Approved', 'Operator_Rejected', 'Operator_Comment', 'Engineering_Approved', 'Engineering_Rejected', 'Engineering_Comment']
-DATA_TEST_KEYS = ['Pad', 'Well', 'Start_Time', 'Duration', 'Effective_Date', '24_Fluid', '24_Oil', '24_Hour',
-                  'Oil', 'Water', 'Gas', 'Fluid', 'BSW', 'Chlorides', 'Pump_Speed', 'Pump_Efficiency', 'Pump_Size']
+DATA_TEST.columns = ['Pad', 'Well', 'Start_Time', 'End_Time', 'Duration',
+                     'Effective_Date', '24_Fluid', '24_Oil', '24_Hour', 'Oil',
+                     'Water', 'Gas', 'Fluid', 'BSW', 'Chlorides',
+                     'Pump_Speed', 'Pump_Efficiency', 'Pump_Size',
+                     'Operator_Approved', 'Operator_Rejected',
+                     'Operator_Comment', 'Engineering_Approved',
+                     'Engineering_Rejected', 'Engineering_Comment']
+DATA_TEST_KEYS = ['Pad', 'Well', 'Start_Time', 'Duration', 'Effective_Date',
+                  '24_Fluid', '24_Oil', '24_Hour',
+                  'Oil', 'Water', 'Gas', 'Fluid', 'BSW', 'Chlorides',
+                  'Pump_Speed', 'Pump_Efficiency', 'Pump_Size']
 DATA_TEST = DATA_TEST[DATA_TEST_KEYS]
 DATA_TEST['Start_Time'] = pd.to_datetime(DATA_TEST['Start_Time'])
 DATA_TEST['Start_Time'] = [d.date() for d in DATA_TEST['Start_Time']]
