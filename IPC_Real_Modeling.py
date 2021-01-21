@@ -149,18 +149,18 @@ DATA_TEST.rename(columns={'Start_Time': 'Date'}, inplace=True)
 
 #################
 #################
-vis_date_range = list(set(BP1DTS['Date']))[:60]
-colors = cm.bwr(np.linspace(0, 1, len(vis_date_range)))
-plt.figure(figsize=(16, 8))
-for date in vis_date_range:
-    plt.scatter(BP1DTS[BP1DTS['Date'] == date]['Distance'], BP1DTS[BP1DTS['Date'] == date]
-                ['Temperature'], s=1, color=colors[list(set(BP1DTS['Date'])).index(date)])
-plt.title('Temperature VS. Distance')
-plt.xlabel('Distance')
-plt.ylabel('Temperature')
-plt.show()
-plt.close()
-#################
+# vis_date_range = list(set(BP1DTS['Date']))[:60]
+# colors = cm.bwr(np.linspace(0, 1, len(vis_date_range)))
+# plt.figure(figsize=(16, 8))
+# for date in vis_date_range:
+#     plt.scatter(BP1DTS[BP1DTS['Date'] == date]['Distance'], BP1DTS[BP1DTS['Date'] == date]
+#                 ['Temperature'], s=1, color=colors[list(set(BP1DTS['Date'])).index(date)])
+# plt.title('Temperature VS. Distance')
+# plt.xlabel('Distance')
+# plt.ylabel('Temperature')
+# plt.show()
+# plt.close()
+# #################
 #################
 
 
