@@ -118,6 +118,7 @@ DATA_TEST['Start_Time'] = [d.date() for d in DATA_TEST['Start_Time']]
 DATA_TEST['Start_Time'] = pd.to_datetime(DATA_TEST['Start_Time'])
 DATA_TEST.rename(columns={'Start_Time': 'Date'}, inplace=True)
 
+
 # # Diagnostics
 # df = DATA_INJECTION[['Date', 'Well', 'Casing_Pressure', 'Tubing_Pressure']
 #                     ][DATA_INJECTION['Well'] == 'CI06'].reset_index(drop=True)
@@ -145,7 +146,6 @@ DATA_TEST.rename(columns={'Start_Time': 'Date'}, inplace=True)
 # DATA_TEST.describe()
 # DATA_PRODUCTION.describe()
 # DATA_INJECTION.describe()
-
 
 #################
 #################
