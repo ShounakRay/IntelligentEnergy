@@ -115,10 +115,10 @@ DATA_TEST_KEYS = ['Pad', 'Well', 'Start_Time', 'Duration', 'Effective_Date',
                   'Oil', 'Water', 'Gas', 'Fluid', 'BSW', 'Chlorides',
                   'Pump_Speed', 'Pump_Efficiency', 'Pump_Size']
 DATA_TEST = DATA_TEST[DATA_TEST_KEYS]
-DATA_TEST['Start_Time'] = pd.to_datetime(DATA_TEST['Start_Time'])
-DATA_TEST['Start_Time'] = [d.date() for d in DATA_TEST['Start_Time']]
-DATA_TEST['Start_Time'] = pd.to_datetime(DATA_TEST['Start_Time'])
-DATA_TEST.rename(columns={'Start_Time': 'Date'}, inplace=True)
+DATA_TEST['Effective_Date'] = pd.to_datetime(DATA_TEST['Effective_Date'])
+DATA_TEST['Effective_Date'] = [d.date() for d in DATA_TEST['Effective_Date']]
+DATA_TEST['Effective_Date'] = pd.to_datetime(DATA_TEST['Effective_Date'])
+DATA_TEST.rename(columns={'Effective_Date': 'Date'}, inplace=True)
 
 # Create Analytics Base Table
 
@@ -145,11 +145,11 @@ DATA_TEST.rename(columns={'Start_Time': 'Date'}, inplace=True)
 #     left, right, on=['Date', 'Well', 'Pad'], how='outer'), dfs)
 # # > Better Option to retain most data
 # pd.merge(DATA_PRODUCTION, DATA_TEST, on=['Date', 'Well', 'Pad'], how='outer')
-#
-# BP1DTS.describe()
-# DATA_TEST.describe()
-# DATA_PRODUCTION.describe()
-# DATA_INJECTION.describe()
+
+BP1DTS.describe()
+DATA_TEST.describe()
+DATA_PRODUCTION.describe()
+DATA_INJECTION.describe()
 
 #################
 #################
