@@ -128,16 +128,19 @@ test_case = BP16DTS
 filtered_test_case = test_case[test_case['Date'] == ex_date]
 filtered_test_case.drop('Date', 1, inplace=True)
 bins = np.linspace(filtered_test_case['Distance'].min(),
-                   filtered_test_case['Distance'].max(), 5)
+                   filtered_test_case['Distance'].max(), 5 + 1)
 distances = filtered_test_case['Distance'].copy()
 filtered_test_case.drop('Distance', 1, inplace=True)
-# filtered_test_case['Distance_Bins'] = pd.cut(distances,
-#                                              bins, include_lowest=True)
-filtered_test_case = filtered_test_case.groupby(
-    pd.cut(distances, bins, include_lowest=True)).mean()['Temperature']
-# test_case['Date'] = pd.to_datetime(test_case['Date'])
-# test_case['Date'] = [d.date() for d in test_case['Date']]
-# test_case['Date'] = pd.to_datetime(test_case['Date'])
+
+filtered_test_case = (filtered_test_case.groupby(pd.cut(
+    distances, bins, include_lowest=True))).agg({'Temperature':
+                                                 ['mean', 'std']}
+                                                )['Temperature']
+filtered_test_case.index = filtered_test_case.index.to_list()
+filtered_test_case = filtered_test_case.reset_index(drop=True).reset_index()
+filtered_test_case['Distance_Bin'] = filtered_test_case['index'] + 1
+filtered_test_case.drop('index', 1, inplace=True)
+
 
 # TODO: Create Analytics Base Table (Refer to Data Schematics)
 # Base Off DATA_PRODUCTION
