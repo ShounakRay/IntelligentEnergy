@@ -3,21 +3,27 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Jan-2021 01:01:99:997  GMT-0700
-# @License: No License
+# @Last modified time: 22-Jan-2021 01:01:63:634  GMT-0700
+# @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
 # SELECT USAGES: CTRL + OPTION + U
 # DOCBLOCK: CTRL + SHIFT + C
+# GIT COMMIT: CMD + ENTER
+# GIT PUSH: CMD + U P
+# PASTE IMAGE: CTRL + OPTION + SHIFT + V
+# Todo: Opt + K  Opt + T
 
 import os
-import timeit
-from functools import reduce
 
-import matplotlib.cm as cm
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+# import timeit
+# from functools import reduce
+# import matplotlib.cm as cm
+# import matplotlib.pyplot as plt
+
 
 # Folder Specifications
 __FOLDER__ = r'Data/'
@@ -34,9 +40,23 @@ DATA_TEST_ORIG = pd.read_excel(PATH_TEST)
 BINS = 5
 
 # TODO: Optimize Initial Pandas Reformatting Function
+# TODO: Integrate `reshape_well_data` with `condense_fiber` and optimize
 
 
 def reshape_well_data(original):
+    """Restructures the original, raw fiber data to desired format.
+
+    Parameters
+    ----------
+    original : DataFrame
+        The raw data provided by IPC for fiber tracking.
+
+    Returns
+    -------
+    DataFrame
+        The melted/re-structured output, optimized for base-table integration.
+
+    """
     df = original.T.reset_index()
     df.drop([i for i in range(0, 9)], inplace=True, axis=1)
     df.columns = df.iloc[0]
@@ -55,6 +75,44 @@ def reshape_well_data(original):
     df['Date'] = pd.to_datetime(df['Date'])
 
     return df
+
+
+def condense_fiber(well_df, BINS):
+    """Condenses Fiber Data Each Injection Well Liner into specified bins.
+
+    Parameters
+    ----------
+    well_df : DataFrame
+        The specific injection well liner to be processed.
+    BINS : list
+        The number of segments/intervals to split  `well_df` in to.
+
+    Returns
+    -------
+    DataFrame
+        The binned temperature values for all available days in `well_df`.
+
+    """
+    test_case = well_df
+    ex_date = test_case['Date'].min()
+    filtered_test_case = test_case[test_case['Date'] == ex_date]
+    filtered_test_case.drop('Date', 1, inplace=True)
+    bins = np.linspace(filtered_test_case['Distance'].min(),
+                       filtered_test_case['Distance'].max(), BINS + 1)
+    distances = filtered_test_case['Distance'].copy()
+    filtered_test_case.drop('Distance', 1, inplace=True)
+
+    filtered_test_case = (filtered_test_case.groupby(pd.cut(
+        distances, bins, include_lowest=True))).agg({'Temperature':
+                                                     ['mean', 'std']}
+                                                    )['Temperature']
+    filtered_test_case.index = filtered_test_case.index.to_list()
+    filtered_test_case = filtered_test_case.reset_index(
+        drop=True).reset_index()
+    filtered_test_case['Distance_Bin'] = filtered_test_case['index'] + 1
+    filtered_test_case.drop('index', 1, inplace=True)
+
+    return filtered_test_case
 
 
 # Reformat all individual well data
@@ -143,44 +201,6 @@ test_case = BP16DTS
 
 # TODO: Extend `condense_fiber` for all dates, efficiently, and %%timeit
 # TODO: After extending `condense_fiber`, update DOCBLOCK
-
-
-def condense_fiber(well_df, BINS):
-    """Condenses Fiber Data Each Injection Well Liner into specified bins.
-
-    Parameters
-    ----------
-    well_df : DataFrame
-        The specific injection well liner to be processed.
-    BINS : list
-        The number of segments/intervals to split  `well_df` in to.
-
-    Returns
-    -------
-    DataFrame
-        The binned temperature values for all available days in `well_df`.
-
-    """
-    test_case = well_df
-    ex_date = test_case['Date'].min()
-    filtered_test_case = test_case[test_case['Date'] == ex_date]
-    filtered_test_case.drop('Date', 1, inplace=True)
-    bins = np.linspace(filtered_test_case['Distance'].min(),
-                       filtered_test_case['Distance'].max(), BINS + 1)
-    distances = filtered_test_case['Distance'].copy()
-    filtered_test_case.drop('Distance', 1, inplace=True)
-
-    filtered_test_case = (filtered_test_case.groupby(pd.cut(
-        distances, bins, include_lowest=True))).agg({'Temperature':
-                                                     ['mean', 'std']}
-                                                    )['Temperature']
-    filtered_test_case.index = filtered_test_case.index.to_list()
-    filtered_test_case = filtered_test_case.reset_index(
-        drop=True).reset_index()
-    filtered_test_case['Distance_Bin'] = filtered_test_case['index'] + 1
-    filtered_test_case.drop('index', 1, inplace=True)
-
-    return filtered_test_case
 
 
 # TODO: Create Analytics Base Table (Refer to Data Schematics)
