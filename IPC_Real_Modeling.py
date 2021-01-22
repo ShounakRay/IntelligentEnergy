@@ -3,13 +3,12 @@
 # DOCBLOCK: CTRL + SHIFT + C
 
 import os
+from functools import reduce
 
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-
-# from functools import reduce
-# import matplotlib.cm as cm
-# import matplotlib.pyplot as plt
-# import numpy as np
 
 # Imports
 __FOLDER__ = r'Data/'
@@ -38,6 +37,9 @@ def reshape_well_data(original):
     df.columns = ['Date', 'Distance', 'Temperature']
     df['Distance'] = pd.to_numeric(df['Distance'])
     df['Temperature'] = pd.to_numeric(df['Temperature'])
+    df['Date'] = pd.to_datetime(df['Date'])
+    df['Date'] = [d.date() for d in df['Date']]
+    df['Date'] = pd.to_datetime(df['Date'])
 
     return df
 
@@ -111,7 +113,7 @@ DATA_TEST.columns = ['Pad', 'Well', 'Start_Time', 'End_Time', 'Duration',
                      'Operator_Approved', 'Operator_Rejected',
                      'Operator_Comment', 'Engineering_Approved',
                      'Engineering_Rejected', 'Engineering_Comment']
-DATA_TEST_KEYS = ['Pad', 'Well', 'Start_Time', 'Duration', 'Effective_Date',
+DATA_TEST_KEYS = ['Pad', 'Well', 'Duration', 'Effective_Date',
                   '24_Fluid', '24_Oil', '24_Hour',
                   'Oil', 'Water', 'Gas', 'Fluid', 'BSW', 'Chlorides',
                   'Pump_Speed', 'Pump_Efficiency', 'Pump_Size']
@@ -121,7 +123,25 @@ DATA_TEST['Effective_Date'] = [d.date() for d in DATA_TEST['Effective_Date']]
 DATA_TEST['Effective_Date'] = pd.to_datetime(DATA_TEST['Effective_Date'])
 DATA_TEST.rename(columns={'Effective_Date': 'Date'}, inplace=True)
 
-# TODO: Create Analytics Base Table
+# TODO: Bin Fiber Data
+test_case = BP16DTS
+filtered_test_case = test_case[test_case['Date'] == ex_date]
+filtered_test_case.drop('Date', 1, inplace=True)
+bins = np.linspace(filtered_test_case['Distance'].min(),
+                   filtered_test_case['Distance'].max(), 5)
+distances = filtered_test_case['Distance'].copy()
+filtered_test_case.drop('Distance', 1, inplace=True)
+# filtered_test_case['Distance_Bins'] = pd.cut(distances,
+#                                              bins, include_lowest=True)
+filtered_test_case = filtered_test_case.groupby(
+    pd.cut(distances, bins, include_lowest=True)).mean()['Temperature']
+# test_case['Date'] = pd.to_datetime(test_case['Date'])
+# test_case['Date'] = [d.date() for d in test_case['Date']]
+# test_case['Date'] = pd.to_datetime(test_case['Date'])
+
+# TODO: Create Analytics Base Table (Refer to Data Schematics)
+# Base Off DATA_PRODUCTION
+
 
 # TODO: Verify Data Table Diagnostically
 
