@@ -4,24 +4,24 @@
 
 import os
 
+import pandas as pd
+
 # from functools import reduce
-#
 # import matplotlib.cm as cm
 # import matplotlib.pyplot as plt
 # import numpy as np
-import pandas as pd
-
-# TODO: Testing
 
 # Imports
-__FOLDER__ = r'/Users/Ray/Documents/Python/9 - Oil and Gas/IPC'
-PATH_INJECTION = __FOLDER__ + r'/OLT injection data.xlsx'
-PATH_PRODUCTION = __FOLDER__ + r'/OLT production data.xlsx'
-PATH_TEST = __FOLDER__ + r'/OLT well test data.xlsx'
+__FOLDER__ = r'Data/'
+PATH_INJECTION = __FOLDER__ + r'OLT injection data.xlsx'
+PATH_PRODUCTION = __FOLDER__ + r'OLT production data.xlsx'
+PATH_TEST = __FOLDER__ + r'OLT well test data.xlsx'
 
 DATA_INJECTION_ORIG = pd.read_excel(PATH_INJECTION)
 DATA_PRODUCTION_ORIG = pd.read_excel(PATH_PRODUCTION)
 DATA_TEST_ORIG = pd.read_excel(PATH_TEST)
+
+# TODO: Optimize Pandas Reformatting Function
 
 
 def reshape_well_data(original):
@@ -45,7 +45,7 @@ def reshape_well_data(original):
 # Reformat all individual well data
 well_set = {}
 well_docs = [x[0] for x in os.walk(
-    r'/Users/Ray/Documents/Python/9 - Oil and Gas/IPC/DTS')][1:]
+    r'Data/DTS')][1:]
 for well in well_docs:
     files = os.listdir(well)
     well_var_names = []
@@ -54,7 +54,8 @@ for well in well_docs:
         var_name = file.replace('.xlsx', '').replace('.csv', '')
         if ".xlsx" in file:
             try:
-                exec(var_name + ' = pd.read_excel(\"' + well + '/' + file + '")')
+                exec(var_name + ' = pd.read_excel(\"' + well
+                     + '/' + file + '")')
             except Exception as e:
                 print('Unable to read: ' + file + ', ' + str(e))
                 continue
@@ -120,10 +121,17 @@ DATA_TEST['Effective_Date'] = [d.date() for d in DATA_TEST['Effective_Date']]
 DATA_TEST['Effective_Date'] = pd.to_datetime(DATA_TEST['Effective_Date'])
 DATA_TEST.rename(columns={'Effective_Date': 'Date'}, inplace=True)
 
-# Create Analytics Base Table
+# TODO: Create Analytics Base Table
 
+# TODO: Verify Data Table Diagnostically
 
-# # Diagnostics
+# # DIAGNOSTICS
+# # Verify Well Counts and Expected Overlaps
+# DATA_PRODUCTION['Well'].value_counts()
+# DATA_INJECTION['Well'].value_counts()
+# DATA_TEST['Well'].value_counts()
+
+# # Observe Pressures Over Time in INJECTION_DATA
 # df = DATA_INJECTION[['Date', 'Well', 'Casing_Pressure', 'Tubing_Pressure']
 #                     ][DATA_INJECTION['Well'] == 'CI06'].reset_index(drop=True)
 # plt.figure(figsize=(24, 19))
@@ -146,10 +154,10 @@ DATA_TEST.rename(columns={'Effective_Date': 'Date'}, inplace=True)
 # # > Better Option to retain most data
 # pd.merge(DATA_PRODUCTION, DATA_TEST, on=['Date', 'Well', 'Pad'], how='outer')
 
-BP1DTS.describe()
-DATA_TEST.describe()
-DATA_PRODUCTION.describe()
-DATA_INJECTION.describe()
+# BP1DTS.describe()
+# DATA_TEST.describe()
+# DATA_PRODUCTION.describe()
+# DATA_INJECTION.describe()
 
 #################
 #################
