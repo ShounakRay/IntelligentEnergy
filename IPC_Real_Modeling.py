@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Jan-2021 03:01:63:634  GMT-0700
+# @Last modified time: 23-Jan-2021 03:01:69:690  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -270,12 +270,16 @@ for well in well_docs:
 
     well_set[well.split('/')[-1]] = well_var_names.copy()
     well_var_names.clear()
+
 # Process took 11 min 53 sec (File IO)
 
-with open('fiber_well_list_of_df.pkl', 'wb') as f:
-    pickle.dump(ind_FIBER_DATA, f)
+# with open('fiber_well_list_of_df.pkl', 'wb') as f:
+#     pickle.dump(ind_FIBER_DATA, f)
 
 FIBER_DATA = pd.concat(ind_FIBER_DATA, axis=0, ignore_index=True)
+
+# with open('FIBER_DATA_DataFrame.pkl', 'wb') as f:
+#     pickle.dump(FIBER_DATA, f)
 
 # Data Processing - DATA_INJECTION
 # Column Filtering, Pressure Reassignment, DateTime Setting
