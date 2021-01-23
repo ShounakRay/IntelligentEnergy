@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Jan-2021 01:01:26:267  GMT-0700
+# @Last modified time: 23-Jan-2021 02:01:73:736  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -20,6 +20,7 @@ import os
 import numpy as np
 import pandas as pd
 
+# from itertools import chain
 # import timeit
 # from functools import reduce
 # import matplotlib.cm as cm
@@ -78,6 +79,7 @@ def reshape_well_data(original):
     return df
 
 # TODO: Multiple Statistical Metrics for Fiber Bins (std)
+# TODO: Optimize pd.cut binning (?)
 
 
 def condense_fiber(well_df, BINS):
@@ -97,7 +99,6 @@ def condense_fiber(well_df, BINS):
 
     """
     test_case = well_df
-    all
     all_dates = list(set(test_case['Date']))
     all_dates.sort()
     cume_dict = {}
@@ -105,16 +106,19 @@ def condense_fiber(well_df, BINS):
     for d_i in range(len(all_dates)):
         selected_date = all_dates[d_i]
         filtered_test_case = test_case[test_case['Date'] == selected_date]
-        filtered_test_case.drop('Date', 1, inplace=True)
+        filtered_test_case = filtered_test_case.drop('Date', 1)
         bins = np.linspace(filtered_test_case['Distance'].min(),
                            filtered_test_case['Distance'].max(), BINS + 1)
         distances = filtered_test_case['Distance'].copy()
         filtered_test_case.drop('Distance', 1, inplace=True)
 
+        # filtered_test_case = (filtered_test_case.groupby(pd.cut(
+        #     distances, bins, include_lowest=True))).agg({'Temperature':
+        #                                                  ['mean']}
+        #                                                 )['Temperature']
         filtered_test_case = (filtered_test_case.groupby(pd.cut(
-            distances, bins, include_lowest=True))).agg({'Temperature':
-                                                         ['mean']}
-                                                        )['Temperature']
+            distances, bins, include_lowest=True))).mean()['Temperature']
+
         filtered_test_case.index = filtered_test_case.index.to_list()
         filtered_test_case = filtered_test_case.reset_index(
             drop=True).reset_index()
@@ -124,17 +128,19 @@ def condense_fiber(well_df, BINS):
         filtered_test_case = filtered_test_case.T.reset_index(drop=True)
         filtered_test_case.columns = ['Bin_' + str(col_i + 1)
                                       for col_i in filtered_test_case.columns]
-        filtered_test_case['Date'] = filtered_test_case.loc[2][0]
+        filtered_test_case['Date'] = filtered_test_case.loc[2][
+            0].to_pydatetime().date()
         filtered_test_case.drop([1, 2], axis=0, inplace=True)
 
         cume_dict[d_i] = dict(filtered_test_case.loc[0])
 
     # Converting from dict to DataFrame and Reordering
-    final = convert_to_date(pd.DataFrame.from_dict(cume_dict).T, 'Date')
+    final = pd.DataFrame.from_dict(cume_dict).T
+
     cols = list(final.columns)
     cols.insert(0, cols.pop())
     final = final[cols]
-    return
+    return final
 
 
 def pressure_lambda(row):
@@ -227,6 +233,7 @@ def diagnostic_nan(df):
 
 # Reformat all individual well data
 well_set = {}
+ind_FIBER_DATA = []
 well_docs = [x[0] for x in os.walk(
     r'Data/DTS')][1:]
 for well in well_docs:
@@ -252,6 +259,7 @@ for well in well_docs:
         # DataFrame Pre-Processing
         try:
             exec(var_name + ' = reshape_well_data(' + var_name + ')')
+            exec('ind_FIBER_DATA.append(' + var_name + ')')
         except Exception as e:
             print("Error manipulating " + var_name + ": " + str(e))
 
@@ -326,10 +334,7 @@ DATA_TEST = DATA_TEST.infer_objects()
 
 
 # TODO: Bin Fiber Data
-test_case = BP16DTS
 
-a = condense_fiber(test_case, BINS)
-dict(a.loc[0])
 
 # TODO: Extend `condense_fiber` for all dates, efficiently, and %%timeit
 # TODO: After extending `condense_fiber`, update DOCBLOCK
