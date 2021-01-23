@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Jan-2021 02:01:73:736  GMT-0700
+# @Last modified time: 23-Jan-2021 03:01:89:892  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -78,7 +78,7 @@ def reshape_well_data(original):
 
     return df
 
-# TODO: Multiple Statistical Metrics for Fiber Bins (std)
+# TODO: Multiple Statistical Metrics for Fiber Bins ? (std)
 # TODO: Optimize pd.cut binning (?)
 
 
@@ -231,6 +231,7 @@ def diagnostic_nan(df):
     print('')
 
 
+# TODO: Resolve and Optimize File IO
 # Reformat all individual well data
 well_set = {}
 ind_FIBER_DATA = []
@@ -259,12 +260,16 @@ for well in well_docs:
         # DataFrame Pre-Processing
         try:
             exec(var_name + ' = reshape_well_data(' + var_name + ')')
-            exec('ind_FIBER_DATA.append(' + var_name + ')')
+            exec('temp = condense_fiber(' + var_name + ', BINS)')
+            temp["Well"] = var_name
+            exec('ind_FIBER_DATA.append(temp)')
         except Exception as e:
             print("Error manipulating " + var_name + ": " + str(e))
 
     well_set[well.split('/')[-1]] = well_var_names.copy()
     well_var_names.clear()
+
+FIBER_DATA = pd.concat(ind_FIBER_DATA, axis=0, ignore_index=True)
 
 # Data Processing - DATA_INJECTION
 # Column Filtering, Pressure Reassignment, DateTime Setting
@@ -333,10 +338,6 @@ DATA_TEST = DATA_TEST.infer_objects()
 # pd.DataFrame(DATA_PRODUCTION.select_dtypes(include=['float64']).values[r])
 
 
-# TODO: Bin Fiber Data
-
-
-# TODO: Extend `condense_fiber` for all dates, efficiently, and %%timeit
 # TODO: After extending `condense_fiber`, update DOCBLOCK
 
 
@@ -354,7 +355,8 @@ DATA_TEST = DATA_TEST.infer_objects()
 
 # # Observe Pressures Over Time in INJECTION_DATA
 # df = DATA_INJECTION[['Date', 'Well', 'Casing_Pressure', 'Tubing_Pressure']
-#                     ][DATA_INJECTION['Well'] == 'CI06'].reset_index(drop=True)
+#                     ][DATA_INJECTION['Well'] == 'CI06'].reset_index(
+#                         drop=True)
 # plt.figure(figsize=(24, 19))
 # plt.scatter(df['Date'], df['Casing_Pressure'], s=10)
 # plt.scatter(df['Date'], df['Tubing_Pressure'], s=10)
