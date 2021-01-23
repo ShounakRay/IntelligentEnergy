@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Jan-2021 14:01:27:270  GMT-0700
+# @Last modified time: 22-Jan-2021 17:01:74:746  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -183,6 +183,27 @@ def convert_to_date(df, date_col):
     return df
 
 
+def diagnostic_nan(df):
+    """Returns the percentage of NaN values in each column in DataFrame.
+
+    Parameters
+    ----------
+    df : DataFrame
+        Inputted data to undergo analysis.
+
+    Returns
+    -------
+    VOID
+        Nothing. Statements Printed.
+
+    """
+    print('Percentage of NaN in each column.\nOut of '
+          + str(df.shape[0]) + ' rows:')
+    print(((df.isnull().astype(int).sum()) * 100 / df.shape[0]).sort_values(
+        ascending=False))
+    print('')
+
+
 # Reformat all individual well data
 well_set = {}
 well_docs = [x[0] for x in os.walk(
@@ -211,7 +232,7 @@ for well in well_docs:
         try:
             exec(var_name + ' = reshape_well_data(' + var_name + ')')
         except Exception as e:
-            print("Error manipulating " + var_name + ": " + e)
+            print("Error manipulating " + var_name + ": " + str(e))
 
     well_set[well.split('/')[-1]] = well_var_names.copy()
     well_var_names.clear()
@@ -229,8 +250,6 @@ DATA_INJECTION = DATA_INJECTION[DATA_INJECTION_KEYS]
 DATA_INJECTION['Pressure'] = DATA_INJECTION.apply(pressure_lambda, axis=1)
 DATA_INJECTION.drop(['Casing_Pressure', 'Tubing_Pressure'],
                     axis=1, inplace=True)
-# DATA_INJECTION = DATA_INJECTION[~(DATA_INJECTION['Pressure'] < 0)
-#                                 ].reset_index(drop=True)
 DATA_INJECTION = filter_negatives(DATA_INJECTION,
                                   DATA_INJECTION.select_dtypes(
                                       include=['float64']).columns)
@@ -276,7 +295,7 @@ DATA_TEST = DATA_TEST[DATA_TEST_KEYS]
 DATA_TEST = filter_negatives(DATA_TEST,
                              DATA_TEST.select_dtypes(
                                  include=['float64']).columns)
-DATA_PRODUCTION = convert_to_date(DATA_PRODUCTION, 'Effective_Date')
+DATA_TEST = convert_to_date(DATA_TEST, 'Effective_Date')
 DATA_TEST.rename(columns={'Effective_Date': 'Date'}, inplace=True)
 DATA_TEST = DATA_TEST.infer_objects()
 
@@ -286,7 +305,7 @@ DATA_TEST = DATA_TEST.infer_objects()
 
 
 # TODO: Bin Fiber Data
-test_case = BP16DTS
+# test_case = BP16DTS
 
 # %timeit condense_fiber(test_case, BINS)
 
