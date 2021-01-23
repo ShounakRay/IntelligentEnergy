@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Jan-2021 17:01:74:746  GMT-0700
+# @Last modified time: 23-Jan-2021 01:01:26:267  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -77,6 +77,8 @@ def reshape_well_data(original):
 
     return df
 
+# TODO: Multiple Statistical Metrics for Fiber Bins (std)
+
 
 def condense_fiber(well_df, BINS):
     """Condenses Fiber Data Each Injection Well Liner into specified bins.
@@ -95,25 +97,44 @@ def condense_fiber(well_df, BINS):
 
     """
     test_case = well_df
-    ex_date = test_case['Date'].min()
-    filtered_test_case = test_case[test_case['Date'] == ex_date]
-    filtered_test_case.drop('Date', 1, inplace=True)
-    bins = np.linspace(filtered_test_case['Distance'].min(),
-                       filtered_test_case['Distance'].max(), BINS + 1)
-    distances = filtered_test_case['Distance'].copy()
-    filtered_test_case.drop('Distance', 1, inplace=True)
+    all
+    all_dates = list(set(test_case['Date']))
+    all_dates.sort()
+    cume_dict = {}
 
-    filtered_test_case = (filtered_test_case.groupby(pd.cut(
-        distances, bins, include_lowest=True))).agg({'Temperature':
-                                                     ['mean', 'std']}
-                                                    )['Temperature']
-    filtered_test_case.index = filtered_test_case.index.to_list()
-    filtered_test_case = filtered_test_case.reset_index(
-        drop=True).reset_index()
-    filtered_test_case['Distance_Bin'] = filtered_test_case['index'] + 1
-    filtered_test_case.drop('index', 1, inplace=True)
+    for d_i in range(len(all_dates)):
+        selected_date = all_dates[d_i]
+        filtered_test_case = test_case[test_case['Date'] == selected_date]
+        filtered_test_case.drop('Date', 1, inplace=True)
+        bins = np.linspace(filtered_test_case['Distance'].min(),
+                           filtered_test_case['Distance'].max(), BINS + 1)
+        distances = filtered_test_case['Distance'].copy()
+        filtered_test_case.drop('Distance', 1, inplace=True)
 
-    return filtered_test_case
+        filtered_test_case = (filtered_test_case.groupby(pd.cut(
+            distances, bins, include_lowest=True))).agg({'Temperature':
+                                                         ['mean']}
+                                                        )['Temperature']
+        filtered_test_case.index = filtered_test_case.index.to_list()
+        filtered_test_case = filtered_test_case.reset_index(
+            drop=True).reset_index()
+        filtered_test_case['Distance_Bin'] = filtered_test_case['index'] + 1
+        filtered_test_case.drop('index', 1, inplace=True)
+        filtered_test_case['Date'] = selected_date
+        filtered_test_case = filtered_test_case.T.reset_index(drop=True)
+        filtered_test_case.columns = ['Bin_' + str(col_i + 1)
+                                      for col_i in filtered_test_case.columns]
+        filtered_test_case['Date'] = filtered_test_case.loc[2][0]
+        filtered_test_case.drop([1, 2], axis=0, inplace=True)
+
+        cume_dict[d_i] = dict(filtered_test_case.loc[0])
+
+    # Converting from dict to DataFrame and Reordering
+    final = convert_to_date(pd.DataFrame.from_dict(cume_dict).T, 'Date')
+    cols = list(final.columns)
+    cols.insert(0, cols.pop())
+    final = final[cols]
+    return
 
 
 def pressure_lambda(row):
@@ -305,9 +326,10 @@ DATA_TEST = DATA_TEST.infer_objects()
 
 
 # TODO: Bin Fiber Data
-# test_case = BP16DTS
+test_case = BP16DTS
 
-# %timeit condense_fiber(test_case, BINS)
+a = condense_fiber(test_case, BINS)
+dict(a.loc[0])
 
 # TODO: Extend `condense_fiber` for all dates, efficiently, and %%timeit
 # TODO: After extending `condense_fiber`, update DOCBLOCK
