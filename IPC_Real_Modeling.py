@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 24-Jan-2021 01:01:41:412  GMT-0700
+# @Last modified time: 24-Jan-2021 01:01:48:480  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -16,16 +16,11 @@
 
 import math
 import os
-import sys
 
 import numpy as np
 import pandas as pd
-import pandas_profiling
 
-"""Major Notes:
-> Ensure Python Version in root directory matches that of local directory
-"""
-
+# import pandas_profiling
 # import pickle
 # from itertools import chain
 # import timeit
@@ -33,20 +28,33 @@ import pandas_profiling
 # import matplotlib.cm as cm
 # import matplotlib.pyplot as plt
 
+"""Major Notes:
+> Ensure Python Version in root directory matches that of local directory
+"""
+
+"""All Underlying Datasets
+FIBER_DATA              --> Temperature/Distance data along production lines
+DATA_INJECTION_STEAM    --> Metered Steam at Injection Sites
+DATA_INJECTION_PRESSURE --> Pressure at Injection Sites
+DATA_PRODUCTION         --> Production Well Sensors
+DATA_TEST               --> Oil, Water, Gas, and Fluid from Production Wells
+"""
+
+# > DATA INGESTION
 # Folder Specifications
 __FOLDER__ = r'Data/'
 PATH_INJECTION = __FOLDER__ + r'OLT injection data.xlsx'
 PATH_PRODUCTION = __FOLDER__ + r'OLT production data.xlsx'
 PATH_TEST = __FOLDER__ + r'OLT well test data.xlsx'
-
 # Data Imports
 DATA_INJECTION_ORIG = pd.read_excel(PATH_INJECTION)
 DATA_PRODUCTION_ORIG = pd.read_excel(PATH_PRODUCTION)
 DATA_TEST_ORIG = pd.read_excel(PATH_TEST)
 
-# Hyper-parameters
+# HYPER-PARAMETERS
 BINS = 5
 
+# FUNCTION DEFINITIONS
 # TODO: Integrate `reshape_well_data` with `condense_fiber` and optimize
 
 
@@ -237,9 +245,16 @@ def diagnostic_nan(df):
     print('')
 
 
+# FIBER DATA INGESTION AND REFORMATTING (~12 mins)
+
 # Confirm Concatenation and Pickling
-# TODO: Resolve and Optimize File IO
-# Reformat all individual well data
+# with open('Pickes/fiber_well_list_of_df.pkl', 'wb') as f:
+#     pickle.dump(ind_FIBER_DATA, f)
+# with open('Pickes/FIBER_DATA_DataFrame.pkl', 'wb') as f:
+#     pickle.dump(FIBER_DATA, f)
+
+# TODO: !! Resolve and Optimize File IO
+# TODO: Modularize File IO
 well_set = {}
 ind_FIBER_DATA = []
 well_docs = [x[0] for x in os.walk(
@@ -276,19 +291,12 @@ for well in well_docs:
     well_set[well.split('/')[-1]] = well_var_names.copy()
     well_var_names.clear()
 
-# Process took 11 min 53 sec (File IO)
-
-# with open('fiber_well_list_of_df.pkl', 'wb') as f:
-#     pickle.dump(ind_FIBER_DATA, f)
-
 FIBER_DATA = pd.concat(ind_FIBER_DATA, axis=0,
                        ignore_index=True).sort_values('Date').reset_index(
                            drop=True)
 
-# with open('FIBER_DATA_DataFrame.pkl', 'wb') as f:
-#     pickle.dump(FIBER_DATA, f)
 
-# Data Processing - DATA_INJECTION
+# DATA PROCESSING - DATA_INJECTION
 # Column Filtering, Pressure Reassignment, DateTime Setting
 # > Delete Rows with Negative Numerical Cells
 DATA_INJECTION = DATA_INJECTION_ORIG.reset_index(drop=True)
@@ -306,16 +314,15 @@ DATA_INJECTION = filter_negatives(DATA_INJECTION,
                                       include=['float64']).columns)
 DATA_INJECTION = convert_to_date(DATA_INJECTION, 'Date')
 DATA_INJECTION = DATA_INJECTION.infer_objects()
-# Pivot so columns feature all injection wells and cells are steam values
+# > Pivot so columns feature all injection wells and cells are steam values
 DATA_INJECTION = DATA_INJECTION.pivot_table(['Meter_Steam', 'Pressure'],
                                             'Date', ['Well'])
-# DATA_INJECTION['Date'] = DATA_INJECTION.index
-# DATA_INJECTION.reset_index(inplace=True, drop=True)
 DATA_INJECTION.columns.names = (None, None)
+# > Split into Steam and Pressure DataFrames
 DATA_INJECTION_STEAM = DATA_INJECTION['Meter_Steam'].reset_index()
 DATA_INJECTION_PRESS = DATA_INJECTION['Pressure'].reset_index()
 
-# Data Processing - DATA_PRODUCTION
+# DATA PROCESSING - DATA_PRODUCTION
 # Column Filtering, DateTime Setting, Delete Rows with Negative Numerical Cells
 DATA_PRODUCTION = DATA_PRODUCTION_ORIG.reset_index(drop=True)
 DATA_PRODUCTION.columns = ['Date', 'Pad', 'Well', 'UWI_Identifier', 'Time_On',
@@ -336,9 +343,9 @@ DATA_PRODUCTION = filter_negatives(DATA_PRODUCTION,
 DATA_PRODUCTION = convert_to_date(DATA_PRODUCTION, 'Date')
 DATA_PRODUCTION = DATA_PRODUCTION.infer_objects()
 
-# Data Processing - DATA_TEST
+# DATA PROCESSING - DATA_TEST
 # Column Filtering, DateTime Setting, Delete Rows with Negative Numerical Cells
-# TODO: (?) Do we care about BSW, Chlorides, Pump_Speed, Pump_Efficiency, Pump_Size
+# TODO: (?) BSW, Chlorides, Pump_Speed, Pump_Efficiency, Pump_Size
 DATA_TEST = DATA_TEST_ORIG.reset_index(drop=True)
 DATA_TEST.columns = ['Pad', 'Well', 'Start_Time', 'End_Time', 'Duration',
                      'Effective_Date', '24_Fluid', '24_Oil', '24_Hour', 'Oil',
@@ -358,21 +365,10 @@ DATA_TEST = convert_to_date(DATA_TEST, 'Effective_Date')
 DATA_TEST.rename(columns={'Effective_Date': 'Date'}, inplace=True)
 DATA_TEST = DATA_TEST.infer_objects()
 
-"""All Underlying Datasets
-FIBER_DATA              --> Temperature/Distance data along production lines
-DATA_INJECTION_STEAM    --> Metered Steam at Injection Sites
-DATA_INJECTION_PRESSURE --> Pressure at Injection Sites
-DATA_PRODUCTION         --> Production Well Sensors
-DATA_TEST               --> Oil, Water, Gas, and Fluid from Production Wells
-
-"""
-
-# FINALIZED DATASETS, DIAGNOSTICS
-PRODUCTION_WELL_OVERLAP = set.intersection(*map(set, [FIBER_DATA['Well'],
-                                                      DATA_PRODUCTION['Well'],
-                                                      DATA_TEST['Well']]))
-
 # TODO: !! Update Data Schematic
+# TODO: !! Verify Columns of Underlying Datasets
+
+# CREATE ANALYTIC BASE TABLED, MERGED
 # Base Off DATA_PRODUCTION
 PRODUCTION_WELL_INTER = pd.merge(DATA_PRODUCTION, DATA_TEST,
                                  how='outer', on=['Date', 'Well'])
@@ -381,22 +377,28 @@ PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
 FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
                   how='outer', on='Date')
 
+# TODO: !! Verify Fully-Merged Data Table Diagnostically
+
+# PRELIMINARY ANALYSIS/DIAGNOSIS OF ANALYTIC BASE TABLE
 # > These following lines MUST be run in JUPYTER
-report = pandas_profiling.ProfileReport(FINALE,
-                                        explorative=True,
-                                        progress_bar=True)
+# report = pandas_profiling.ProfileReport(FINALE,
+#                                         explorative=True,
+#                                         progress_bar=True)
 # display(report)
 # report.to_file('FINALE.html')
 
 
-# TODO: !! Verify Fully-Merged Data Table Diagnostically
-
-# # DIAGNOSTICS
-# # Verify Well Counts and Expected Overlaps
-# DATA_PRODUCTION['Well'].value_counts()
-# DATA_INJECTION['Well'].value_counts()
-# DATA_TEST['Well'].value_counts()
-
+"""DIAGNOSTICS
+#################
+# DATE OVERLAP #
+#################
+# FINALIZED DATASETS, DIAGNOSTICS
+PRODUCTION_WELL_OVERLAP = set.intersection(*map(set, [FIBER_DATA['Well'],
+                                                      DATA_PRODUCTION['Well'],
+                                                      DATA_TEST['Well']]))
+#################
+# VISUALIZATION #
+#################
 # # Observe Pressures Over Time in INJECTION_DATA
 # df = DATA_INJECTION[['Date', 'Well', 'Casing_Pressure', 'Tubing_Pressure']
 #                     ][DATA_INJECTION['Well'] == 'CI06'].reset_index(
@@ -404,30 +406,7 @@ report = pandas_profiling.ProfileReport(FINALE,
 # plt.figure(figsize=(24, 19))
 # plt.scatter(df['Date'], df['Casing_Pressure'], s=10)
 # plt.scatter(df['Date'], df['Tubing_Pressure'], s=10)
-#
-# DATA_INJECTION['Pad'].unique()
-# DATA_PRODUCTION['Pad'].unique()
-# DATA_TEST['Pad'].unique()
-#
-# DATA_INJECTION['Well'].unique()
-# DATA_PRODUCTION['Well'].unique()
-# DATA_TEST['Well'].unique()
-
-# # Merging
-# dfs = [DATA_INJECTION.copy(), DATA_PRODUCTION.copy(), DATA_TEST.copy()]
-# # > Very Long DataFrame
-# df_final = reduce(lambda left, right: pd.merge(
-#     left, right, on=['Date', 'Well', 'Pad'], how='outer'), dfs)
-# # > Better Option to retain most data
-# pd.merge(DATA_PRODUCTION, DATA_TEST, on=['Date', 'Well', 'Pad'], how='outer')
-
-# BP1DTS.describe()
-# DATA_TEST.describe()
-# DATA_PRODUCTION.describe()
-# DATA_INJECTION.describe()
-
-#################
-#################
+#### #### ####
 # vis_date_range = list(set(BP1DTS['Date']))[:60]
 # colors = cm.bwr(np.linspace(0, 1, len(vis_date_range)))
 # plt.figure(figsize=(16, 8))
@@ -446,3 +425,4 @@ report = pandas_profiling.ProfileReport(FINALE,
 
 
 #
+"""
