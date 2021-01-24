@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 24-Jan-2021 00:01:32:326  GMT-0700
+# @Last modified time: 24-Jan-2021 00:01:79:792  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -16,20 +16,22 @@
 
 import math
 import os
-from datetime import datetime
+import sys
 
 import numpy as np
 import pandas as pd
+import pandas_profiling
+
+"""Major Notes:
+> Ensure Python Version in root directory matches that of local directory
+"""
 
 # import pickle
-
-
 # from itertools import chain
 # import timeit
 # from functools import reduce
 # import matplotlib.cm as cm
 # import matplotlib.pyplot as plt
-
 
 # Folder Specifications
 __FOLDER__ = r'Data/'
@@ -374,10 +376,14 @@ PRODUCTION_WELL_OVERLAP = set.intersection(*map(set, [FIBER_DATA['Well'],
 # TODO: Update Data Schematic
 # TODO: Create Analytics Base Table (Refer to Data Schematics)
 # Base Off DATA_PRODUCTION
-PRODUCTION_WELL_INTER = pd.merge(
-    DATA_PRODUCTION, DATA_TEST, how='inner', on=['Date', 'Well'])
-PRODUCTION_WELL_WSENSOR =
-
+PRODUCTION_WELL_INTER = pd.merge(DATA_PRODUCTION, DATA_TEST,
+                                 how='outer', on=['Date', 'Well'])
+PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
+                                   how='outer', on=['Date', 'Well'])
+FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
+                  how='outer', on='Date')
+report = pandas_profiling.ProfileReport(FINALE, minimal=True)
+display(report)
 # r,c = np.where(DATA_PRODUCTION.select_dtypes(include=['float64']).values < 0)
 # pd.DataFrame(DATA_PRODUCTION.select_dtypes(include=['float64']).values[r])
 
