@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Jan-2021 21:01:47:477  GMT-0700
+# @Last modified time: 24-Jan-2021 00:01:32:326  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -16,10 +16,13 @@
 
 import math
 import os
-import pickle
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
+
+# import pickle
+
 
 # from itertools import chain
 # import timeit
@@ -264,7 +267,7 @@ for well in well_docs:
         try:
             exec(var_name + ' = reshape_well_data(' + var_name + ')')
             exec('temp = condense_fiber(' + var_name + ', BINS)')
-            temp["Well"] = var_name
+            temp["Well"] = var_name.replace('DTS', '')
             exec('ind_FIBER_DATA.append(temp)')
         except Exception as e:
             print("Error manipulating " + var_name + ": " + str(e))
@@ -291,7 +294,7 @@ DATA_INJECTION = DATA_INJECTION_ORIG.reset_index(drop=True)
 DATA_INJECTION.columns = ['Date', 'Pad', 'Well', 'UWI_Identifier', 'Time_On',
                           'Alloc_Steam', 'Meter_Steam', 'Casing_Pressure',
                           'Tubing_Pressure', 'Reason', 'Comment']
-DATA_INJECTION_KEYS = ['Date', 'Pad', 'Well', 'Meter_Steam',
+DATA_INJECTION_KEYS = ['Date', 'Well', 'Meter_Steam',
                        'Casing_Pressure', 'Tubing_Pressure']
 DATA_INJECTION = DATA_INJECTION[DATA_INJECTION_KEYS]
 DATA_INJECTION['Pressure'] = DATA_INJECTION.apply(pressure_lambda, axis=1)
@@ -302,6 +305,14 @@ DATA_INJECTION = filter_negatives(DATA_INJECTION,
                                       include=['float64']).columns)
 DATA_INJECTION = convert_to_date(DATA_INJECTION, 'Date')
 DATA_INJECTION = DATA_INJECTION.infer_objects()
+# Pivot so columns feature all injection wells and cells are steam values
+DATA_INJECTION = DATA_INJECTION.pivot_table(['Meter_Steam', 'Pressure'],
+                                            'Date', ['Well'])
+# DATA_INJECTION['Date'] = DATA_INJECTION.index
+# DATA_INJECTION.reset_index(inplace=True, drop=True)
+DATA_INJECTION.columns.names = (None, None)
+DATA_INJECTION_STEAM = DATA_INJECTION['Meter_Steam'].reset_index()
+DATA_INJECTION_PRESS = DATA_INJECTION['Pressure'].reset_index()
 
 # Data Processing - DATA_PRODUCTION
 # Column Filtering, DateTime Setting, Delete Rows with Negative Numerical Cells
@@ -313,7 +324,7 @@ DATA_PRODUCTION.columns = ['Date', 'Pad', 'Well', 'UWI_Identifier', 'Time_On',
                            'Pump_Speed', 'Tubing_Pressure', 'Casing_Pressure',
                            'Heel_Pressure', 'Toe_Pressure', 'Heel_Temp',
                            'Toe_Temp', 'Last_Test_Date', 'Reason', 'Comment']
-DATA_PRODUCTION_KEYS = ['Date', 'Pad', 'Well', 'Time_On', 'Hourly_Meter_Steam',
+DATA_PRODUCTION_KEYS = ['Date', 'Well', 'Time_On', 'Hourly_Meter_Steam',
                         'Daily_Meter_Steam', 'Pump_Speed',
                         'Tubing_Pressure', 'Casing_Pressure', 'Heel_Pressure',
                         'Toe_Pressure', 'Heel_Temp', 'Toe_Temp']
@@ -335,7 +346,7 @@ DATA_TEST.columns = ['Pad', 'Well', 'Start_Time', 'End_Time', 'Duration',
                      'Operator_Approved', 'Operator_Rejected',
                      'Operator_Comment', 'Engineering_Approved',
                      'Engineering_Rejected', 'Engineering_Comment']
-DATA_TEST_KEYS = ['Pad', 'Well', 'Duration', 'Effective_Date',
+DATA_TEST_KEYS = ['Well', 'Duration', 'Effective_Date',
                   '24_Fluid', '24_Oil', '24_Hour',
                   'Oil', 'Water', 'Gas', 'Fluid']
 DATA_TEST = DATA_TEST[DATA_TEST_KEYS]
@@ -346,17 +357,31 @@ DATA_TEST = convert_to_date(DATA_TEST, 'Effective_Date')
 DATA_TEST.rename(columns={'Effective_Date': 'Date'}, inplace=True)
 DATA_TEST = DATA_TEST.infer_objects()
 
+"""All Underlying Datasets
+FIBER_DATA              --> Temperature/Distance data along production lines
+DATA_INJECTION_STEAM    --> Metered Steam at Injection Sites
+DATA_INJECTION_PRESSURE --> Pressure at Injection Sites
+DATA_PRODUCTION         --> Production Well Sensors
+DATA_TEST               --> Oil, Water, Gas, and Fluid from Production Wells
+
+"""
+
+# FINALIZED DATASETS, DIAGNOSTICS
+PRODUCTION_WELL_OVERLAP = set.intersection(*map(set, [FIBER_DATA['Well'],
+                                                      DATA_PRODUCTION['Well'],
+                                                      DATA_TEST['Well']]))
+
+# TODO: Update Data Schematic
+# TODO: Create Analytics Base Table (Refer to Data Schematics)
+# Base Off DATA_PRODUCTION
+PRODUCTION_WELL_INTER = pd.merge(
+    DATA_PRODUCTION, DATA_TEST, how='inner', on=['Date', 'Well'])
+PRODUCTION_WELL_WSENSOR =
 
 # r,c = np.where(DATA_PRODUCTION.select_dtypes(include=['float64']).values < 0)
 # pd.DataFrame(DATA_PRODUCTION.select_dtypes(include=['float64']).values[r])
 
-# TODO: Update Data Schematic
-
-# TODO: Create Analytics Base Table (Refer to Data Schematics)
-# Base Off DATA_PRODUCTION
-
-
-# TODO: Verify Data Table Diagnostically
+# TODO: Verify Fully-Merged Data Table Diagnostically
 
 # # DIAGNOSTICS
 # # Verify Well Counts and Expected Overlaps
