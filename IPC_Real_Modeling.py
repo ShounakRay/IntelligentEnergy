@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Jan-2021 03:01:69:690  GMT-0700
+# @Last modified time: 23-Jan-2021 21:01:47:477  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -84,7 +84,8 @@ def reshape_well_data(original):
 
 
 def condense_fiber(well_df, BINS):
-    """Condenses Fiber Data Each Injection Well Liner into specified bins.
+    """Condenses Fiber Data Each Injection Well Liner into specified bins
+    for all recorded dates.
 
     Parameters
     ----------
@@ -276,7 +277,9 @@ for well in well_docs:
 # with open('fiber_well_list_of_df.pkl', 'wb') as f:
 #     pickle.dump(ind_FIBER_DATA, f)
 
-FIBER_DATA = pd.concat(ind_FIBER_DATA, axis=0, ignore_index=True)
+FIBER_DATA = pd.concat(ind_FIBER_DATA, axis=0,
+                       ignore_index=True).sort_values('Date').reset_index(
+                           drop=True)
 
 # with open('FIBER_DATA_DataFrame.pkl', 'wb') as f:
 #     pickle.dump(FIBER_DATA, f)
@@ -347,9 +350,7 @@ DATA_TEST = DATA_TEST.infer_objects()
 # r,c = np.where(DATA_PRODUCTION.select_dtypes(include=['float64']).values < 0)
 # pd.DataFrame(DATA_PRODUCTION.select_dtypes(include=['float64']).values[r])
 
-
-# TODO: After extending `condense_fiber`, update DOCBLOCK
-
+# TODO: Update Data Schematic
 
 # TODO: Create Analytics Base Table (Refer to Data Schematics)
 # Base Off DATA_PRODUCTION
