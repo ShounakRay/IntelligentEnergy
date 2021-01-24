@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 24-Jan-2021 00:01:79:792  GMT-0700
+# @Last modified time: 24-Jan-2021 01:01:41:412  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -47,7 +47,6 @@ DATA_TEST_ORIG = pd.read_excel(PATH_TEST)
 # Hyper-parameters
 BINS = 5
 
-# TODO: Optimize Initial Pandas Reformatting Function
 # TODO: Integrate `reshape_well_data` with `condense_fiber` and optimize
 
 
@@ -84,8 +83,8 @@ def reshape_well_data(original):
 
     return df
 
-# TODO: Multiple Statistical Metrics for Fiber Bins ? (std)
-# TODO: Optimize pd.cut binning (?)
+# TODO: (?) Multiple Statistical Metrics for Fiber Bins
+# TODO: (?) Optimize pd.cut binning
 
 
 def condense_fiber(well_df, BINS):
@@ -339,7 +338,7 @@ DATA_PRODUCTION = DATA_PRODUCTION.infer_objects()
 
 # Data Processing - DATA_TEST
 # Column Filtering, DateTime Setting, Delete Rows with Negative Numerical Cells
-# TODO: Do we care about BSW, Chlorides, Pump_Speed, Pump_Efficiency, Pump_Size
+# TODO: (?) Do we care about BSW, Chlorides, Pump_Speed, Pump_Efficiency, Pump_Size
 DATA_TEST = DATA_TEST_ORIG.reset_index(drop=True)
 DATA_TEST.columns = ['Pad', 'Well', 'Start_Time', 'End_Time', 'Duration',
                      'Effective_Date', '24_Fluid', '24_Oil', '24_Hour', 'Oil',
@@ -373,8 +372,7 @@ PRODUCTION_WELL_OVERLAP = set.intersection(*map(set, [FIBER_DATA['Well'],
                                                       DATA_PRODUCTION['Well'],
                                                       DATA_TEST['Well']]))
 
-# TODO: Update Data Schematic
-# TODO: Create Analytics Base Table (Refer to Data Schematics)
+# TODO: !! Update Data Schematic
 # Base Off DATA_PRODUCTION
 PRODUCTION_WELL_INTER = pd.merge(DATA_PRODUCTION, DATA_TEST,
                                  how='outer', on=['Date', 'Well'])
@@ -382,12 +380,16 @@ PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
                                    how='outer', on=['Date', 'Well'])
 FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
                   how='outer', on='Date')
-report = pandas_profiling.ProfileReport(FINALE, minimal=True)
-display(report)
-# r,c = np.where(DATA_PRODUCTION.select_dtypes(include=['float64']).values < 0)
-# pd.DataFrame(DATA_PRODUCTION.select_dtypes(include=['float64']).values[r])
 
-# TODO: Verify Fully-Merged Data Table Diagnostically
+# > These following lines MUST be run in JUPYTER
+report = pandas_profiling.ProfileReport(FINALE,
+                                        explorative=True,
+                                        progress_bar=True)
+# display(report)
+# report.to_file('FINALE.html')
+
+
+# TODO: !! Verify Fully-Merged Data Table Diagnostically
 
 # # DIAGNOSTICS
 # # Verify Well Counts and Expected Overlaps
@@ -430,8 +432,10 @@ display(report)
 # colors = cm.bwr(np.linspace(0, 1, len(vis_date_range)))
 # plt.figure(figsize=(16, 8))
 # for date in vis_date_range:
-#     plt.scatter(BP1DTS[BP1DTS['Date'] == date]['Distance'], BP1DTS[BP1DTS['Date'] == date]
-#                 ['Temperature'], s=1, color=colors[list(set(BP1DTS['Date'])).index(date)])
+#     plt.scatter(BP1DTS[BP1DTS['Date'] == date]['Distance'],
+#                 BP1DTS[BP1DTS['Date'] == date]
+#                 ['Temperature'], s=1,
+#                 color=colors[list(set(BP1DTS['Date'])).index(date)])
 # plt.title('Temperature VS. Distance')
 # plt.xlabel('Distance')
 # plt.ylabel('Temperature')
