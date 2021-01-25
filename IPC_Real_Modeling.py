@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 24-Jan-2021 01:01:48:480  GMT-0700
+# @Last modified time: 25-Jan-2021 13:01:92:922  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -21,12 +21,19 @@ import numpy as np
 import pandas as pd
 
 # import pandas_profiling
+
+# import sys
+# sys.version_info
 # import pickle
 # from itertools import chain
 # import timeit
 # from functools import reduce
 # import matplotlib.cm as cm
 # import matplotlib.pyplot as plt
+
+
+# !{sys.executable} -m pip install pandas-profiling
+
 
 """Major Notes:
 > Ensure Python Version in root directory matches that of local directory
@@ -35,9 +42,13 @@ import pandas as pd
 """All Underlying Datasets
 FIBER_DATA              --> Temperature/Distance data along production lines
 DATA_INJECTION_STEAM    --> Metered Steam at Injection Sites
-DATA_INJECTION_PRESSURE --> Pressure at Injection Sites
+DATA_INJECTION_PRESS    --> Pressure at Injection Sites
 DATA_PRODUCTION         --> Production Well Sensors
 DATA_TEST               --> Oil, Water, Gas, and Fluid from Production Wells
+PRODUCTION_WELL_INTER   --> Join of DATA_TEST and DATA_PRODUCTION
+PRODUCTION_WELL_WSENSOR --> Join of PRODUCTION_WELL_INTER and FIBER_DATA
+FINALE                  --> Join of PRODUCTION_WELL_WSENSOR
+                                                    and DATA_INJECTION_STEAM
 """
 
 # > DATA INGESTION
@@ -247,18 +258,11 @@ def diagnostic_nan(df):
 
 # FIBER DATA INGESTION AND REFORMATTING (~12 mins)
 
-# Confirm Concatenation and Pickling
-# with open('Pickes/fiber_well_list_of_df.pkl', 'wb') as f:
-#     pickle.dump(ind_FIBER_DATA, f)
-# with open('Pickes/FIBER_DATA_DataFrame.pkl', 'wb') as f:
-#     pickle.dump(FIBER_DATA, f)
-
 # TODO: !! Resolve and Optimize File IO
 # TODO: Modularize File IO
 well_set = {}
 ind_FIBER_DATA = []
-well_docs = [x[0] for x in os.walk(
-    r'Data/DTS')][1:]
+well_docs = [x[0] for x in os.walk(r'Data/DTS')][1:]
 for well in well_docs:
     files = os.listdir(well)
     well_var_names = []
@@ -295,6 +299,11 @@ FIBER_DATA = pd.concat(ind_FIBER_DATA, axis=0,
                        ignore_index=True).sort_values('Date').reset_index(
                            drop=True)
 
+# # Confirm Concatenation and Pickling
+# with open('Pickles/fiber_well_list_of_df.pkl', 'wb') as f:
+#     pickle.dump(ind_FIBER_DATA, f)
+# with open('Pickles/FIBER_DATA_DataFrame.pkl', 'wb') as f:
+#     pickle.dump(FIBER_DATA, f)
 
 # DATA PROCESSING - DATA_INJECTION
 # Column Filtering, Pressure Reassignment, DateTime Setting
@@ -396,6 +405,7 @@ FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
 PRODUCTION_WELL_OVERLAP = set.intersection(*map(set, [FIBER_DATA['Well'],
                                                       DATA_PRODUCTION['Well'],
                                                       DATA_TEST['Well']]))
+
 #################
 # VISUALIZATION #
 #################
