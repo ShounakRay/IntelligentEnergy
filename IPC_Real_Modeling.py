@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 25-Jan-2021 15:01:39:398  GMT-0700
+# @Last modified time: 26-Jan-2021 13:01:90:904  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -20,11 +20,13 @@ import os
 import numpy as np
 import pandas as pd
 
-# import pandas_profiling
-
 # import sys
 # sys.version_info
 # import pickle
+
+
+# import pandas_profiling
+
 # from itertools import chain
 # import timeit
 # from functools import reduce
@@ -55,12 +57,26 @@ FINALE                  --> Join of PRODUCTION_WELL_WSENSOR
 # Folder Specifications
 __FOLDER__ = r'Data/'
 PATH_INJECTION = __FOLDER__ + r'OLT injection data.xlsx'
-PATH_PRODUCTION = __FOLDER__ + r'OLT production data.xlsx'
+PATH_PRODUCTION = __FOLDER__ + r'OLT production data (rev 1).xlsx'
 PATH_TEST = __FOLDER__ + r'OLT well test data.xlsx'
 # Data Imports
 DATA_INJECTION_ORIG = pd.read_excel(PATH_INJECTION)
 DATA_PRODUCTION_ORIG = pd.read_excel(PATH_PRODUCTION)
 DATA_TEST_ORIG = pd.read_excel(PATH_TEST)
+
+# DATA_INJECTION_ORIG.to_pickle('Pickles/DATA_INJECTION_ORIG.pkl')
+# DATA_PRODUCTION_ORIG.to_pickle('Pickles/DATA_PRODUCTION_ORIG.pkl')
+# DATA_TEST_ORIG.to_pickle('Pickles/DATA_TEST_ORIG.pkl')
+# # ind_FIBER_DATA.to_pickle('Pickles/ind_FIBER_DATA.pkl')
+# FIBER_DATA.to_pickle('Pickles/FIBER_DATA.pkl')
+# DATA_INJECTION_STEAM.to_pickle('Pickles/DATA_INJECTION_STEAM.pkl')
+# DATA_INJECTION_PRESS.to_pickle('Pickles/DATA_INJECTION_PRESS.pkl')
+# DATA_PRODUCTION.to_pickle('Pickles/DATA_PRODUCTION.pkl')
+# DATA_TEST.to_pickle('Pickles/DATA_TEST.pkl')
+# PRODUCTION_WELL_INTER.to_pickle('Pickles/PRODUCTION_WELL_INTER.pkl')
+# PRODUCTION_WELL_WSENSOR.to_pickle('Pickles/PRODUCTION_WELL_WSENSOR.pkl')
+# FINALE.to_pickle('Pickles/FINALE.pkl')
+
 
 # HYPER-PARAMETERS
 BINS = 5
@@ -300,7 +316,7 @@ FIBER_DATA = pd.concat(ind_FIBER_DATA, axis=0,
                            drop=True)
 
 # # Confirm Concatenation and Pickling
-# with open('Pickles/fiber_well_list_of_df.pkl', 'wb') as f:
+# with open('Pickles/ind_FIBER_DATA.pkl', 'wb') as f:
 #     pickle.dump(ind_FIBER_DATA, f)
 # with open('Pickles/FIBER_DATA_DataFrame.pkl', 'wb') as f:
 #     pickle.dump(FIBER_DATA, f)
@@ -386,6 +402,9 @@ PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
 FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
                   how='outer', on='Date')
 
+# Base Table Done
+# Verifying Anomalies
+#
 # TODO: !! Verify Fully-Merged Data Table Diagnostically
 
 # PRELIMINARY ANALYSIS/DIAGNOSIS OF ANALYTIC BASE TABLE

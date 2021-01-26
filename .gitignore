@@ -1,0 +1,8 @@
+# Ignore System Files
+.DS_Store
+
+# Ignore Code-Generated HTML Files + Folders
+Exploratory Data Analysis/
+
+# Ignore ZIP Files
+Exploratory Data Analysis.zip
