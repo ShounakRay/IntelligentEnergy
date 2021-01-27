@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Jan-2021 13:01:51:513  GMT-0700
+# @Last modified time: 26-Jan-2021 18:01:91:911  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -17,8 +17,14 @@
 import math
 import os
 
+# from itertools import chain
+# import timeit
+# from functools import reduce
+# import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.backends.backend_pdf import PdfPages
 
 # import sys
 # sys.version_info
@@ -26,12 +32,6 @@ import pandas as pd
 
 
 # import pandas_profiling
-
-# from itertools import chain
-# import timeit
-# from functools import reduce
-# import matplotlib.cm as cm
-# import matplotlib.pyplot as plt
 
 
 # !{sys.executable} -m pip install pandas-profiling
@@ -57,7 +57,7 @@ FINALE                  --> Join of PRODUCTION_WELL_WSENSOR
 # Folder Specifications
 __FOLDER__ = r'Data/'
 PATH_INJECTION = __FOLDER__ + r'OLT injection data.xlsx'
-PATH_PRODUCTION = __FOLDER__ + r'OLT production data (rev 1).xlsx'
+PATH_PRODUCTION = __FOLDER__ + r'OLT production data.xlsx'
 PATH_TEST = __FOLDER__ + r'OLT well test data.xlsx'
 # Data Imports
 DATA_INJECTION_ORIG = pd.read_excel(PATH_INJECTION)
@@ -80,6 +80,7 @@ DATA_TEST_ORIG = pd.read_excel(PATH_TEST)
 
 # HYPER-PARAMETERS
 BINS = 5
+FIG_SIZE = (220, 7)
 
 # FUNCTION DEFINITIONS
 # TODO: Integrate `reshape_well_data` with `condense_fiber` and optimize
@@ -272,7 +273,43 @@ def diagnostic_nan(df):
     print('')
 
 
+def write_ts_matrix(df, groupby, time_feature, mpl_PDF, features_filter):
+    """For each unique pair name/well, produce time-dependent plots
+    of given selected feature.
+
+    Parameters
+    ----------
+    df : DataFrame
+        The original dataset to be investigated.
+    groupby : string
+        Feature name to group information using.
+    time_feature : string
+        Feature name representing time data.
+    mpl_PDF : PdfPages Object
+        What's used to write the pdf.
+    features_filter : list
+        List of features to be analyzed on PDF.
+        I believe this list should have a minimum length of ~10.
+
+    Returns
+    -------
+    VOID
+        Nothing is returned.
+
+    """
+    print('STATUS: T.S. MATRIX >> Processing Matrix...')
+    for w in df[groupby].unique():
+        t = [w + " – " + feat for feat in features_filter[2:]]
+        tsplot = df[df[groupby] == w].plot(title=t, x=time_feature,
+                                           subplots=True,
+                                           layout=(1, len(features_filter)),
+                                           figsize=FIG_SIZE)
+        plt.suptitle(w, fontsize=41)
+        mpl_PDF.savefig(tsplot[0][0].get_figure())
+    print('STATUS: T.S. MATRIX >> Confirming Matrix Process...')
+
 # FIBER DATA INGESTION AND REFORMATTING (~12 mins)
+
 
 # TODO: !! Resolve and Optimize File IO
 # TODO: Modularize File IO
@@ -367,6 +404,21 @@ DATA_PRODUCTION = filter_negatives(DATA_PRODUCTION,
                                        include=['float64']).columns[1:])
 DATA_PRODUCTION = convert_to_date(DATA_PRODUCTION, 'Date')
 DATA_PRODUCTION = DATA_PRODUCTION.infer_objects()
+
+# TODO: !! Check for anomalies in BHP Pressure Data
+# > Kris and I found some data issues in our SQL server and we just had it
+# >> corrected. Some of the producer bottom hole pressure data I sent is false.
+# > Some wells with significant changes are AP5, AP6, BP3, BP5 and BP6.
+# >> I haven’t looked through C, E and F pads but I assume there would be some
+# >> bad data there as well.
+col_of_int = ['Heel_Pressure', 'Toe_Pressure']
+all_wells = set(DATA_PRODUCTION['Well'])
+
+# Very rudimentary, manual anomaly detection
+pp = PdfPages('IPC_Validation_initial.pdf')
+write_ts_matrix(DATA_PRODUCTION, 'Well', 'Date', pp, DATA_PRODUCTION.columns)
+pp.close()
+
 
 # DATA PROCESSING - DATA_TEST
 # Column Filtering, DateTime Setting, Delete Rows with Negative Numerical Cells
