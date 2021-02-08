@@ -442,6 +442,7 @@ DATA_TEST = convert_to_date(DATA_TEST, 'Effective_Date')
 DATA_TEST.rename(columns={'Effective_Date': 'Date'}, inplace=True)
 DATA_TEST = DATA_TEST.infer_objects()
 
+
 # TODO: !! Update Data Schematic
 # TODO: !! Verify Columns of Underlying Datasets
 
@@ -456,6 +457,7 @@ FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
 
 # Base Table Done
 # Verifying Anomalies
+
 #
 # TODO: !! Verify Fully-Merged Data Table Diagnostically
 
@@ -504,6 +506,7 @@ PRODUCTION_WELL_OVERLAP = set.intersection(*map(set, [FIBER_DATA['Well'],
 #################
 #################
 
+"""
 
 #
 """
