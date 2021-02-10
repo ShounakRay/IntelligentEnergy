@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 08-Feb-2021 14:02:02:026  GMT-0700
+# @Last modified time: 09-Feb-2021 16:02:74:741  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -16,6 +16,7 @@
 
 import math
 import os
+from pathlib import Path
 
 # from itertools import chain
 # import timeit
@@ -24,7 +25,8 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.backends.backend_pdf import PdfPages
+
+# from matplotlib.backends.backend_pdf import PdfPages
 
 # import sys
 # sys.version_info
@@ -42,6 +44,9 @@ from matplotlib.backends.backend_pdf import PdfPages
 """
 
 """All Underlying Datasets
+DATA_INJECTION_ORIG     --> The original injection data
+DATA_PRODUCTION_ORIG    --> The original production data (rev 1)
+DATA_TEST_ORIG          --> The originla testing data
 FIBER_DATA              --> Temperature/Distance data along production lines
 DATA_INJECTION_STEAM    --> Metered Steam at Injection Sites
 DATA_INJECTION_PRESS    --> Pressure at Injection Sites
@@ -53,16 +58,40 @@ FINALE                  --> Join of PRODUCTION_WELL_WSENSOR
                                                     and DATA_INJECTION_STEAM
 """
 
-# > DATA INGESTION
+# HYPER-PARAMETERS
+BINS = 5
+FIG_SIZE = (220, 7)
+DIR_EXISTS = Path('Data/Pickles').is_dir()
+
+# > DATA INGESTION (Load of Pickle if available)
 # Folder Specifications
-__FOLDER__ = r'Data/'
-PATH_INJECTION = __FOLDER__ + r'OLT injection data.xlsx'
-PATH_PRODUCTION = __FOLDER__ + r'OLT production data.xlsx'
-PATH_TEST = __FOLDER__ + r'OLT well test data.xlsx'
-# Data Imports
-DATA_INJECTION_ORIG = pd.read_excel(PATH_INJECTION)
-DATA_PRODUCTION_ORIG = pd.read_excel(PATH_PRODUCTION)
-DATA_TEST_ORIG = pd.read_excel(PATH_TEST)
+if(DIR_EXISTS):
+    DATA_INJECTION_ORIG = pd.read_pickle(
+        'Data/Pickles/DATA_INJECTION_ORIG.pkl')
+    DATA_PRODUCTION_ORIG = pd.read_pickle(
+        'Data/Pickles/DATA_PRODUCTION_ORIG.pkl')
+    DATA_TEST_ORIG = pd.read_pickle('Data/Pickles/DATA_TEST_ORIG.pkl')
+    FIBER_DATA = pd.read_pickle('Data/Pickles/FIBER_DATA.pkl')
+    DATA_INJECTION_STEAM = pd.read_pickle(
+        'Data/Pickles/DATA_INJECTION_STEAM.pkl')
+    DATA_INJECTION_PRESS = pd.read_pickle(
+        'Data/Pickles/DATA_INJECTION_PRESS.pkl')
+    DATA_PRODUCTION = pd.read_pickle('Data/Pickles/DATA_PRODUCTION.pkl')
+    DATA_TEST = pd.read_pickle('Data/Pickles/DATA_TEST.pkl')
+    PRODUCTION_WELL_INTER = pd.read_pickle(
+        'Data/Pickles/PRODUCTION_WELL_INTER.pkl')
+    PRODUCTION_WELL_WSENSOR = pd.read_pickle(
+        'Data/Pickles/PRODUCTION_WELL_WSENSOR.pkl')
+    FINALE = pd.read_pickle('Data/Pickles/FINALE.pkl')
+else:
+    __FOLDER__ = r'Data/Isolated/'
+    PATH_INJECTION = __FOLDER__ + r'OLT injection data.xlsx'
+    PATH_PRODUCTION = __FOLDER__ + r'OLT production data (rev 1).xlsx'
+    PATH_TEST = __FOLDER__ + r'OLT well test data.xlsx'
+    # Data Imports
+    DATA_INJECTION_ORIG = pd.read_excel(PATH_INJECTION)
+    DATA_PRODUCTION_ORIG = pd.read_excel(PATH_PRODUCTION)
+    DATA_TEST_ORIG = pd.read_excel(PATH_TEST)
 
 # DATA_INJECTION_ORIG.to_pickle('Pickles/DATA_INJECTION_ORIG.pkl')
 # DATA_PRODUCTION_ORIG.to_pickle('Pickles/DATA_PRODUCTION_ORIG.pkl')
@@ -77,10 +106,6 @@ DATA_TEST_ORIG = pd.read_excel(PATH_TEST)
 # PRODUCTION_WELL_WSENSOR.to_pickle('Pickles/PRODUCTION_WELL_WSENSOR.pkl')
 # FINALE.to_pickle('Pickles/FINALE.pkl')
 
-
-# HYPER-PARAMETERS
-BINS = 5
-FIG_SIZE = (220, 7)
 
 # FUNCTION DEFINITIONS
 # TODO: Integrate `reshape_well_data` with `condense_fiber` and optimize
@@ -308,49 +333,51 @@ def write_ts_matrix(df, groupby, time_feature, mpl_PDF, features_filter):
         mpl_PDF.savefig(tsplot[0][0].get_figure())
     print('STATUS: T.S. MATRIX >> Confirming Matrix Process...')
 
-# FIBER DATA INGESTION AND REFORMATTING (~12 mins)
 
+# FIBER DATA INGESTION AND REFORMATTING (~12 mins)
 
 # TODO: !! Resolve and Optimize File IO
 # TODO: Modularize File IO
-well_set = {}
-ind_FIBER_DATA = []
-well_docs = [x[0] for x in os.walk(r'Data/DTS')][1:]
-for well in well_docs:
-    files = os.listdir(well)
-    well_var_names = []
-    for file in files:
-        # error_bad_lines=False TO AVOID READ ERRORS
-        var_name = file.replace('.xlsx', '').replace('.csv', '')
-        if ".xlsx" in file:
+if not DIR_EXISTS:
+    well_set = {}
+    ind_FIBER_DATA = []
+    well_docs = [x[0] for x in os.walk(r'Data/DTS')][1:]
+    for well in well_docs:
+        files = os.listdir(well)
+        well_var_names = []
+        for file in files:
+            # error_bad_lines=False TO AVOID READ ERRORS
+            var_name = file.replace('.xlsx', '').replace('.csv', '')
+            if ".xlsx" in file:
+                try:
+                    exec(var_name + ' = pd.read_excel(\"' + well
+                         + '/' + file + '")')
+                except Exception as e:
+                    print('Unable to read: ' + file + ', ' + str(e))
+                    continue
+            elif ".csv" in file:
+                try:
+                    exec(var_name + ' = pd.read_csv(\"' + well +
+                         '/' + file + '")')
+                except Exception as e:
+                    print('Unable to read: ' + file + ', ' + str(e))
+                    continue
+            well_var_names.append(var_name)
+            # DataFrame Pre-Processing
             try:
-                exec(var_name + ' = pd.read_excel(\"' + well
-                     + '/' + file + '")')
+                exec(var_name + ' = reshape_well_data(' + var_name + ')')
+                exec('temp = condense_fiber(' + var_name + ', BINS)')
+                temp["Well"] = var_name.replace('DTS', '')
+                exec('ind_FIBER_DATA.append(temp)')
             except Exception as e:
-                print('Unable to read: ' + file + ', ' + str(e))
-                continue
-        elif ".csv" in file:
-            try:
-                exec(var_name + ' = pd.read_csv(\"' + well + '/' + file + '")')
-            except Exception as e:
-                print('Unable to read: ' + file + ', ' + str(e))
-                continue
-        well_var_names.append(var_name)
-        # DataFrame Pre-Processing
-        try:
-            exec(var_name + ' = reshape_well_data(' + var_name + ')')
-            exec('temp = condense_fiber(' + var_name + ', BINS)')
-            temp["Well"] = var_name.replace('DTS', '')
-            exec('ind_FIBER_DATA.append(temp)')
-        except Exception as e:
-            print("Error manipulating " + var_name + ": " + str(e))
+                print("Error manipulating " + var_name + ": " + str(e))
 
-    well_set[well.split('/')[-1]] = well_var_names.copy()
-    well_var_names.clear()
+        well_set[well.split('/')[-1]] = well_var_names.copy()
+        well_var_names.clear()
 
-FIBER_DATA = pd.concat(ind_FIBER_DATA, axis=0,
-                       ignore_index=True).sort_values('Date').reset_index(
-                           drop=True)
+    FIBER_DATA = pd.concat(ind_FIBER_DATA, axis=0,
+                           ignore_index=True).sort_values('Date').reset_index(
+                               drop=True)
 
 # # Confirm Concatenation and Pickling
 # with open('Pickles/ind_FIBER_DATA.pkl', 'wb') as f:
@@ -405,19 +432,19 @@ DATA_PRODUCTION = filter_negatives(DATA_PRODUCTION,
 DATA_PRODUCTION = convert_to_date(DATA_PRODUCTION, 'Date')
 DATA_PRODUCTION = DATA_PRODUCTION.infer_objects()
 
-# TODO: !! Check for anomalies in BHP Pressure Data
+# TODO: !! Filter anomalies in [BHP] Pressure Data
 # > Kris and I found some data issues in our SQL server and we just had it
 # >> corrected. Some of the producer bottom hole pressure data I sent is false.
 # > Some wells with significant changes are AP5, AP6, BP3, BP5 and BP6.
 # >> I haven’t looked through C, E and F pads but I assume there would be some
 # >> bad data there as well.
-col_of_int = ['Heel_Pressure', 'Toe_Pressure']
-all_wells = set(DATA_PRODUCTION['Well'])
-
-# Very rudimentary, manual anomaly detection
-pp = PdfPages('IPC_Validation_initial.pdf')
-write_ts_matrix(DATA_PRODUCTION, 'Well', 'Date', pp, DATA_PRODUCTION.columns)
-pp.close()
+# col_of_int = ['Heel_Pressure', 'Toe_Pressure']
+# all_wells = set(DATA_PRODUCTION['Well'])
+#
+# # Very rudimentary, manual anomaly detection
+# pp = PdfPages('IPC_Validation_initial.pdf')
+# write_ts_matrix(DATA_PRODUCTION, 'Well', 'Date', pp, DATA_PRODUCTION.columns)
+# pp.close()
 
 
 # DATA PROCESSING - DATA_TEST
@@ -454,6 +481,22 @@ PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
                                    how='outer', on=['Date', 'Well'])
 FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
                   how='outer', on='Date')
+
+FINALE.to_csv('Data/FINALE.csv')
+
+# Pickle Absolutely Everything, minimize data injestion time for local testing
+DATA_INJECTION_ORIG.to_pickle('Data/Pickles/DATA_INJECTION_ORIG.pkl')
+DATA_PRODUCTION_ORIG.to_pickle('Data/Pickles/DATA_PRODUCTION_ORIG.pkl')
+DATA_TEST_ORIG.to_pickle('Data/Pickles/DATA_TEST_ORIG.pkl')
+FIBER_DATA.to_pickle('Data/Pickles/FIBER_DATA.pkl')
+DATA_INJECTION_STEAM.to_pickle('Data/Pickles/DATA_INJECTION_STEAM.pkl')
+DATA_INJECTION_PRESS.to_pickle('Data/Pickles/DATA_INJECTION_PRESS.pkl')
+DATA_PRODUCTION.to_pickle('Data/Pickles/DATA_PRODUCTION.pkl')
+DATA_TEST.to_pickle('Data/Pickles/DATA_TEST.pkl')
+PRODUCTION_WELL_INTER.to_pickle('Data/Pickles/PRODUCTION_WELL_INTER.pkl')
+PRODUCTION_WELL_WSENSOR.to_pickle('Data/Pickles/PRODUCTION_WELL_WSENSOR.pkl')
+FINALE.to_pickle('Data/Pickles/FINALE.pkl')
+
 
 # Base Table Done
 # Verifying Anomalies
@@ -506,7 +549,4 @@ PRODUCTION_WELL_OVERLAP = set.intersection(*map(set, [FIBER_DATA['Well'],
 #################
 #################
 
-"""
-
-#
 """

@@ -7,3 +7,9 @@ Exploratory Data Analysis/
 # Ignore ZIP Files
 Exploratory Data Analysis.zip
 Pickles.zip
+
+# Ignore Data
+Data/
+
+# Ignore Data Files
+*.csv
