@@ -13,3 +13,7 @@ Data/
 
 # Ignore Data Files
 *.csv
+*.xls
+*.xlsx
+
+# Ignore System Files
