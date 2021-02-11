@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 10-Feb-2021 15:02:08:084  GMT-0700
+# @Last modified time: 11-Feb-2021 15:02:50:503  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -16,15 +16,23 @@
 
 import math
 import os
+import sys
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+try:
+    from Anomaly_Detection_PKG import *
+except Exception:
+    sys.path.append('/Users/Ray/Documents/GitHub/AnomalyDetection')
+    from Anomaly_Detection_PKG import *
 
 # from itertools import chain
 # import timeit
 # from functools import reduce
 # import matplotlib.cm as cm
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 
 # from matplotlib.backends.backend_pdf import PdfPages
 
@@ -481,6 +489,15 @@ PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
                                    how='outer', on=['Date', 'Well'])
 FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
                   how='outer', on='Date')
+
+data = FINALE.copy()
+well = 'AP2'  # Production Well
+
+
+ft, total, info, windows = anomaly_detection(data, well, feat, ALL_FEATURES=['Default'], method=mtds, mode=mds,
+                                             gamma='scale', nu=0.3, model_name='rbf', N_EST=100,
+                                             diff_thresh=100, contamination=cnts, plot=True, n_jobs=-1,
+                                             iteration=1)
 
 FINALE.to_csv('Data/FINALE.csv')
 
