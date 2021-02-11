@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 11-Feb-2021 15:02:50:503  GMT-0700
+# @Last modified time: 11-Feb-2021 15:02:98:980  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -489,15 +489,35 @@ PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
                                    how='outer', on=['Date', 'Well'])
 FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
                   how='outer', on='Date')
+list(FINALE.columns)
 
 data = FINALE.copy()
 well = 'AP2'  # Production Well
+feat = 'Daily_Meter_Steam'
+mtds = ['Offline Outlier']
+mds = ['overall', 'overall']
+cnts = ['0.2', '0.2']
+ALL_FEATURES = ['Hourly_Meter_Steam',
+                'Daily_Meter_Steam',
+                'Pump_Speed',
+                'Tubing_Pressure',
+                'Casing_Pressure',
+                'Heel_Pressure',
+                'Toe_Pressure',
+                'Heel_Temp',
+                'Toe_Temp',
+                '24_Fluid',
+                '24_Oil',
+                '24_Hour',
+                'Oil',
+                'Water',
+                'Gas']
 
-
-ft, total, info, windows = anomaly_detection(data, well, feat, ALL_FEATURES=['Default'], method=mtds, mode=mds,
+# TODO: Snake-case all ALL_FEATURES directly in package
+ft, total, info, windows = anomaly_detection(data, well, feat, ALL_FEATURES=ALL_FEATURES, method=mtds, mode=mds,
                                              gamma='scale', nu=0.3, model_name='rbf', N_EST=100,
                                              diff_thresh=100, contamination=cnts, plot=True, n_jobs=-1,
-                                             iteration=1)
+                                             iteration=1, TIME_COL='Date', GROUPBY_COL='Well')
 
 FINALE.to_csv('Data/FINALE.csv')
 
