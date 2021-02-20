@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Feb-2021 13:02:76:760  GMT-0700
+# @Last modified time: 20-Feb-2021 14:02:81:814  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -343,6 +343,33 @@ def write_ts_matrix(df, groupby, time_feature, mpl_PDF, features_filter):
     print('STATUS: T.S. MATRIX >> Confirming Matrix Process...')
 
 
+def interpol(df, cols, time_index='Date', method='time'):
+    missing = []
+    for well in cols:
+        current = pd.to_numeric(df.set_index(time_index)[well])
+        # Check if there is anything to interpolate
+        if(any(current.isnull())):
+            # percentage of NAN in columns
+            prop_init = Counter(current.isnull()).get(True) / len(current)
+            current.index = pd.DatetimeIndex(current.index)
+            current.interpolate(method=method, inplace=True)
+            try:  # Determine
+                prop_fin = Counter(current.isnull()).get(True) / len(current)
+                if(prop_fin == prop_init):
+                    outcome = 'no change'
+                elif(prop_fin < prop_init):
+                    outcome = 'lowered'
+                else:
+                    outcome = 'increased'
+            except TypeError:  # there is no missing value, no True in Counter
+                prop_fin = 0.0
+                outcome = 'lowered'
+            missing.append((well, prop_init, prop_fin, outcome))
+            df[well] = current.values
+    return df, pd.DataFrame(missing, columns=['COLUMN', 'INITIAL_NAN',
+                                              'FINAL_NAN', 'OUTCOME'])
+
+
 # FIBER DATA INGESTION AND REFORMATTING (~12 mins)
 
 # TODO: !! Resolve and Optimize File IO
@@ -419,30 +446,13 @@ DATA_INJECTION.columns.names = (None, None)
 # > Split into Steam and Pressure DataFrames
 DATA_INJECTION_STEAM = DATA_INJECTION['Meter_Steam'].reset_index()
 DATA_INJECTION_PRESS = DATA_INJECTION['Pressure'].reset_index()
-# Interpolate Missing Values
-missing = []
-for well in DATA_INJECTION_STEAM.columns:
-    current = pd.to_numeric(DATA_INJECTION_STEAM.set_index('Date')[well])
-    # Check if there is anything to interpolate
-    if(any(current.isnull())):
-        # percentage of NAN in columns
-        prop_init = Counter(current.isnull()).get(True) / len(current)
-        print(well + ": " + str(prop_init))
-        current.index = pd.DatetimeIndex(current.index)
-        current.interpolate(method='time', inplace=True)
-        prop_fin = Counter(current.isnull()).get(True) / len(current)
-        missing = (well, prop_init, prop_fin)
-# pd.to_numeric(current)
-# DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
-# print(list(current))
-# dir(current)
+# Handle NANs at tail and head differently
+# Interpolate Missing Values (surrounded by non-NA values)
 
-# s = pd.Series([np.float64(np.nan), 0, 2, np.nan, 8, np.nan])
-# s.index = ['2020-12-19', '2020-12-20', '2020-12-22',
-#            '2020-12-25', '2020-12-28', '2020-12-31']
-# s.index = pd.DatetimeIndex(s.index)
-# s.interpolate(method='linear')
-# type([np.nan, 0, 2, np.nan, 8, 10][0])
+DATA_INJECTION_STEAM, DATA_INJECTION_STEAM_NANBENCH = interpol(DATA_INJECTION_STEAM,
+                                                               DATA_INJECTION_STEAM.columns[1:])
+# DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
+Counter(DATA_INJECTION_STEAM_NANBENCH['OUTCOME'])
 
 
 # DATA PROCESSING - DATA_PRODUCTION
