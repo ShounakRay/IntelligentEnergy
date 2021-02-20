@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 11-Feb-2021 15:02:98:980  GMT-0700
+# @Last modified time: 20-Feb-2021 13:02:76:760  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -17,6 +17,7 @@
 import math
 import os
 import sys
+from collections import Counter
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -400,7 +401,7 @@ DATA_INJECTION = DATA_INJECTION_ORIG.reset_index(drop=True)
 DATA_INJECTION.columns = ['Date', 'Pad', 'Well', 'UWI_Identifier', 'Time_On',
                           'Alloc_Steam', 'Meter_Steam', 'Casing_Pressure',
                           'Tubing_Pressure', 'Reason', 'Comment']
-DATA_INJECTION_KEYS = ['Date', 'Well', 'Meter_Steam',
+DATA_INJECTION_KEYS = ['Date', 'Pad', 'Well', 'Meter_Steam',
                        'Casing_Pressure', 'Tubing_Pressure']
 DATA_INJECTION = DATA_INJECTION[DATA_INJECTION_KEYS]
 DATA_INJECTION['Pressure'] = DATA_INJECTION.apply(pressure_lambda, axis=1)
@@ -418,6 +419,31 @@ DATA_INJECTION.columns.names = (None, None)
 # > Split into Steam and Pressure DataFrames
 DATA_INJECTION_STEAM = DATA_INJECTION['Meter_Steam'].reset_index()
 DATA_INJECTION_PRESS = DATA_INJECTION['Pressure'].reset_index()
+# Interpolate Missing Values
+missing = []
+for well in DATA_INJECTION_STEAM.columns:
+    current = pd.to_numeric(DATA_INJECTION_STEAM.set_index('Date')[well])
+    # Check if there is anything to interpolate
+    if(any(current.isnull())):
+        # percentage of NAN in columns
+        prop_init = Counter(current.isnull()).get(True) / len(current)
+        print(well + ": " + str(prop_init))
+        current.index = pd.DatetimeIndex(current.index)
+        current.interpolate(method='time', inplace=True)
+        prop_fin = Counter(current.isnull()).get(True) / len(current)
+        missing = (well, prop_init, prop_fin)
+# pd.to_numeric(current)
+# DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
+# print(list(current))
+# dir(current)
+
+# s = pd.Series([np.float64(np.nan), 0, 2, np.nan, 8, np.nan])
+# s.index = ['2020-12-19', '2020-12-20', '2020-12-22',
+#            '2020-12-25', '2020-12-28', '2020-12-31']
+# s.index = pd.DatetimeIndex(s.index)
+# s.interpolate(method='linear')
+# type([np.nan, 0, 2, np.nan, 8, 10][0])
+
 
 # DATA PROCESSING - DATA_PRODUCTION
 # Column Filtering, DateTime Setting, Delete Rows with Negative Numerical Cells
@@ -429,7 +455,7 @@ DATA_PRODUCTION.columns = ['Date', 'Pad', 'Well', 'UWI_Identifier', 'Time_On',
                            'Pump_Speed', 'Tubing_Pressure', 'Casing_Pressure',
                            'Heel_Pressure', 'Toe_Pressure', 'Heel_Temp',
                            'Toe_Temp', 'Last_Test_Date', 'Reason', 'Comment']
-DATA_PRODUCTION_KEYS = ['Date', 'Well', 'Time_On', 'Hourly_Meter_Steam',
+DATA_PRODUCTION_KEYS = ['Date', 'Pad', 'Well', 'Time_On', 'Hourly_Meter_Steam',
                         'Daily_Meter_Steam', 'Pump_Speed',
                         'Tubing_Pressure', 'Casing_Pressure', 'Heel_Pressure',
                         'Toe_Pressure', 'Heel_Temp', 'Toe_Temp']
@@ -439,6 +465,7 @@ DATA_PRODUCTION = filter_negatives(DATA_PRODUCTION,
                                        include=['float64']).columns[1:])
 DATA_PRODUCTION = convert_to_date(DATA_PRODUCTION, 'Date')
 DATA_PRODUCTION = DATA_PRODUCTION.infer_objects()
+
 
 # TODO: !! Filter anomalies in [BHP] Pressure Data
 # > Kris and I found some data issues in our SQL server and we just had it
@@ -466,7 +493,7 @@ DATA_TEST.columns = ['Pad', 'Well', 'Start_Time', 'End_Time', 'Duration',
                      'Operator_Approved', 'Operator_Rejected',
                      'Operator_Comment', 'Engineering_Approved',
                      'Engineering_Rejected', 'Engineering_Comment']
-DATA_TEST_KEYS = ['Well', 'Duration', 'Effective_Date',
+DATA_TEST_KEYS = ['Well', 'Pad', 'Duration', 'Effective_Date',
                   '24_Fluid', '24_Oil', '24_Hour',
                   'Oil', 'Water', 'Gas', 'Fluid']
 DATA_TEST = DATA_TEST[DATA_TEST_KEYS]
@@ -484,12 +511,16 @@ DATA_TEST = DATA_TEST.infer_objects()
 # CREATE ANALYTIC BASE TABLED, MERGED
 # Base Off DATA_PRODUCTION
 PRODUCTION_WELL_INTER = pd.merge(DATA_PRODUCTION, DATA_TEST,
-                                 how='outer', on=['Date', 'Well'])
+                                 how='outer', on=['Date', 'Pad', 'Well'])
 PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
                                    how='outer', on=['Date', 'Well'])
 FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
                   how='outer', on='Date')
 list(FINALE.columns)
+FINALE.to_csv('Data/FINALE.csv')
+
+# ANOMALY DETECTION AND FILTERING
+
 
 data = FINALE.copy()
 well = 'AP2'  # Production Well
@@ -514,12 +545,10 @@ ALL_FEATURES = ['Hourly_Meter_Steam',
                 'Gas']
 
 # TODO: Snake-case all ALL_FEATURES directly in package
-ft, total, info, windows = anomaly_detection(data, well, feat, ALL_FEATURES=ALL_FEATURES, method=mtds, mode=mds,
-                                             gamma='scale', nu=0.3, model_name='rbf', N_EST=100,
-                                             diff_thresh=100, contamination=cnts, plot=True, n_jobs=-1,
-                                             iteration=1, TIME_COL='Date', GROUPBY_COL='Well')
-
-FINALE.to_csv('Data/FINALE.csv')
+# ft, total, info, windows = anomaly_detection(data, well, feat, ALL_FEATURES=ALL_FEATURES, method=mtds, mode=mds,
+#                                              gamma='scale', nu=0.3, model_name='rbf', N_EST=100,
+#                                              diff_thresh=100, contamination=cnts, plot=True, n_jobs=-1,
+#                                              iteration=1, TIME_COL='Date', GROUPBY_COL='Well')
 
 # Pickle Absolutely Everything, minimize data injestion time for local testing
 DATA_INJECTION_ORIG.to_pickle('Data/Pickles/DATA_INJECTION_ORIG.pkl')
