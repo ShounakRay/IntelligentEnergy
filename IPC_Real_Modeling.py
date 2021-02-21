@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Feb-2021 14:02:81:814  GMT-0700
+# @Last modified time: 20-Feb-2021 22:02:73:738  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -342,8 +342,10 @@ def write_ts_matrix(df, groupby, time_feature, mpl_PDF, features_filter):
         mpl_PDF.savefig(tsplot[0][0].get_figure())
     print('STATUS: T.S. MATRIX >> Confirming Matrix Process...')
 
+# TODO: ? Number of days a well is shut in at a time
 
-def interpol(df, cols, time_index='Date', method='time'):
+
+def interpol(df, cols, time_index='Date', method='time', limit=15, limit_area=None):
     missing = []
     for well in cols:
         current = pd.to_numeric(df.set_index(time_index)[well])
@@ -352,7 +354,8 @@ def interpol(df, cols, time_index='Date', method='time'):
             # percentage of NAN in columns
             prop_init = Counter(current.isnull()).get(True) / len(current)
             current.index = pd.DatetimeIndex(current.index)
-            current.interpolate(method=method, inplace=True)
+            current.interpolate(method=method, limit=limit,
+                                limit_area=limit_area, inplace=True)
             try:  # Determine
                 prop_fin = Counter(current.isnull()).get(True) / len(current)
                 if(prop_fin == prop_init):
@@ -452,8 +455,7 @@ DATA_INJECTION_PRESS = DATA_INJECTION['Pressure'].reset_index()
 DATA_INJECTION_STEAM, DATA_INJECTION_STEAM_NANBENCH = interpol(DATA_INJECTION_STEAM,
                                                                DATA_INJECTION_STEAM.columns[1:])
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
-Counter(DATA_INJECTION_STEAM_NANBENCH['OUTCOME'])
-
+# Counter(DATA_INJECTION_STEAM_NANBENCH['OUTCOME'])
 
 # DATA PROCESSING - DATA_PRODUCTION
 # Column Filtering, DateTime Setting, Delete Rows with Negative Numerical Cells
@@ -471,11 +473,34 @@ DATA_PRODUCTION_KEYS = ['Date', 'Pad', 'Well', 'Time_On', 'Hourly_Meter_Steam',
                         'Toe_Pressure', 'Heel_Temp', 'Toe_Temp']
 DATA_PRODUCTION = DATA_PRODUCTION[DATA_PRODUCTION_KEYS]
 DATA_PRODUCTION = filter_negatives(DATA_PRODUCTION,
-                                   DATA_PRODUCTION.select_dtypes(
-                                       include=['float64']).columns[1:])
+                                   DATA_PRODUCTION.select_dtypes(include=['float64']).columns[1:])
 DATA_PRODUCTION = convert_to_date(DATA_PRODUCTION, 'Date')
 DATA_PRODUCTION = DATA_PRODUCTION.infer_objects()
+sensor_col = DATA_PRODUCTION.columns[4:][0]
+for sensor_col in DATA_PRODUCTION.columns[4:]:
+    filtered = DATA_PRODUCTION[['Date', sensor_col, 'Well']]
+    sensor_pivoted = filtered.pivot_table(sensor_col,
+                                          'Date',
+                                          'Well',
+                                          dropna=False).reset_index()
+    sensor_pivoted.columns.names = [None]
+    sensor_pivoted, sensor_pivoted_NANBENCH = interpol(sensor_pivoted,
+                                                       sensor_pivoted.columns[1:], method='index')
+    sensor_pivoted.fillna(0.0, inplace=True)
+    sensor_pivoted = pd.melt(sensor_pivoted, id_vars='Date', value_vars=sensor_pivoted.columns[1:],
+                             var_name='Well', value_name=sensor_col)
+    sensor_pivoted.merge(DATA_PRODUCTION[['Date', sensor_col, 'Well']])
 
+sensor_pivoted.dropna()
+Counter(DATA_PRODUCTION[['Date', sensor_col, 'Well']]['Well']) == Counter(sensor_pivoted['Well'])
+
+DATA_PRODUCTION[['Date', sensor_col, 'Well']]
+df_diff = pd.concat([DATA_PRODUCTION[['Date', sensor_col, 'Well']],
+                     sensor_pivoted]).drop_duplicates(keep=False)
+
+len(set(DATA_PRODUCTION[['Date', sensor_col, 'Well']]['Well']))
+len(set(sensor_pivoted['Well']))
+sensor_pivoted.set_index('Date')['CP3'].plot(figsize=(12, 4))
 
 # TODO: !! Filter anomalies in [BHP] Pressure Data
 # > Kris and I found some data issues in our SQL server and we just had it
