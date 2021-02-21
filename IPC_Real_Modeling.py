@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Feb-2021 00:02:29:299  GMT-0700
+# @Last modified time: 21-Feb-2021 00:02:68:684  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -404,7 +404,13 @@ def complete_interpol(df, cols, PIVOT=True):
     return reduce(lambda left, right: pd.merge(left, right, on=['Date', 'Well']), all_dfs)
 
 
+def viz_to_confirm(df, well, feature):
+    dumbo = df.set_index('Date')
+    fig = dumbo[dumbo['Well'] == well][feature].plot(figsize=(12, 4))
+    return fig
+
 # FIBER DATA INGESTION AND REFORMATTING (~12 mins)
+
 
 # TODO: !! Resolve and Optimize File IO
 # TODO: Modularize File IO
@@ -507,14 +513,7 @@ DATA_PRODUCTION = convert_to_date(DATA_PRODUCTION, 'Date')
 DATA_PRODUCTION = DATA_PRODUCTION.infer_objects()
 DATA_PRODUCTION = complete_interpol(DATA_PRODUCTION, DATA_PRODUCTION.columns[3:])
 
-
 viz_to_confirm(DATA_PRODUCTION, 'AP2', 'Pump_Speed').plot()
-
-
-def viz_to_confirm(df, well, feature):
-    dumbo = df.set_index('Date')
-    fig = dumbo[dumbo['Well'] == well][feature].plot(figsize=(12, 4))
-    return fig
 
 # TODO: !! Filter anomalies in [BHP] Pressure Data
 # > Kris and I found some data issues in our SQL server and we just had it
