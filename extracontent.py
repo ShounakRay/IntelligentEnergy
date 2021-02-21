@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Feb-2021 23:02:24:246  GMT-0700
+# @Last modified time: 21-Feb-2021 00:02:89:893  GMT-0700
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -18,3 +18,9 @@
 #
 # len(set(DATA_PRODUCTION[['Date', col, 'Well']]['Well']))
 # len(set(sensor_pivoted['Well']))
+
+# _ = plt.hist(FIBER_DATA['Bin_1'], bins=1000)
+# _ = plt.hist(FIBER_DATA['Bin_2'], bins=1000)
+# _ = plt.hist(FIBER_DATA['Bin_3'], bins=1000)
+# _ = plt.hist(FIBER_DATA['Bin_4'], bins=1000)
+# _ = plt.hist(FIBER_DATA['Bin_5'], bins=1000)

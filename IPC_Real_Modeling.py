@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Feb-2021 00:02:68:684  GMT-0700
+# @Last modified time: 21-Feb-2021 00:02:95:953  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -343,7 +343,7 @@ def write_ts_matrix(df, groupby, time_feature, mpl_PDF, features_filter):
         mpl_PDF.savefig(tsplot[0][0].get_figure())
     print('STATUS: T.S. MATRIX >> Confirming Matrix Process...')
 
-# TODO: ? Number of days a well is shut in at a time
+# TODO: ?!!! Number of days a well is shut in at a time (dynamically change)
 
 
 # Handle NANs at tail and head differently
@@ -454,6 +454,9 @@ if not DIR_EXISTS:
     FIBER_DATA = pd.concat(ind_FIBER_DATA, axis=0,
                            ignore_index=True).sort_values('Date').reset_index(
                                drop=True)
+FIBER_DATA = FIBER_DATA.infer_objects()
+FIBER_DATA = complete_interpol(FIBER_DATA, FIBER_DATA.columns[1:6])
+# dict(FIBER_DATA.isnull().mean() * 100)
 
 # # Confirm Concatenation and Pickling
 # with open('Pickles/ind_FIBER_DATA.pkl', 'wb') as f:
@@ -492,6 +495,8 @@ DATA_INJECTION_STEAM, DATA_INJECTION_STEAM_NANBENCH = interpol(DATA_INJECTION_ST
                                                                DATA_INJECTION_STEAM.columns[1:])
 DATA_INJECTION_PRESS, DATA_INJECTION_PRESS_NANBENCH = interpol(DATA_INJECTION_PRESS,
                                                                DATA_INJECTION_PRESS.columns[1:])
+# dict(DATA_INJECTION_STEAM.isnull().mean() * 100)
+# dict(DATA_INJECTION_PRESS.isnull().mean() * 100)
 
 # DATA PROCESSING - DATA_PRODUCTION
 # Column Filtering, DateTime Setting, Delete Rows with Negative Numerical Cells
@@ -512,8 +517,9 @@ DATA_PRODUCTION = filter_negatives(DATA_PRODUCTION,
 DATA_PRODUCTION = convert_to_date(DATA_PRODUCTION, 'Date')
 DATA_PRODUCTION = DATA_PRODUCTION.infer_objects()
 DATA_PRODUCTION = complete_interpol(DATA_PRODUCTION, DATA_PRODUCTION.columns[3:])
+# dict(DATA_PRODUCTION.isnull().mean() * 100)
 
-viz_to_confirm(DATA_PRODUCTION, 'AP2', 'Pump_Speed').plot()
+# viz_to_confirm(DATA_PRODUCTION, 'AP2', 'Pump_Speed').plot()
 
 # TODO: !! Filter anomalies in [BHP] Pressure Data
 # > Kris and I found some data issues in our SQL server and we just had it
@@ -552,24 +558,31 @@ DATA_TEST = convert_to_date(DATA_TEST, 'Effective_Date')
 DATA_TEST.rename(columns={'Effective_Date': 'Date'}, inplace=True)
 DATA_TEST = DATA_TEST.infer_objects()
 DATA_TEST = complete_interpol(DATA_TEST, DATA_TEST.columns[4:])
+# dict(DATA_TEST.isnull().mean() * 100)
 
 # TODO: !! Update Data Schematic
 # TODO: !! Verify Columns of Underlying Datasets
 
 # CREATE ANALYTIC BASE TABLED, MERGED
 # Base Off DATA_PRODUCTION
+
+# Right join to minimze missing data in merged version (restricts data a bit)
 PRODUCTION_WELL_INTER = pd.merge(DATA_PRODUCTION, DATA_TEST,
-                                 how='outer', on=['Date', 'Pad', 'Well'])
+                                 how='outer', on=['Date', 'Well'])
+# dict(PRODUCTION_WELL_INTER.isnull().mean() * 100)
 PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
-                                   how='outer', on=['Date', 'Well'])
+                                   how='inner', on=['Date', 'Well'])
+# dict(PRODUCTION_WELL_WSENSOR.isnull().mean() * 100)
 FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
                   how='outer', on='Date')
-list(FINALE.columns)
-FINALE.to_csv('Data/FINALE.csv')
+# dict(FINALE.isnull().mean() * 100)
+_ = plt.hist(FINALE['Pump_Speed'], bins=200)
+
+FINALE.to_csv('Data/FINALE_INTERP.csv')
+
+"""
 
 # ANOMALY DETECTION AND FILTERING
-
-
 data = FINALE.copy()
 well = 'AP2'  # Production Well
 feat = 'Daily_Meter_Steam'
@@ -626,6 +639,7 @@ FINALE.to_pickle('Data/Pickles/FINALE.pkl')
 # display(report)
 # report.to_file('FINALE.html')
 
+"""
 
 """DIAGNOSTICS
 #################
