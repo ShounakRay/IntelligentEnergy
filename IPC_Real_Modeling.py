@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Feb-2021 15:02:06:067  GMT-0700
+# @Last modified time: 21-Feb-2021 16:02:57:578  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -552,22 +552,25 @@ PAD_KEYS = dict(zip(DATA_PRODUCTION_ORIG['Well'], DATA_PRODUCTION_ORIG['Pad']))
 
 # Right join to minimze missing data in merged version (restricts data a bit)
 PRODUCTION_WELL_INTER = pd.merge(DATA_PRODUCTION, DATA_TEST,
-                                 how='outer', on=['Date', 'Well'])
+                                 how='inner', on=['Date', 'Well'])
 # dict(PRODUCTION_WELL_INTER.isnull().mean() * 100)
 PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
                                    how='inner', on=['Date', 'Well'])
 # dict(PRODUCTION_WELL_WSENSOR.isnull().mean() * 100)
 FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
-                  how='outer', on='Date')
-# ADD PAD KEYS based on production data
+                  how='inner', on='Date')
+# ADD PAD KEYS based on production data, along with unique id (for DSP)
 FINALE['Pad'] = [PAD_KEYS.get(well) for well in FINALE['Well']]
-
+FINALE['unique_id'] = FINALE.index + 1
+# Reorder columns
+FINALE = FINALE[['unique_id', 'Date', 'Pad', 'Well'] +
+                list(FINALE.columns[2:FINALE.shape[1] - 2])]
 # dict(FINALE.isnull().mean() * 100)
 # _ = plt.hist(FINALE['Pump_Speed'], bins=200)
 
 FINALE.to_csv('Data/FINALE_INTERP.csv')
 
-"""
+_ = """
 # ANOMALY DETECTION AND FILTERING
 data = FINALE.copy()
 well = 'AP2'  # Production Well
@@ -627,7 +630,7 @@ FINALE.to_pickle('Data/Pickles/FINALE.pkl')
 
 """
 
-"""DIAGNOSTICS
+_ = """DIAGNOSTICS
 #################
 # DATE OVERLAP #
 #################
