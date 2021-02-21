@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Feb-2021 23:02:12:126  GMT-0700
+# @Last modified time: 21-Feb-2021 00:02:29:299  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -374,7 +374,7 @@ def interpol(df, cols, time_index='Date', method='time', limit=15, limit_area=No
             df[well] = current.values
 
     out = pd.DataFrame(missing, columns=['COLUMN', 'INITIAL_NAN', 'FINAL_NAN', 'OUTCOME'])
-    out.fillna(0.0, inplace=True)
+    df.fillna(0.0, inplace=True)
     return df, out
 
 
@@ -497,8 +497,7 @@ DATA_PRODUCTION.columns = ['Date', 'Pad', 'Well', 'UWI_Identifier', 'Time_On',
                            'Pump_Speed', 'Tubing_Pressure', 'Casing_Pressure',
                            'Heel_Pressure', 'Toe_Pressure', 'Heel_Temp',
                            'Toe_Temp', 'Last_Test_Date', 'Reason', 'Comment']
-DATA_PRODUCTION_KEYS = ['Date', 'Pad', 'Well', 'Time_On', 'Hourly_Meter_Steam',
-                        'Daily_Meter_Steam', 'Pump_Speed',
+DATA_PRODUCTION_KEYS = ['Date', 'Pad', 'Well', 'Pump_Speed',
                         'Tubing_Pressure', 'Casing_Pressure', 'Heel_Pressure',
                         'Toe_Pressure', 'Heel_Temp', 'Toe_Temp']
 DATA_PRODUCTION = DATA_PRODUCTION[DATA_PRODUCTION_KEYS]
@@ -506,9 +505,16 @@ DATA_PRODUCTION = filter_negatives(DATA_PRODUCTION,
                                    DATA_PRODUCTION.select_dtypes(include=['float64']).columns[1:])
 DATA_PRODUCTION = convert_to_date(DATA_PRODUCTION, 'Date')
 DATA_PRODUCTION = DATA_PRODUCTION.infer_objects()
-DATA_PRODUCTION = complete_interpol(DATA_PRODUCTION, DATA_PRODUCTION.columns[4:])
+DATA_PRODUCTION = complete_interpol(DATA_PRODUCTION, DATA_PRODUCTION.columns[3:])
 
-# sensor_pivoted.set_index('Date')['CP3'].plot(figsize=(12, 4))
+
+viz_to_confirm(DATA_PRODUCTION, 'AP2', 'Pump_Speed').plot()
+
+
+def viz_to_confirm(df, well, feature):
+    dumbo = df.set_index('Date')
+    fig = dumbo[dumbo['Well'] == well][feature].plot(figsize=(12, 4))
+    return fig
 
 # TODO: !! Filter anomalies in [BHP] Pressure Data
 # > Kris and I found some data issues in our SQL server and we just had it
