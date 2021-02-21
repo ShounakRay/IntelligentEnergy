@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Feb-2021 01:02:44:446  GMT-0700
+# @Last modified time: 21-Feb-2021 15:02:06:067  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -38,14 +38,8 @@ except Exception:
 
 # from matplotlib.backends.backend_pdf import PdfPages
 
-# import sys
-# sys.version_info
 # import pickle
-
-
 # import pandas_profiling
-
-
 # !{sys.executable} -m pip install pandas-profiling
 
 
@@ -76,22 +70,16 @@ DIR_EXISTS = Path('Data/Pickles').is_dir()
 # > DATA INGESTION (Load of Pickle if available)
 # Folder Specifications
 if(DIR_EXISTS):
-    DATA_INJECTION_ORIG = pd.read_pickle(
-        'Data/Pickles/DATA_INJECTION_ORIG.pkl')
-    DATA_PRODUCTION_ORIG = pd.read_pickle(
-        'Data/Pickles/DATA_PRODUCTION_ORIG.pkl')
+    DATA_INJECTION_ORIG = pd.read_pickle('Data/Pickles/DATA_INJECTION_ORIG.pkl')
+    DATA_PRODUCTION_ORIG = pd.read_pickle('Data/Pickles/DATA_PRODUCTION_ORIG.pkl')
     DATA_TEST_ORIG = pd.read_pickle('Data/Pickles/DATA_TEST_ORIG.pkl')
     FIBER_DATA = pd.read_pickle('Data/Pickles/FIBER_DATA.pkl')
-    DATA_INJECTION_STEAM = pd.read_pickle(
-        'Data/Pickles/DATA_INJECTION_STEAM.pkl')
-    DATA_INJECTION_PRESS = pd.read_pickle(
-        'Data/Pickles/DATA_INJECTION_PRESS.pkl')
+    DATA_INJECTION_STEAM = pd.read_pickle('Data/Pickles/DATA_INJECTION_STEAM.pkl')
+    DATA_INJECTION_PRESS = pd.read_pickle('Data/Pickles/DATA_INJECTION_PRESS.pkl')
     DATA_PRODUCTION = pd.read_pickle('Data/Pickles/DATA_PRODUCTION.pkl')
     DATA_TEST = pd.read_pickle('Data/Pickles/DATA_TEST.pkl')
-    PRODUCTION_WELL_INTER = pd.read_pickle(
-        'Data/Pickles/PRODUCTION_WELL_INTER.pkl')
-    PRODUCTION_WELL_WSENSOR = pd.read_pickle(
-        'Data/Pickles/PRODUCTION_WELL_WSENSOR.pkl')
+    PRODUCTION_WELL_INTER = pd.read_pickle('Data/Pickles/PRODUCTION_WELL_INTER.pkl')
+    PRODUCTION_WELL_WSENSOR = pd.read_pickle('Data/Pickles/PRODUCTION_WELL_WSENSOR.pkl')
     FINALE = pd.read_pickle('Data/Pickles/FINALE.pkl')
 else:
     __FOLDER__ = r'Data/Isolated/'
@@ -139,8 +127,7 @@ def reshape_well_data(original):
     df.drop([i for i in range(0, 9)], inplace=True, axis=1)
     df.columns = df.iloc[0]
     df.drop(0, inplace=True)
-    df['Date/Time :'] = [complete_date.split('@')[0].strip()
-                         for complete_date in list(df['Date/Time :'])]
+    df['Date/Time :'] = [complete_date.split('@')[0].strip() for complete_date in list(df['Date/Time :'])]
     df['Date/Time :'] = pd.to_datetime(df['Date/Time :'])
 
     df = pd.melt(df, id_vars=['Date/Time :'], value_vars=list(df.columns[1:])
@@ -203,10 +190,8 @@ def condense_fiber(well_df, BINS):
         filtered_test_case.drop('index', 1, inplace=True)
         filtered_test_case['Date'] = selected_date
         filtered_test_case = filtered_test_case.T.reset_index(drop=True)
-        filtered_test_case.columns = ['Bin_' + str(col_i + 1)
-                                      for col_i in filtered_test_case.columns]
-        filtered_test_case['Date'] = filtered_test_case.loc[2][
-            0].to_pydatetime().date()
+        filtered_test_case.columns = ['Bin_' + str(col_i + 1) for col_i in filtered_test_case.columns]
+        filtered_test_case['Date'] = filtered_test_case.loc[2][0].to_pydatetime().date()
         filtered_test_case.drop([1, 2], axis=0, inplace=True)
 
         cume_dict[d_i] = dict(filtered_test_case.loc[0])
@@ -301,10 +286,8 @@ def diagnostic_nan(df):
         Nothing. Statements Printed.
 
     """
-    print('Percentage of NaN in each column.\nOut of '
-          + str(df.shape[0]) + ' rows:')
-    print(((df.isnull().astype(int).sum()) * 100 / df.shape[0]).sort_values(
-        ascending=False))
+    print('Percentage of NaN in each column.\nOut of ' + str(df.shape[0]) + ' rows:')
+    print(((df.isnull().astype(int).sum()) * 100 / df.shape[0]).sort_values(ascending=False))
     print('')
 
 
@@ -552,9 +535,7 @@ DATA_TEST_KEYS = ['Well', 'Pad', 'Duration', 'Effective_Date',
                   '24_Fluid', '24_Oil', '24_Hour',
                   'Oil', 'Water', 'Gas', 'Fluid']
 DATA_TEST = DATA_TEST[DATA_TEST_KEYS]
-DATA_TEST = filter_negatives(DATA_TEST,
-                             DATA_TEST.select_dtypes(
-                                 include=['float64']).columns)
+DATA_TEST = filter_negatives(DATA_TEST, DATA_TEST.select_dtypes(include=['float64']).columns)
 DATA_TEST = convert_to_date(DATA_TEST, 'Effective_Date')
 DATA_TEST.rename(columns={'Effective_Date': 'Date'}, inplace=True)
 DATA_TEST = DATA_TEST.infer_objects()
@@ -587,7 +568,6 @@ FINALE['Pad'] = [PAD_KEYS.get(well) for well in FINALE['Well']]
 FINALE.to_csv('Data/FINALE_INTERP.csv')
 
 """
-
 # ANOMALY DETECTION AND FILTERING
 data = FINALE.copy()
 well = 'AP2'  # Production Well
