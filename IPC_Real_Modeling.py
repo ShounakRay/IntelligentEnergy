@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Feb-2021 22:02:73:738  GMT-0700
+# @Last modified time: 20-Feb-2021 23:02:70:703  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -18,6 +18,7 @@ import math
 import os
 import sys
 from collections import Counter
+from functools import reduce
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -345,6 +346,7 @@ def write_ts_matrix(df, groupby, time_feature, mpl_PDF, features_filter):
 # TODO: ? Number of days a well is shut in at a time
 
 
+# Handle NANs at tail and head differently
 def interpol(df, cols, time_index='Date', method='time', limit=15, limit_area=None):
     missing = []
     for well in cols:
@@ -369,8 +371,37 @@ def interpol(df, cols, time_index='Date', method='time', limit=15, limit_area=No
                 outcome = 'lowered'
             missing.append((well, prop_init, prop_fin, outcome))
             df[well] = current.values
-    return df, pd.DataFrame(missing, columns=['COLUMN', 'INITIAL_NAN',
-                                              'FINAL_NAN', 'OUTCOME'])
+
+    out = pd.DataFrame(missing, columns=['COLUMN', 'INITIAL_NAN', 'FINAL_NAN', 'OUTCOME'])
+    out.fillna(0.0, inplace=True)
+    return out
+
+
+# Assumes that DataFrame is numerical and has 'Date' and 'Well' columns
+# Interpolate Missing Values (surrounded by non-NA values)
+def complete_interpol(df, cols, PIVOT=True):
+    # col = DATA_PRODUCTION.columns[4:][0]
+    all_dfs = []
+
+    for col in cols:
+        filtered = df[['Date', col, 'Well']]
+        if(PIVOT):
+            sensor_pivoted = filtered.pivot_table(col, 'Date', 'Well',
+                                                  dropna=False).reset_index()
+            sensor_pivoted.columns.names = [None]
+        sensor_pivoted, sensor_pivoted_NANBENCH = interpol(sensor_pivoted,
+                                                           sensor_pivoted.columns[1:],
+                                                           method='time')
+        sensor_pivoted.fillna(0.0, inplace=True)
+        sensor_pivoted = pd.melt(sensor_pivoted, id_vars='Date', value_vars=sensor_pivoted.columns[1:],
+                                 var_name='Well', value_name=col)
+        if(PIVOT):
+            temp = sensor_pivoted.merge(filtered, on=list(sensor_pivoted.columns), how='left')
+            all_dfs.append(temp)
+        else:
+            all_dfs.append(sensor_pivoted)
+
+    return reduce(lambda left, right: pd.merge(left, right, on=['Date', 'Well']), all_dfs)
 
 
 # FIBER DATA INGESTION AND REFORMATTING (~12 mins)
@@ -444,18 +475,16 @@ DATA_INJECTION = convert_to_date(DATA_INJECTION, 'Date')
 DATA_INJECTION = DATA_INJECTION.infer_objects()
 # > Pivot so columns feature all injection wells and cells are steam values
 DATA_INJECTION = DATA_INJECTION.pivot_table(['Meter_Steam', 'Pressure'],
-                                            'Date', ['Well'])
+                                            'Date', ['Well'], dropna=False)
 DATA_INJECTION.columns.names = (None, None)
 # > Split into Steam and Pressure DataFrames
 DATA_INJECTION_STEAM = DATA_INJECTION['Meter_Steam'].reset_index()
 DATA_INJECTION_PRESS = DATA_INJECTION['Pressure'].reset_index()
-# Handle NANs at tail and head differently
-# Interpolate Missing Values (surrounded by non-NA values)
+DATA_INJECTION_STEAM = complete_interpol(DATA_INJECTION_STEAM, DATA_INJECTION_STEAM.columns[1:], PIVOT=False)
+DATA_INJECTION_PRESS = complete_interpol(DATA_INJECTION_PRESS, DATA_INJECTION_PRESS.columns[1:], PIVOT=False)
+# DATA_INJECTION_STEAM, DATA_INJECTION_STEAM_NANBENCH = interpol(DATA_INJECTION_STEAM,
+#                                                                DATA_INJECTION_STEAM.columns[1:])
 
-DATA_INJECTION_STEAM, DATA_INJECTION_STEAM_NANBENCH = interpol(DATA_INJECTION_STEAM,
-                                                               DATA_INJECTION_STEAM.columns[1:])
-# DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
-# Counter(DATA_INJECTION_STEAM_NANBENCH['OUTCOME'])
 
 # DATA PROCESSING - DATA_PRODUCTION
 # Column Filtering, DateTime Setting, Delete Rows with Negative Numerical Cells
@@ -476,31 +505,9 @@ DATA_PRODUCTION = filter_negatives(DATA_PRODUCTION,
                                    DATA_PRODUCTION.select_dtypes(include=['float64']).columns[1:])
 DATA_PRODUCTION = convert_to_date(DATA_PRODUCTION, 'Date')
 DATA_PRODUCTION = DATA_PRODUCTION.infer_objects()
-sensor_col = DATA_PRODUCTION.columns[4:][0]
-for sensor_col in DATA_PRODUCTION.columns[4:]:
-    filtered = DATA_PRODUCTION[['Date', sensor_col, 'Well']]
-    sensor_pivoted = filtered.pivot_table(sensor_col,
-                                          'Date',
-                                          'Well',
-                                          dropna=False).reset_index()
-    sensor_pivoted.columns.names = [None]
-    sensor_pivoted, sensor_pivoted_NANBENCH = interpol(sensor_pivoted,
-                                                       sensor_pivoted.columns[1:], method='index')
-    sensor_pivoted.fillna(0.0, inplace=True)
-    sensor_pivoted = pd.melt(sensor_pivoted, id_vars='Date', value_vars=sensor_pivoted.columns[1:],
-                             var_name='Well', value_name=sensor_col)
-    sensor_pivoted.merge(DATA_PRODUCTION[['Date', sensor_col, 'Well']])
+DATA_PRODUCTION = complete_interpol(DATA_PRODUCTION, DATA_PRODUCTION.columns[4:])
 
-sensor_pivoted.dropna()
-Counter(DATA_PRODUCTION[['Date', sensor_col, 'Well']]['Well']) == Counter(sensor_pivoted['Well'])
-
-DATA_PRODUCTION[['Date', sensor_col, 'Well']]
-df_diff = pd.concat([DATA_PRODUCTION[['Date', sensor_col, 'Well']],
-                     sensor_pivoted]).drop_duplicates(keep=False)
-
-len(set(DATA_PRODUCTION[['Date', sensor_col, 'Well']]['Well']))
-len(set(sensor_pivoted['Well']))
-sensor_pivoted.set_index('Date')['CP3'].plot(figsize=(12, 4))
+# sensor_pivoted.set_index('Date')['CP3'].plot(figsize=(12, 4))
 
 # TODO: !! Filter anomalies in [BHP] Pressure Data
 # > Kris and I found some data issues in our SQL server and we just had it
@@ -538,7 +545,7 @@ DATA_TEST = filter_negatives(DATA_TEST,
 DATA_TEST = convert_to_date(DATA_TEST, 'Effective_Date')
 DATA_TEST.rename(columns={'Effective_Date': 'Date'}, inplace=True)
 DATA_TEST = DATA_TEST.infer_objects()
-
+DATA_TEST = complete_interpol(DATA_TEST, DATA_TEST.columns[4:])
 
 # TODO: !! Update Data Schematic
 # TODO: !! Verify Columns of Underlying Datasets
