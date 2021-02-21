@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Feb-2021 00:02:95:953  GMT-0700
+# @Last modified time: 21-Feb-2021 01:02:44:446  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -498,6 +498,7 @@ DATA_INJECTION_PRESS, DATA_INJECTION_PRESS_NANBENCH = interpol(DATA_INJECTION_PR
 # dict(DATA_INJECTION_STEAM.isnull().mean() * 100)
 # dict(DATA_INJECTION_PRESS.isnull().mean() * 100)
 
+
 # DATA PROCESSING - DATA_PRODUCTION
 # Column Filtering, DateTime Setting, Delete Rows with Negative Numerical Cells
 DATA_PRODUCTION = DATA_PRODUCTION_ORIG.reset_index(drop=True)
@@ -566,6 +567,8 @@ DATA_TEST = complete_interpol(DATA_TEST, DATA_TEST.columns[4:])
 # CREATE ANALYTIC BASE TABLED, MERGED
 # Base Off DATA_PRODUCTION
 
+PAD_KEYS = dict(zip(DATA_PRODUCTION_ORIG['Well'], DATA_PRODUCTION_ORIG['Pad']))
+
 # Right join to minimze missing data in merged version (restricts data a bit)
 PRODUCTION_WELL_INTER = pd.merge(DATA_PRODUCTION, DATA_TEST,
                                  how='outer', on=['Date', 'Well'])
@@ -575,8 +578,11 @@ PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
 # dict(PRODUCTION_WELL_WSENSOR.isnull().mean() * 100)
 FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
                   how='outer', on='Date')
+# ADD PAD KEYS based on production data
+FINALE['Pad'] = [PAD_KEYS.get(well) for well in FINALE['Well']]
+
 # dict(FINALE.isnull().mean() * 100)
-_ = plt.hist(FINALE['Pump_Speed'], bins=200)
+# _ = plt.hist(FINALE['Pump_Speed'], bins=200)
 
 FINALE.to_csv('Data/FINALE_INTERP.csv')
 
