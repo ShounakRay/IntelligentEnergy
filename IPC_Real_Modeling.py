@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Feb-2021 23:02:70:703  GMT-0700
+# @Last modified time: 20-Feb-2021 23:02:12:126  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -347,6 +347,7 @@ def write_ts_matrix(df, groupby, time_feature, mpl_PDF, features_filter):
 
 
 # Handle NANs at tail and head differently
+# TODO: ! Columns skipped because there was nothing to interpolate?
 def interpol(df, cols, time_index='Date', method='time', limit=15, limit_area=None):
     missing = []
     for well in cols:
@@ -374,7 +375,7 @@ def interpol(df, cols, time_index='Date', method='time', limit=15, limit_area=No
 
     out = pd.DataFrame(missing, columns=['COLUMN', 'INITIAL_NAN', 'FINAL_NAN', 'OUTCOME'])
     out.fillna(0.0, inplace=True)
-    return out
+    return df, out
 
 
 # Assumes that DataFrame is numerical and has 'Date' and 'Well' columns
@@ -392,7 +393,6 @@ def complete_interpol(df, cols, PIVOT=True):
         sensor_pivoted, sensor_pivoted_NANBENCH = interpol(sensor_pivoted,
                                                            sensor_pivoted.columns[1:],
                                                            method='time')
-        sensor_pivoted.fillna(0.0, inplace=True)
         sensor_pivoted = pd.melt(sensor_pivoted, id_vars='Date', value_vars=sensor_pivoted.columns[1:],
                                  var_name='Well', value_name=col)
         if(PIVOT):
@@ -480,11 +480,12 @@ DATA_INJECTION.columns.names = (None, None)
 # > Split into Steam and Pressure DataFrames
 DATA_INJECTION_STEAM = DATA_INJECTION['Meter_Steam'].reset_index()
 DATA_INJECTION_PRESS = DATA_INJECTION['Pressure'].reset_index()
-DATA_INJECTION_STEAM = complete_interpol(DATA_INJECTION_STEAM, DATA_INJECTION_STEAM.columns[1:], PIVOT=False)
-DATA_INJECTION_PRESS = complete_interpol(DATA_INJECTION_PRESS, DATA_INJECTION_PRESS.columns[1:], PIVOT=False)
-# DATA_INJECTION_STEAM, DATA_INJECTION_STEAM_NANBENCH = interpol(DATA_INJECTION_STEAM,
-#                                                                DATA_INJECTION_STEAM.columns[1:])
-
+# DATA_INJECTION_STEAM = complete_interpol(DATA_INJECTION_STEAM, DATA_INJECTION_STEAM.columns[1:], PIVOT=False)
+# DATA_INJECTION_PRESS = complete_interpol(DATA_INJECTION_PRESS, DATA_INJECTION_PRESS.columns[1:], PIVOT=False)
+DATA_INJECTION_STEAM, DATA_INJECTION_STEAM_NANBENCH = interpol(DATA_INJECTION_STEAM,
+                                                               DATA_INJECTION_STEAM.columns[1:])
+DATA_INJECTION_PRESS, DATA_INJECTION_PRESS_NANBENCH = interpol(DATA_INJECTION_PRESS,
+                                                               DATA_INJECTION_PRESS.columns[1:])
 
 # DATA PROCESSING - DATA_PRODUCTION
 # Column Filtering, DateTime Setting, Delete Rows with Negative Numerical Cells
