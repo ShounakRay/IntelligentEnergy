@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Feb-2021 22:02:26:269  GMT-0700
+# @Last modified time: 21-Feb-2021 23:02:93:937  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -348,7 +348,7 @@ def write_ts_matrix(df, groupby, time_feature, mpl_PDF, features_filter):
 
 # Handle NANs at tail and head differently
 # TODO: ! Columns skipped because there was nothing to interpolate?
-def interpol(df, cols, time_index='Date', method='time', limit=15, limit_area=None):
+def interpol(df, cols, time_index='Date', method='time', limit=30, limit_area=None):
     missing = []
     for well in cols:
         current = pd.to_numeric(df.set_index(time_index)[well])
@@ -550,14 +550,14 @@ DATA_PRODUCTION['Pad'] = [PAD_KEYS.get(well) for well in DATA_PRODUCTION['Well']
 # TODO: (?) BSW, Chlorides, Pump_Speed, Pump_Efficiency, Pump_Size
 DATA_TEST = DATA_TEST_ORIG.reset_index(drop=True)
 DATA_TEST.columns = ['Pad', 'Well', 'Start_Time', 'End_Time', 'Duration',
-                     'Effective_Date', '24_Fluid', '24_Oil', '24_Hour', 'Oil',
+                     'Effective_Date', '24_Fluid', '24_Oil', '24_Water', 'Oil',
                      'Water', 'Gas', 'Fluid', 'BSW', 'Chlorides',
                      'Pump_Speed', 'Pump_Efficiency', 'Pump_Size',
                      'Operator_Approved', 'Operator_Rejected',
                      'Operator_Comment', 'Engineering_Approved',
                      'Engineering_Rejected', 'Engineering_Comment']
 DATA_TEST_KEYS = ['Well', 'Pad', 'Duration', 'Effective_Date',
-                  '24_Fluid', '24_Oil', '24_Hour',
+                  '24_Fluid', '24_Oil', '24_Water',
                   'Oil', 'Water', 'Gas', 'Fluid']
 DATA_TEST = DATA_TEST[DATA_TEST_KEYS]
 DATA_TEST = filter_negatives(DATA_TEST, DATA_TEST.select_dtypes(include=['float64']).columns)
@@ -627,7 +627,7 @@ ALL_FEATURES = ['Hourly_Meter_Steam',
                 'Toe_Temp',
                 '24_Fluid',
                 '24_Oil',
-                '24_Hour',
+                '24_Water',
                 'Oil',
                 'Water',
                 'Gas']
@@ -682,8 +682,7 @@ PRODUCTION_WELL_OVERLAP = set.intersection(*map(set, [FIBER_DATA['Well'],
 #################
 # # Observe Pressures Over Time in INJECTION_DATA
 # df = DATA_INJECTION[['Date', 'Well', 'Casing_Pressure', 'Tubing_Pressure']
-#                     ][DATA_INJECTION['Well'] == 'CI06'].reset_index(
-#                         drop=True)
+#                     ][DATA_INJECTION['Well'] == 'CI06'].reset_index(drop=True)
 # plt.figure(figsize=(24, 19))
 # plt.scatter(df['Date'], df['Casing_Pressure'], s=10)
 # plt.scatter(df['Date'], df['Tubing_Pressure'], s=10)
