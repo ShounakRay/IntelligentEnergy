@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Feb-2021 22:02:89:894  GMT-0700
+# @Last modified time: 21-Feb-2021 22:02:26:269  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -31,16 +31,20 @@ except Exception:
     sys.path.append('/Users/Ray/Documents/GitHub/AnomalyDetection')
     from Anomaly_Detection_PKG import *
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 # from itertools import chain
 # import timeit
 # from functools import reduce
 # import matplotlib.cm as cm
-
 # from matplotlib.backends.backend_pdf import PdfPages
-
 # import pickle
 # import pandas_profiling
 # !{sys.executable} -m pip install pandas-profiling
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
 """Major Notes:
@@ -75,6 +79,9 @@ FINALE                  --> Join of PRODUCTION_WELL_WSENSOR
 BINS = 5
 FIG_SIZE = (220, 7)
 DIR_EXISTS = Path('Data/Pickles').is_dir()
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # > DATA INGESTION (Load of Pickle if available)
 # Folder Specifications
@@ -113,7 +120,8 @@ else:
 # PRODUCTION_WELL_WSENSOR.to_pickle('Pickles/PRODUCTION_WELL_WSENSOR.pkl')
 # FINALE.to_pickle('Pickles/FINALE.pkl')
 
-
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FUNCTION DEFINITIONS
 # TODO: Integrate `reshape_well_data` with `condense_fiber` and optimize
 
@@ -404,7 +412,8 @@ def viz_to_confirm(df, well, feature):
 
 PAD_KEYS = dict(zip(DATA_PRODUCTION_ORIG['Well'], DATA_PRODUCTION_ORIG['Pad']))
 
-
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FIBER DATA INGESTION AND REFORMATTING (~12 mins)
 
 
@@ -454,7 +463,6 @@ FIBER_DATA = FIBER_DATA.infer_objects()
 FIBER_DATA = complete_interpol(FIBER_DATA, FIBER_DATA.columns[1:6])
 # dict(FIBER_DATA.isnull().mean() * 100)
 FIBER_DATA['Pad'] = [PAD_KEYS.get(well) for well in FIBER_DATA['Well']]
-
 
 # # Confirm Concatenation and Pickling
 # with open('Pickles/ind_FIBER_DATA.pkl', 'wb') as f:
@@ -563,6 +571,8 @@ DATA_TEST['Pad'] = [PAD_KEYS.get(well) for well in DATA_TEST['Well']]
 # TODO: !! Update Data Schematic
 # TODO: !! Verify Columns of Underlying Datasets
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # CREATE ANALYTIC BASE TABLED, MERGED
 # Base Off DATA_PRODUCTION
 
@@ -576,13 +586,11 @@ PRODUCTION_WELL_INTER['test_flag'] = PRODUCTION_WELL_INTER['_merge'].replace(['b
 PRODUCTION_WELL_INTER.drop('_merge', axis=1, inplace=True)
 # dict(PRODUCTION_WELL_INTER.isnull().mean() * 100)
 
-
 # The wells are not identical, FIBER_DATA has extra wells within A and B patterns (will be excluded)
 # and PRODUCTION_WELL_ITER has wells outside A and B patterns (will be excluded)
 PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
                                    how='inner', on=['Date', 'Pad', 'Well'])
 # dict(PRODUCTION_WELL_WSENSOR.isnull().mean() * 100)
-
 
 FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
                   how='inner', on='Date')
