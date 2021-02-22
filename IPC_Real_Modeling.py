@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Feb-2021 22:02:53:537  GMT-0700
+# @Last modified time: 21-Feb-2021 22:02:89:894  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -569,33 +569,36 @@ DATA_TEST['Pad'] = [PAD_KEYS.get(well) for well in DATA_TEST['Well']]
 # The wells and pads are identical across the L/R sources, however extraneous since !(a and b)
 PRODUCTION_WELL_INTER = pd.merge(DATA_PRODUCTION, DATA_TEST,
                                  how='outer', on=['Date', 'Pad', 'Well'], indicator=True)
+
 # Add test flag based on NAN occurence after outer join
 PRODUCTION_WELL_INTER['test_flag'] = PRODUCTION_WELL_INTER['_merge'].replace(['both', 'left_only'],
                                                                              [True, False])
 PRODUCTION_WELL_INTER.drop('_merge', axis=1, inplace=True)
-
 # dict(PRODUCTION_WELL_INTER.isnull().mean() * 100)
+
+
+# The wells are not identical, FIBER_DATA has extra wells within A and B patterns (will be excluded)
+# and PRODUCTION_WELL_ITER has wells outside A and B patterns (will be excluded)
 PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
                                    how='inner', on=['Date', 'Pad', 'Well'])
 # dict(PRODUCTION_WELL_WSENSOR.isnull().mean() * 100)
+
+
 FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
                   how='inner', on='Date')
 # ADD PAD KEYS based on production data, along with unique id (for DSP)
 # FINALE['Pad'] = [PAD_KEYS.get(well) for well in FINALE['Well']]
 FINALE['unique_id'] = FINALE.index + 1
-# Reorder columns
+# Reorder columns (there will be duplicates, don't even try filtering them here)
 FINALE = FINALE[['unique_id', 'Date', 'Pad', 'Well'] +
-                list(FINALE.columns[2:FINALE.shape[1] - 1])]
+                list(FINALE.columns)]
 # drop columns with duplicate NAMES (doesn't assess values)
 FINALE = FINALE.loc[:, ~FINALE.columns.duplicated()]
-
 # dict(FINALE.isnull().mean() * 100)
 # _ = plt.hist(FINALE['Pump_Speed'], bins=200)
-
 FINALE.to_csv('Data/FINALE_INTERP.csv')
-DATA_PRODUCTION['Well'].unique()
 
-# production, injection, test, fiber
+# DATA_INJECTION_STEAM['Well'].unique()
 
 _ = """
 # ANOMALY DETECTION AND FILTERING
