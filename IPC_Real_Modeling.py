@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Feb-2021 21:02:24:241  GMT-0700
+# @Last modified time: 21-Feb-2021 22:02:53:537  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -45,6 +45,8 @@ except Exception:
 
 """Major Notes:
 > Ensure Python Version in root directory matches that of local directory
+>> AKA ensure that there isn't a discrepancy between local and global setting of Python
+> `pandas_profiling` will not work inside Atom, must user `jupyter-notebook` in terminal
 """
 
 """All Underlying Datasets
@@ -60,6 +62,13 @@ PRODUCTION_WELL_INTER   --> Join of DATA_TEST and DATA_PRODUCTION
 PRODUCTION_WELL_WSENSOR --> Join of PRODUCTION_WELL_INTER and FIBER_DATA
 FINALE                  --> Join of PRODUCTION_WELL_WSENSOR
                                                     and DATA_INJECTION_STEAM
+"""
+
+"""Filtering Notes:
+> Excess Production Data is inside the dataset (more than just A and B pads/patterns)
+>> These will be filtered out
+> Excess (?) Fiber Data is inside the dataset (uncommon, otherwise unseen wells combos inside A  and B pads)
+>> These will be filtered out
 """
 
 # HYPER-PARAMETERS
@@ -557,9 +566,14 @@ DATA_TEST['Pad'] = [PAD_KEYS.get(well) for well in DATA_TEST['Well']]
 # CREATE ANALYTIC BASE TABLED, MERGED
 # Base Off DATA_PRODUCTION
 
-# Right join to minimze missing data in merged version (restricts data a bit)
+# The wells and pads are identical across the L/R sources, however extraneous since !(a and b)
 PRODUCTION_WELL_INTER = pd.merge(DATA_PRODUCTION, DATA_TEST,
-                                 how='inner', on=['Date', 'Pad', 'Well'])
+                                 how='outer', on=['Date', 'Pad', 'Well'], indicator=True)
+# Add test flag based on NAN occurence after outer join
+PRODUCTION_WELL_INTER['test_flag'] = PRODUCTION_WELL_INTER['_merge'].replace(['both', 'left_only'],
+                                                                             [True, False])
+PRODUCTION_WELL_INTER.drop('_merge', axis=1, inplace=True)
+
 # dict(PRODUCTION_WELL_INTER.isnull().mean() * 100)
 PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
                                    how='inner', on=['Date', 'Pad', 'Well'])
@@ -581,6 +595,7 @@ FINALE = FINALE.loc[:, ~FINALE.columns.duplicated()]
 FINALE.to_csv('Data/FINALE_INTERP.csv')
 DATA_PRODUCTION['Well'].unique()
 
+# production, injection, test, fiber
 
 _ = """
 # ANOMALY DETECTION AND FILTERING
