@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Feb-2021 23:02:93:937  GMT-0700
+# @Last modified time: 22-Feb-2021 12:02:59:597  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -403,6 +403,9 @@ def complete_interpol(df, cols, PIVOT=True):
 
     return reduce(lambda left, right: pd.merge(left, right, on=['Date', 'Well']), all_dfs)
 
+# Just to confirm interpolation
+# =
+
 
 def viz_to_confirm(df, well, feature):
     dumbo = df.set_index('Date')
@@ -605,10 +608,12 @@ FINALE = FINALE.loc[:, ~FINALE.columns.duplicated()]
 # dict(FINALE.isnull().mean() * 100)
 # _ = plt.hist(FINALE['Pump_Speed'], bins=200)
 FINALE.to_csv('Data/FINALE_INTERP.csv')
+# TODO: Heel_pressure not recognized
 
 # DATA_INJECTION_STEAM['Well'].unique()
 
 _ = """
+list(FINALE.columns)
 # ANOMALY DETECTION AND FILTERING
 data = FINALE.copy()
 well = 'AP2'  # Production Well
@@ -633,10 +638,11 @@ ALL_FEATURES = ['Hourly_Meter_Steam',
                 'Gas']
 
 # TODO: Snake-case all ALL_FEATURES directly in package
-# ft, total, info, windows = anomaly_detection(data, well, feat, ALL_FEATURES=ALL_FEATURES, method=mtds, mode=mds,
-#                                              gamma='scale', nu=0.3, model_name='rbf', N_EST=100,
-#                                              diff_thresh=100, contamination=cnts, plot=True, n_jobs=-1,
-#                                              iteration=1, TIME_COL='Date', GROUPBY_COL='Well')
+ft, total, info, windows = anomaly_detection(data, well, feat, ALL_FEATURES=ALL_FEATURES, method=mtds, mode=mds,
+                                             gamma='scale', nu=0.3, model_name='rbf', N_EST=100,
+                                             diff_thresh=100, contamination=cnts, plot=True, n_jobs=-1,
+                                             iteration=1, TIME_COL='Date', GROUPBY_COL='Well')
+
 
 # Pickle Absolutely Everything, minimize data injestion time for local testing
 DATA_INJECTION_ORIG.to_pickle('Data/Pickles/DATA_INJECTION_ORIG.pkl')
