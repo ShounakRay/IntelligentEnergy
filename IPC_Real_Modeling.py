@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Feb-2021 16:02:57:578  GMT-0700
+# @Last modified time: 21-Feb-2021 21:02:24:241  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -392,6 +392,10 @@ def viz_to_confirm(df, well, feature):
     fig = dumbo[dumbo['Well'] == well][feature].plot(figsize=(12, 4))
     return fig
 
+
+PAD_KEYS = dict(zip(DATA_PRODUCTION_ORIG['Well'], DATA_PRODUCTION_ORIG['Pad']))
+
+
 # FIBER DATA INGESTION AND REFORMATTING (~12 mins)
 
 
@@ -440,6 +444,8 @@ if not DIR_EXISTS:
 FIBER_DATA = FIBER_DATA.infer_objects()
 FIBER_DATA = complete_interpol(FIBER_DATA, FIBER_DATA.columns[1:6])
 # dict(FIBER_DATA.isnull().mean() * 100)
+FIBER_DATA['Pad'] = [PAD_KEYS.get(well) for well in FIBER_DATA['Well']]
+
 
 # # Confirm Concatenation and Pickling
 # with open('Pickles/ind_FIBER_DATA.pkl', 'wb') as f:
@@ -501,6 +507,8 @@ DATA_PRODUCTION = filter_negatives(DATA_PRODUCTION,
 DATA_PRODUCTION = convert_to_date(DATA_PRODUCTION, 'Date')
 DATA_PRODUCTION = DATA_PRODUCTION.infer_objects()
 DATA_PRODUCTION = complete_interpol(DATA_PRODUCTION, DATA_PRODUCTION.columns[3:])
+DATA_PRODUCTION['Pad'] = [PAD_KEYS.get(well) for well in DATA_PRODUCTION['Well']]
+
 # dict(DATA_PRODUCTION.isnull().mean() * 100)
 
 # viz_to_confirm(DATA_PRODUCTION, 'AP2', 'Pump_Speed').plot()
@@ -540,6 +548,7 @@ DATA_TEST = convert_to_date(DATA_TEST, 'Effective_Date')
 DATA_TEST.rename(columns={'Effective_Date': 'Date'}, inplace=True)
 DATA_TEST = DATA_TEST.infer_objects()
 DATA_TEST = complete_interpol(DATA_TEST, DATA_TEST.columns[4:])
+DATA_TEST['Pad'] = [PAD_KEYS.get(well) for well in DATA_TEST['Well']]
 # dict(DATA_TEST.isnull().mean() * 100)
 
 # TODO: !! Update Data Schematic
@@ -548,27 +557,30 @@ DATA_TEST = complete_interpol(DATA_TEST, DATA_TEST.columns[4:])
 # CREATE ANALYTIC BASE TABLED, MERGED
 # Base Off DATA_PRODUCTION
 
-PAD_KEYS = dict(zip(DATA_PRODUCTION_ORIG['Well'], DATA_PRODUCTION_ORIG['Pad']))
-
 # Right join to minimze missing data in merged version (restricts data a bit)
 PRODUCTION_WELL_INTER = pd.merge(DATA_PRODUCTION, DATA_TEST,
-                                 how='inner', on=['Date', 'Well'])
+                                 how='inner', on=['Date', 'Pad', 'Well'])
 # dict(PRODUCTION_WELL_INTER.isnull().mean() * 100)
 PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
-                                   how='inner', on=['Date', 'Well'])
+                                   how='inner', on=['Date', 'Pad', 'Well'])
 # dict(PRODUCTION_WELL_WSENSOR.isnull().mean() * 100)
 FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
                   how='inner', on='Date')
 # ADD PAD KEYS based on production data, along with unique id (for DSP)
-FINALE['Pad'] = [PAD_KEYS.get(well) for well in FINALE['Well']]
+# FINALE['Pad'] = [PAD_KEYS.get(well) for well in FINALE['Well']]
 FINALE['unique_id'] = FINALE.index + 1
 # Reorder columns
 FINALE = FINALE[['unique_id', 'Date', 'Pad', 'Well'] +
-                list(FINALE.columns[2:FINALE.shape[1] - 2])]
+                list(FINALE.columns[2:FINALE.shape[1] - 1])]
+# drop columns with duplicate NAMES (doesn't assess values)
+FINALE = FINALE.loc[:, ~FINALE.columns.duplicated()]
+
 # dict(FINALE.isnull().mean() * 100)
 # _ = plt.hist(FINALE['Pump_Speed'], bins=200)
 
 FINALE.to_csv('Data/FINALE_INTERP.csv')
+DATA_PRODUCTION['Well'].unique()
+
 
 _ = """
 # ANOMALY DETECTION AND FILTERING
