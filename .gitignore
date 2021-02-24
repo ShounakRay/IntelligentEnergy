@@ -8,12 +8,15 @@ Exploratory Data Analysis/
 Exploratory Data Analysis.zip
 Pickles.zip
 
-# Ignore Data
-Data/
-
 # Ignore Data Files
+Data
 *.csv
 *.xls
 *.xlsx
 
-# Ignore System Files
+# Ignore Literature References
+R&D References/*.pdf
+!R&D References/Plan 1, Anomaly Detection.pdf
+
+# Jupyter Meta Data
+.ipynb_checkpoints
