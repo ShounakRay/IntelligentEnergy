@@ -3,14 +3,22 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 09-Mar-2021 12:03:49:496  GMT-0700
+# @Last modified time: 09-Mar-2021 13:03:37:373  GMT-0700
 # @License: [Private IP]
 
 import os
 import subprocess
 
 import h2o
+from h2o.automl import H2OAutoML
 
+_ = """
+#######################################################################################################################
+#########################################   VERIFY VERSIONS OF DEPENDENCIES   #########################################
+#######################################################################################################################
+"""
+
+# Get the major java version in current environment
 java_major_version = int(subprocess.check_output(['java', '-version'],
                                                  stderr=subprocess.STDOUT).decode().split('"')[1].split('.')[0])
 
@@ -18,8 +26,30 @@ if not (java_major_version >= 8 and java_major_version <= 14):
     raise ValueError('STATUS: Java Version is not between 8 and 15.\n  \
                       h2o instance will not be initialized')
 
+print('STATUS: Dependency versions checked and confirmed.')
+
+
+_ = """
+#######################################################################################################################
+#########################################   DEFINITIONS AND HYPERPARAMTERS   ##########################################
+#######################################################################################################################
+"""
+
 
 def process_snapshot(cluster: h2o.backend.cluster.H2OCluster) -> dict:
+    """Provides a snapshot of the h2o cluster and different status/performance indicators.
+
+    Parameters
+    ----------
+    cluster : h2o.backend.cluster.H2OCluster
+        The h2o cluster where the server was initialized.
+
+    Returns
+    -------
+    dict
+        Information about the status/performance of the specified cluster.
+
+    """
     return {'cluster_name': cluster.cloud_name,
             'pid': cluster.get_status_details()['pid'],
             'version': cluster.version,
@@ -29,42 +59,11 @@ def process_snapshot(cluster: h2o.backend.cluster.H2OCluster) -> dict:
             'health': cluster.cloud_healthy}
 
 
-def cmd_runprint(command: str, prnt_file: bool = True, prnt_scrn: bool = False, ret: bool = False):
-    """Runs a command in Python script and uses remote_shell_output.txt or screen as stdout/console.
-
-    Parameters
-    ----------
-    command : str
-        The command to be executed.
-    prnt_file : bool
-        Whether output of command should be printed to remote_shell_output.txt
-    prnt_scrn : bool
-        Whether output of command should be printed to screen.
-    ret : bool
-        Whether output of command should be returned.
-
-    Returns [Optional]
-    -------
-    None
-        Nothing is returned if ret is False
-    str
-        The output of the command is returned if ret is True
-
-    """
-    exec_output = subprocess.Popen(command,
-                                   shell=True,
-                                   stdout=subprocess.PIPE).stdout.read().decode("utf-8")
-    if(prnt_file):
-        print(exec_output, file=open('remote_shell_output.txt', 'w'))
-    if(prnt_scrn):
-        print(exec_output)
-    if(ret):
-        return exec_output
-
-# Convert the provided h2o demo file to a python file
-# cmd_runprint(command="jupyter nbconvert --to script 'H2O Testing/automl_regression_powerplant_output.ipynb'",
-#              prnt_file=False, prnt_scrn=True)
-
+_ = """
+#######################################################################################################################
+##########################################   INITIALIZE SERVER AND SETUP   ############################################
+#######################################################################################################################
+"""
 
 # INITIALIZE the cluster
 h2o.init(https=False,        # Set to False since https doesn't work on localhost, should be True for docker
@@ -80,12 +79,38 @@ data_path = 'FINALE.csv'
 if(os.path.isfile(data_path)):
     pass
 else:
-    raise ValueError('{data} does not exist in the specificied location.'.format(data=data_path))
+    raise ValueError('ERROR: {data} does not exist in the specificied location.'.format(data=data_path))
 
 # Import the data from the file
+data = h2o.import_file(data_path)
 
+_ = """
+#######################################################################################################################
+#########################################   MODEL TRAINING AND DEVELOPMENT   ##########################################
+#######################################################################################################################
+"""
+
+# Configure and train models
+aml_obj = H2OAutoML(max_runtime_secs=60, seed=1, project_name="IPC_MacroModeling")
+aml_obj.train(y='Daily_Meter_Steam', training_frame=data)
+
+# View models leaderboard and extract desired model
+aml_obj.leaderboard.head(rows=aml_obj.leaderboard.nrows)
+specific_model = h2o.get_model(aml_obj.leaderboard[2, "model_id"])
+
+_ = """
+#######################################################################################################################
+#################################################   SHUT DOWN H2O   ###################################################
+#######################################################################################################################
+"""
 
 # SHUT DOWN the cluster after you're done working with it
 h2o.cluster().shutdown()
+# Double checking...
+try:
+    process_snapshot(h2o.cluster())
+except Exception:
+    raise ValueError('ERROR: H2O cluster improperly closed!')
+
 # EOF
 # EOF
