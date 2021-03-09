@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 09-Mar-2021 13:03:37:373  GMT-0700
+# @Last modified time: 09-Mar-2021 15:03:43:437  GMT-0700
 # @License: [Private IP]
 
 import os
@@ -73,7 +73,7 @@ h2o.init(https=False,        # Set to False since https doesn't work on localhos
 
 # Check the status of the cluster, just for reference
 process_snapshot(h2o.cluster())
-
+h2o.cluster().show_status()
 # Assign and confirm the data path
 data_path = 'FINALE.csv'
 if(os.path.isfile(data_path)):
@@ -91,7 +91,11 @@ _ = """
 """
 
 # Configure and train models
-aml_obj = H2OAutoML(max_runtime_secs=60, seed=1, project_name="IPC_MacroModeling")
+aml_obj = H2OAutoML(max_runtime_secs=60,
+                    stopping_metric='auto',
+                    sort_metric='auto',
+                    seed=2381125,
+                    project_name="IPC_MacroModeling")
 aml_obj.train(y='Daily_Meter_Steam', training_frame=data)
 
 # View models leaderboard and extract desired model
