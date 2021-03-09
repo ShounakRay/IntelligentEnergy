@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: automl_regression_powerplant_output.py
 # @Last modified by:   Ray
-# @Last modified time: 09-Mar-2021 12:03:98:986  GMT-0700
+# @Last modified time: 09-Mar-2021 12:03:39:393  GMT-0700
 # @License: [Private IP]
 
 
@@ -33,7 +33,7 @@ train = splits[0]
 test = splits[1]
 
 aml = H2OAutoML(max_runtime_secs=60, seed=1, project_name="powerplant_lb_frame")
-aml.train(y=y, training_frame=train, leaderboard_frame=test)
+aml.train(y=y, training_frame=train)
 
 # For demonstration purposes, we will also execute a second AutoML run, this time providing the original, full
 #   dataset, `df` (without passing a `leaderboard_frame`).  This is a more efficient use of our data since we can

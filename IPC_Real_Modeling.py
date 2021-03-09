@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 09-Mar-2021 12:03:98:984  GMT-0700
+# @Last modified time: 09-Mar-2021 12:03:38:380  GMT-0700
 # @License: [Private IP]
 
 import subprocess
@@ -43,10 +43,10 @@ def cmd_runprint(command: str, prnt_file: bool = True, prnt_scrn: bool = False, 
     if(ret):
         return exec_output
 
-
 # Convert the provided h2o demo file to a python file
 # cmd_runprint(command="jupyter nbconvert --to script 'H2O Testing/automl_regression_powerplant_output.ipynb'",
 #              prnt_file=False, prnt_scrn=True)
+
 
 # EOF
 
