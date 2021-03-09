@@ -20,3 +20,4 @@ R&D References/*.pdf
 
 # Jupyter Meta Data
 .ipynb_checkpoints
+*.svg
