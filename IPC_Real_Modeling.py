@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 10-Mar-2021 12:03:65:659  GMT-0700
+# @Last modified time: 10-Mar-2021 13:03:95:958  GMT-0700
 # @License: [Private IP]
 
 import os
@@ -100,7 +100,7 @@ if not (os.path.isfile(DATA_PATH)):
 
 # Import the data from the file and exclude any obvious features
 data = h2o.import_file(DATA_PATH)
-data = data.drop(['unique_id', '24_Fluid', '24_Oil', '24_Water'])
+data = data.drop(['C1', 'unique_id', '24_Fluid', '24_Oil', '24_Water'])
 
 data.describe()
 
@@ -112,20 +112,23 @@ _ = """
 encoded_columns = ["Pad", "Well", "test_flag"]
 fold_column = "kfold_column"
 data[fold_column] = data.kfold_column(n_folds=5, seed=RANDOM_SEED)
-data_te = H2OTargetEncoderEstimator(fold_column=fold_column,
-                                    data_leakage_handling="k_fold",
-                                    blending=True,
-                                    inflection_point=3,
-                                    smoothing=10,
-                                    noise=0.15,     # In general, the less data you have the more regularization you need
-                                    seed=RANDOM_SEED)
+data_est_te = H2OTargetEncoderEstimator(fold_column=fold_column,
+                                        data_leakage_handling="k_fold",
+                                        blending=True,
+                                        inflection_point=3,
+                                        smoothing=10,
+                                        noise=0.15,     # In general, the less data you have the more regularization you need
+                                        seed=RANDOM_SEED)
+data_est_te.train(x=encoded_columns,
+                  y=PREDICTORS[0],
+                  training_frame=data)
+data = data_est_te.transform(frame=data, as_training=True)
 
 _ = """
 #######################################################################################################################
 #########################################   MODEL TRAINING AND DEVELOPMENT   ##########################################
 #######################################################################################################################
 """
-
 # Configure and train models
 aml_obj = H2OAutoML(max_runtime_secs=MAX_RUNTIME,
                     stopping_metric=EVAL_METRIC,
@@ -133,7 +136,12 @@ aml_obj = H2OAutoML(max_runtime_secs=MAX_RUNTIME,
                     seed=RANDOM_SEED,
                     project_name="IPC_MacroModeling")
 PREDICTORS = data.columns[data.columns.index(FIRST_WELL_STM):]
-aml_obj.train(y=PREDICTORS[0], training_frame=data)
+# Training features should only use the target encoded versions, and not the older versions
+aml_obj.train(x=[col for col in data.columns
+                 if col not in [fold_column] + [col.replace('_te', '') for col in data.columns if '_te' in col]],
+              y=PREDICTORS[0],
+              fold_column=fold_column,
+              training_frame=data)
 
 # View models leaderboard and extract desired model
 exp_leaderboard = aml_obj.leaderboard
