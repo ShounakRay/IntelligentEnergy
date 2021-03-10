@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 09-Mar-2021 13:03:04:044  GMT-0700
+# @Last modified time: 10-Mar-2021 15:03:78:781  GMT-0700
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -28,3 +28,8 @@
 # Convert the provided h2o demo file to a python file
 # cmd_runprint(command="jupyter nbconvert --to script 'H2O Testing/automl_regression_powerplant_output.ipynb'",
 #              prnt_file=False, prnt_scrn=True)
+
+# variable_importance.melt(id_vars=['variable'],
+#                          value_vars='scaled_importance',
+#                          var_name='injector',
+#                          value_name='importance')

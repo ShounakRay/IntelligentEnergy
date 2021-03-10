@@ -3,15 +3,15 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 10-Mar-2021 14:03:42:425  GMT-0700
+# @Last modified time: 10-Mar-2021 15:03:65:658  GMT-0700
 # @License: [Private IP]
 
 import os
 import subprocess
 
 import h2o
-import matplotlib as plt  # Required dependecy for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp_plot()
-import pandas as pd  # Required dependecy for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp()
+import matplotlib.pyplot as plt  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp_plot()
+import pandas as pd  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp()
 from h2o.automl import H2OAutoML
 from h2o.estimators import H2OTargetEncoderEstimator
 
@@ -42,7 +42,7 @@ SECURED = True if(IP_LINK != 'localhost') else False    # Set to False since htt
 PORT = 54321                                            # Always specify the port that the server should use, tracking
 SERVER_FORCE = True                                     # Attempts to init new server if an existing connection fails
 
-MAX_RUNTIME = 15 * 60                                     # The longest that each model
+MAX_RUNTIME = 1 * 60                                    # The longest that each model
 RANDOM_SEED = 2381125
 EVAL_METRIC = 'auto'
 RANK_METRIC = 'auto'
@@ -162,20 +162,24 @@ _ = """
 #######################################################################################################################
 """
 
-# Configure
-aml_obj = H2OAutoML(max_runtime_secs=MAX_RUNTIME,
-                    stopping_metric=EVAL_METRIC,
-                    sort_metric=RANK_METRIC,
+# Configure experiment
+aml_obj = H2OAutoML(max_runtime_secs=MAX_RUNTIME,               # How long should the experiment run for?
+                    stopping_metric=EVAL_METRIC,                # The evaluation metric to disctinue model training
+                    sort_metric=RANK_METRIC,                    # Leaderboard ranking metric after all trainings
                     seed=RANDOM_SEED,
                     project_name="IPC_MacroModeling")
 
+# NOTE: The model predictors a should only use the target encoded versions, and not the older versions
+PREDICTORS = [col for col in data.columns
+              if col not in [FOLD_COLUMN] + [col.replace('_te', '') for col in data.columns if '_te' in col]]
+
 # Run the experiment
-# NOTE: Training features should only use the target encoded versions, and not the older versions
-aml_obj.train(x=[col for col in data.columns
-                 if col not in [FOLD_COLUMN] + [col.replace('_te', '') for col in data.columns if '_te' in col]],
-              y=RESPONDERS[0],
-              fold_column=FOLD_COLUMN,
-              training_frame=data)
+# NOTE: Fold column specified for cross validation to mitigate leakage
+# https://docs.h2o.ai/h2o/latest-stable/h2o-py/docs/_modules/h2o/automl/autoh2o.html
+aml_obj.train(x=PREDICTORS,                                     # All the depedent variables in each model
+              y=RESPONDERS[0],                                  # A single responder
+              fold_column=FOLD_COLUMN,                          # Fold column name, as specified from encoding
+              training_frame=data)                              # All the data is used for training, cross-validation
 
 # View models leaderboard and extract desired model
 exp_leaderboard = aml_obj.leaderboard
@@ -183,8 +187,45 @@ exp_leaderboard.head(rows=exp_leaderboard.nrows)
 specific_model = h2o.get_model(exp_leaderboard[0, "model_id"])
 
 
-# Determine and store variable importances
-specific_model.varimp(use_pandas=True)
+# <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
+# <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
+# <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
+
+# plt.figure(figsize=(12, 8))
+# plt.plot(history['timestamp'], history['training_deviance'])[0]
+
+# <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
+# <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
+# <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
+
+# For every predictor feature, run an experiment
+cumulative_varimps = []
+for responder in RESPONDERS:
+    # Run the experiment
+    # NOTE: Fold column specified for cross validation to mitigate leakage
+    # https://docs.h2o.ai/h2o/latest-stable/h2o-py/docs/_modules/h2o/automl/autoh2o.html
+    aml_obj.train(x=PREDICTORS,                                 # All the depedent variables in each model
+                  y=responder,                                  # A single responder
+                  fold_column=FOLD_COLUMN,                      # Fold column name, as specified from encoding
+                  training_frame=data)                          # All the data is used for training, cross-validation
+    exp_leaderboard = aml_obj.leaderboard
+
+    exp_models = [h2o.get_model(exp_leaderboard[m_num, "model_id"]) for m_num in range(exp_leaderboard.shape[0])]
+    for model in exp_models:
+        history = model.scoring_history()
+
+        # Determine and store variable importances
+        variable_importance = model.varimp(use_pandas=True)
+        variable_importance = pd.pivot_table(variable_importance,
+                                             values='scaled_importance',
+                                             columns='variable').reset_index(drop=True)
+        variable_importance['model'] = model.params['model_id']['actual']['name']
+        variable_importance['responder'] = responder
+        variable_importance.columns.name = None
+
+    cumulative_varimps.append(variable_importance)
+
+cumulative_varimps = pd.concat(cumulative_varimps)
 
 _ = """
 #######################################################################################################################
