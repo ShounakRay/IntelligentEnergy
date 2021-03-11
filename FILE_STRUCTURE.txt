@@ -37,6 +37,7 @@ IntelligentEnergy/
 │   └── report_PRODUCTION_WELL_WSENSOR.html
 ├── Exploratory Data Analysis.zip
 ├── extracontent.py
+├── FILE_STRUCTURE.txt
 ├── H2O Testing/
 │   ├── .ipynb_checkpoints/
 │   │   └── automl_regression_powerplant_output-checkpoint.ipynb
@@ -87,8 +88,8 @@ IntelligentEnergy/
 │   ├── final_cumulative_varimps.pkl
 │   └── model_novarimps.pkl
 ├── Modeling Reference Files/
-│   ├── final_cumulative_varimps.html
 │   └── svm_conf.pdf
+├── pool_error_log.txt
 ├── R&D References/
 │   ├── Adaptive TS SVM.pdf
 │   ├── Anomaly Detection.pdf
