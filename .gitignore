@@ -13,6 +13,7 @@ Data
 *.csv
 *.xls
 *.xlsx
+*.pkl
 
 # Ignore Literature References
 R&D References/*.pdf

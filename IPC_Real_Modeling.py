@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 10-Mar-2021 16:03:27:274  GMT-0700
+# @Last modified time: 10-Mar-2021 18:03:94:943  GMT-0700
 # @License: [Private IP]
 
 import os
@@ -12,6 +12,7 @@ import subprocess
 import h2o
 import matplotlib.pyplot as plt  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp_plot()
 import pandas as pd  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp()
+import seaborn as sns
 from h2o.automl import H2OAutoML
 from h2o.estimators import H2OTargetEncoderEstimator
 
@@ -127,7 +128,8 @@ if not (os.path.isfile(DATA_PATH)):
 
 # Import the data from the file and exclude any obvious features
 data = h2o.import_file(DATA_PATH)
-data = data.drop(['C1', 'unique_id', '24_Fluid', '24_Oil', '24_Water'])
+# NOTE: Reasoning on initial
+data = data.drop(['C1', 'unique_id', '24_Fluid', '24_Oil', '24_Water', 'Date'])
 
 # All the target features
 RESPONDERS = data.columns[data.columns.index(FIRST_WELL_STM):]
@@ -218,8 +220,8 @@ for responder in RESPONDERS:
         # Determine and store variable importances (for specific responder-model combination)
         variable_importance = model.varimp(use_pandas=True)
 
-        # Only conduct variable importance dataset manipulation if ranking data is available
-        if(variable_importance is not None):  # If the model does have variable importances)
+        # Only conduct variable importance dataset manipulation if ranking data is available (eg. unavailable, stacked)
+        if(variable_importance is not None):
             variable_importance = pd.pivot_table(variable_importance,
                                                  values='scaled_importance',
                                                  columns='variable').reset_index(drop=True)
@@ -228,14 +230,18 @@ for responder in RESPONDERS:
             variable_importance.columns.name = None
 
             cumulative_varimps.append(variable_importance)
-        else:  # If the model doesn't have variable importance (eg. stacked)
+        else:
             print('\n{block}> WARNING: Variable importances unavailable for {MDL}'.format(block=OUT_BLOCK,
                                                                                           MDL=model_name))
             model_novarimps.append((responder, model_name))
 
 
 cumulative_varimps = pd.concat(cumulative_varimps)
+final_cumulative_varimps = cumulative_varimps.reset_index(drop=True)
 
+final_cumulative_varimps.to_pickle('experiment_results.pkl')
+
+test_input = pd.read_pickle('experiment_results.pkl')
 _ = """
 #######################################################################################################################
 #################################################   SHUT DOWN H2O   ###################################################
