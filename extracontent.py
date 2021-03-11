@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 10-Mar-2021 15:03:56:560  GMT-0700
+# @Last modified time: 10-Mar-2021 22:03:90:902  GMT-0700
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -36,3 +36,16 @@
 
 # plt.figure(figsize=(12, 8))
 # plt.plot(history['timestamp'], history['training_deviance'])[0]
+
+# # Run the experiment
+# # NOTE: Fold column specified for cross validation to mitigate leakage
+# # https://docs.h2o.ai/h2o/latest-stable/h2o-py/docs/_modules/h2o/automl/autoh2o.html
+# aml_obj.train(x=PREDICTORS,                                     # All the depedent variables in each model
+#               y=RESPONDERS[0],                                  # A single responder
+#               fold_column=FOLD_COLUMN,                          # Fold column name, as specified from encoding
+#               training_frame=data)                              # All the data is used for training, cross-validation
+#
+# # View models leaderboard and extract desired model
+# exp_leaderboard = aml_obj.leaderboard
+# exp_leaderboard.head(rows=exp_leaderboard.nrows)
+# specific_model = h2o.get_model(exp_leaderboard[0, "model_id"])
