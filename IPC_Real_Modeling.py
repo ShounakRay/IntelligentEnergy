@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 10-Mar-2021 15:03:65:658  GMT-0700
+# @Last modified time: 10-Mar-2021 16:03:27:274  GMT-0700
 # @License: [Private IP]
 
 import os
@@ -37,6 +37,8 @@ _ = """
 #########################################   DEFINITIONS AND HYPERPARAMTERS   ##########################################
 #######################################################################################################################
 """
+OUT_BLOCK = '<><><><><><><><><><><><><><><><><><><><><><><>\n'
+
 IP_LINK = 'localhost'                                   # Initializing the server ont he local host
 SECURED = True if(IP_LINK != 'localhost') else False    # Set to False since https doesn't work locally, should be True
 PORT = 54321                                            # Always specify the port that the server should use, tracking
@@ -173,35 +175,32 @@ aml_obj = H2OAutoML(max_runtime_secs=MAX_RUNTIME,               # How long shoul
 PREDICTORS = [col for col in data.columns
               if col not in [FOLD_COLUMN] + [col.replace('_te', '') for col in data.columns if '_te' in col]]
 
-# Run the experiment
-# NOTE: Fold column specified for cross validation to mitigate leakage
-# https://docs.h2o.ai/h2o/latest-stable/h2o-py/docs/_modules/h2o/automl/autoh2o.html
-aml_obj.train(x=PREDICTORS,                                     # All the depedent variables in each model
-              y=RESPONDERS[0],                                  # A single responder
-              fold_column=FOLD_COLUMN,                          # Fold column name, as specified from encoding
-              training_frame=data)                              # All the data is used for training, cross-validation
+# # Run the experiment
+# # NOTE: Fold column specified for cross validation to mitigate leakage
+# # https://docs.h2o.ai/h2o/latest-stable/h2o-py/docs/_modules/h2o/automl/autoh2o.html
+# aml_obj.train(x=PREDICTORS,                                     # All the depedent variables in each model
+#               y=RESPONDERS[0],                                  # A single responder
+#               fold_column=FOLD_COLUMN,                          # Fold column name, as specified from encoding
+#               training_frame=data)                              # All the data is used for training, cross-validation
+#
+# # View models leaderboard and extract desired model
+# exp_leaderboard = aml_obj.leaderboard
+# exp_leaderboard.head(rows=exp_leaderboard.nrows)
+# specific_model = h2o.get_model(exp_leaderboard[0, "model_id"])
 
-# View models leaderboard and extract desired model
-exp_leaderboard = aml_obj.leaderboard
-exp_leaderboard.head(rows=exp_leaderboard.nrows)
-specific_model = h2o.get_model(exp_leaderboard[0, "model_id"])
-
-
-# <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
-# <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
-# <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
-
-# plt.figure(figsize=(12, 8))
-# plt.plot(history['timestamp'], history['training_deviance'])[0]
 
 # <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
 # <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
 # <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
+
 
 # For every predictor feature, run an experiment
 cumulative_varimps = []
+model_novarimps = []
 for responder in RESPONDERS:
-    # Run the experiment
+    print('\n{block}{block}STATUS: Responder {RESP}'.format(block=OUT_BLOCK,
+                                                            RESP=responder))
+    # Run the experiment (for the specified responder)
     # NOTE: Fold column specified for cross validation to mitigate leakage
     # https://docs.h2o.ai/h2o/latest-stable/h2o-py/docs/_modules/h2o/automl/autoh2o.html
     aml_obj.train(x=PREDICTORS,                                 # All the depedent variables in each model
@@ -210,20 +209,30 @@ for responder in RESPONDERS:
                   training_frame=data)                          # All the data is used for training, cross-validation
     exp_leaderboard = aml_obj.leaderboard
 
+    # Retrieve all the model objects from the given experiment
     exp_models = [h2o.get_model(exp_leaderboard[m_num, "model_id"]) for m_num in range(exp_leaderboard.shape[0])]
     for model in exp_models:
-        history = model.scoring_history()
-
-        # Determine and store variable importances
+        model_name = model.params['model_id']['actual']['name']
+        print('\n{block}> STATUS: Model {MDL}'.format(block=OUT_BLOCK,
+                                                      MDL=model_name))
+        # Determine and store variable importances (for specific responder-model combination)
         variable_importance = model.varimp(use_pandas=True)
-        variable_importance = pd.pivot_table(variable_importance,
-                                             values='scaled_importance',
-                                             columns='variable').reset_index(drop=True)
-        variable_importance['model'] = model.params['model_id']['actual']['name']
-        variable_importance['responder'] = responder
-        variable_importance.columns.name = None
 
-    cumulative_varimps.append(variable_importance)
+        # Only conduct variable importance dataset manipulation if ranking data is available
+        if(variable_importance is not None):  # If the model does have variable importances)
+            variable_importance = pd.pivot_table(variable_importance,
+                                                 values='scaled_importance',
+                                                 columns='variable').reset_index(drop=True)
+            variable_importance['model'] = model_name
+            variable_importance['responder'] = responder
+            variable_importance.columns.name = None
+
+            cumulative_varimps.append(variable_importance)
+        else:  # If the model doesn't have variable importance (eg. stacked)
+            print('\n{block}> WARNING: Variable importances unavailable for {MDL}'.format(block=OUT_BLOCK,
+                                                                                          MDL=model_name))
+            model_novarimps.append((responder, model_name))
+
 
 cumulative_varimps = pd.concat(cumulative_varimps)
 

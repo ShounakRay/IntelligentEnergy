@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 10-Mar-2021 15:03:78:781  GMT-0700
+# @Last modified time: 10-Mar-2021 15:03:56:560  GMT-0700
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -33,3 +33,6 @@
 #                          value_vars='scaled_importance',
 #                          var_name='injector',
 #                          value_name='importance')
+
+# plt.figure(figsize=(12, 8))
+# plt.plot(history['timestamp'], history['training_deviance'])[0]
