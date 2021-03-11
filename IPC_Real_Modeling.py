@@ -3,18 +3,23 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 10-Mar-2021 22:03:32:326  GMT-0700
+# @Last modified time: 11-Mar-2021 00:03:89:895  GMT-0700
 # @License: [Private IP]
+
+# HELPFUL NOTES:
+# > https://github.com/h2oai/h2o-3/tree/master/h2o-docs/src/cheatsheets
 
 import os
 import pickle
 import subprocess
+from typing import Final
 
 import h2o
 import matplotlib.pyplot as plt  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp_plot()
 import numpy as np
 import pandas as pd  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp()
 import seaborn as sns
+import util_traversal
 from h2o.automl import H2OAutoML
 from h2o.estimators import H2OTargetEncoderEstimator
 
@@ -28,33 +33,41 @@ _ = """
 java_major_version = int(subprocess.check_output(['java', '-version'],
                                                  stderr=subprocess.STDOUT).decode().split('"')[1].split('.')[0])
 
+# Check if environment's java version complies with H2O requirements
+# http://docs.h2o.ai/h2o/latest-stable/h2o-docs/welcome.html#requirements
 if not (java_major_version >= 8 and java_major_version <= 14):
-    raise ValueError('STATUS: Java Version is not between 8 and 15.\n  \
-                      h2o instance will not be initialized')
+    raise ValueError('STATUS: Java Version is not between 8 and 14 (inclusive).\n  \
+                      h2o cluster will not be initialized.')
 
 print('STATUS: Dependency versions checked and confirmed.')
-
 
 _ = """
 #######################################################################################################################
 #########################################   DEFINITIONS AND HYPERPARAMTERS   ##########################################
 #######################################################################################################################
 """
-OUT_BLOCK = '<><><><><><><><><><><><><><><><><><><><><><><>\n'
+# Aesthetic Console Output constants
+OUT_BLOCK: Final = '»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»\n'
 
-IP_LINK = 'localhost'                                   # Initializing the server ont he local host
-SECURED = True if(IP_LINK != 'localhost') else False    # Set to False since https doesn't work locally, should be True
-PORT = 54321                                            # Always specify the port that the server should use, tracking
-SERVER_FORCE = True                                     # Attempts to init new server if an existing connection fails
+# H2O server constants
+IP_LINK: Final = 'localhost'                                  # Initializing the server on the local host (temporary)
+SECURED: Final = True if(IP_LINK != 'localhost') else False   # https protocol doesn't work locally, should be True
+PORT: Final = 54321                                           # Always specify the port that the server should use
+SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
-MAX_RUNTIME = 1 * 60                                    # The longest that each model
-RANDOM_SEED = 2381125
-EVAL_METRIC = 'auto'
-RANK_METRIC = 'auto'
-DATA_PATH = 'Data/FINALE_INTERP.csv'
+# Experiment > Model Training Constants and Hyperparameters
+MAX_EXP_RUNTIME: Final = 1 * 60                               # The longest that the experiment will tun
+RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments
+EVAL_METRIC: Final = 'auto'                                   # The evaluation metric to discontinue model training
+RANK_METRIC: Final = 'auto'                                   # Leaderboard ranking metric after all trainings
+DATA_PATH: Final = 'Data/FINALE_INTERP.csv'                   # Where the client-specific data is located
 
-FIRST_WELL_STM = 'CI06'
-FOLD_COLUMN = "kfold_column"
+# Feature Engineering Constants
+FIRST_WELL_STM: Final = 'CI06'                                # Used to splice column list to segregate responders
+FOLD_COLUMN: Final = "kfold_column"                           # Aesthetic: name for specified CV fold assignment column
+
+# Print file structure for reference every time this program is run
+util_traversal.print_tree_to_txt()
 
 
 def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict:
@@ -85,7 +98,7 @@ def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict
             'health': cluster.cloud_healthy}
 
 
-def shutdown_confirm(cluster: h2o.backend.cluster.H2OCluster):
+def shutdown_confirm(cluster: h2o.backend.cluster.H2OCluster) -> None:
     """Terminates the provided h2o cluster.
 
     Parameters
@@ -115,7 +128,7 @@ _ = """
 #######################################################################################################################
 """
 
-# INITIALIZE the cluster
+# Initialize the cluster
 h2o.init(https=SECURED,
          ip=IP_LINK,
          port=PORT,
@@ -130,12 +143,13 @@ if not (os.path.isfile(DATA_PATH)):
 
 # Import the data from the file and exclude any obvious features
 data = h2o.import_file(DATA_PATH)
-# NOTE: Reasoning on initial
+# NOTE: Reasoning on initial feature deletion:
+# > C1          -> This is simply a consecutive counter column. No relation to target
+# > unique_id   -> This is simply a consecutive counter column. No relation to target
+# > 24_Fluid    -> High Correlation with `Fluid` feature in data
+# > 24_Oil      -> High Correlation with `Oil` feature in data
+# > 24_Water    -> High Correlation with `Water` feature in data
 data = data.drop(['C1', 'unique_id', '24_Fluid', '24_Oil', '24_Water', 'Date'])
-
-# All the target features
-RESPONDERS = data.columns[data.columns.index(FIRST_WELL_STM):]
-# data.describe()
 
 _ = """
 #######################################################################################################################
@@ -143,8 +157,14 @@ _ = """
 #######################################################################################################################
 """
 
-# Which columns should be encoded. Must be categorical.
-encoded_columns = ["Pad", "Well", "test_flag"]
+# TODO: Mean Target Encoding isn't currently functional due to manual target spec. -> should be dynamically encoded
+# All the target features
+RESPONDERS = data.columns[data.columns.index(FIRST_WELL_STM):]
+
+# The columns should be encoded. Must be categorical, automatically select the categorical ones.
+temp_df = data.as_data_frame().select_dtypes([float, int]).columns
+encoded_columns = [col for col in data.columns if col not in temp_df]
+# Assign kfold assignment randomly (based on constant RANDOM_SEED for reproducibility)
 data[FOLD_COLUMN] = data.kfold_column(n_folds=5, seed=RANDOM_SEED)
 
 # Congifure auto-encoder
@@ -160,6 +180,7 @@ data_est_te = H2OTargetEncoderEstimator(data_leakage_handling="k_fold",  # enc. 
 data_est_te.train(x=encoded_columns,
                   y=RESPONDERS[0],
                   training_frame=data)
+# Encode the data based on the trained encoder
 data = data_est_te.transform(frame=data, as_training=True)
 
 _ = """
@@ -169,34 +190,16 @@ _ = """
 """
 
 # Configure experiment
-aml_obj = H2OAutoML(max_runtime_secs=MAX_RUNTIME,               # How long should the experiment run for?
-                    stopping_metric=EVAL_METRIC,                # The evaluation metric to disctinue model training
+aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,           # How long should the experiment run for?
+                    stopping_metric=EVAL_METRIC,                # The evaluation metric to discontinue model training
                     sort_metric=RANK_METRIC,                    # Leaderboard ranking metric after all trainings
                     seed=RANDOM_SEED,
                     project_name="IPC_MacroModeling")
 
+# Each of the features individually predicted
 # NOTE: The model predictors a should only use the target encoded versions, and not the older versions
 PREDICTORS = [col for col in data.columns
               if col not in [FOLD_COLUMN] + [col.replace('_te', '') for col in data.columns if '_te' in col]]
-
-# # Run the experiment
-# # NOTE: Fold column specified for cross validation to mitigate leakage
-# # https://docs.h2o.ai/h2o/latest-stable/h2o-py/docs/_modules/h2o/automl/autoh2o.html
-# aml_obj.train(x=PREDICTORS,                                     # All the depedent variables in each model
-#               y=RESPONDERS[0],                                  # A single responder
-#               fold_column=FOLD_COLUMN,                          # Fold column name, as specified from encoding
-#               training_frame=data)                              # All the data is used for training, cross-validation
-#
-# # View models leaderboard and extract desired model
-# exp_leaderboard = aml_obj.leaderboard
-# exp_leaderboard.head(rows=exp_leaderboard.nrows)
-# specific_model = h2o.get_model(exp_leaderboard[0, "model_id"])
-
-
-# <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
-# <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
-# <><><><><> <><><><><> <><><><><> <><><><><> <><><><><> <><><><><>
-
 
 # For every predictor feature, run an experiment
 cumulative_varimps = []
@@ -227,7 +230,8 @@ for responder in RESPONDERS:
             variable_importance = pd.pivot_table(variable_importance,
                                                  values='scaled_importance',
                                                  columns='variable').reset_index(drop=True)
-            variable_importance['model'] = model_name
+            variable_importance['model_name'] = model_name
+            variable_importance['model_object'] = model
             variable_importance['responder'] = responder
             variable_importance.columns.name = None
 
@@ -237,21 +241,25 @@ for responder in RESPONDERS:
                                                                                           MDL=model_name))
             model_novarimps.append((responder, model_name))
 
+# Concatenate all the individual model variable importances into one dataframe
+final_cumulative_varimps = pd.concat(cumulative_varimps).reset_index(drop=True)
+final_cumulative_varimps.index = final_cumulative_varimps['model'] + '___' + final_cumulative_varimps['responder']
+
+# NOTE: Save outputs for reference (so you don't have to wait an hour every time)
 # with open('Modeling Pickles/model_novarimps.pkl', 'wb') as f:
 #     pickle.dump(model_novarimps, f)
-
-cumulative_varimps = pd.concat(cumulative_varimps)
-final_cumulative_varimps = cumulative_varimps.reset_index(drop=True)
-final_cumulative_varimps.index = final_cumulative_varimps['model'] + '___' + final_cumulative_varimps['responder']
 # final_cumulative_varimps.to_pickle('Modeling Pickles/final_cumulative_varimps.pkl')
+# final_cumulative_varimps.to_html('Modeling Reference Files/final_cumulative_varimps.html')
 
-# final_cumulative_varimps.to_html('final_cumulative_varimps.html')
+# NOTE: FOR REFERENCE
+# Filtering of the variable importance summary
 final_cumulative_varimps = final_cumulative_varimps[~final_cumulative_varimps['model'].str.contains('XGBoost')
                                                     ].reset_index(drop=True).select_dtypes(float)
-
 final_cumulative_varimps = final_cumulative_varimps[(final_cumulative_varimps.mean(axis=1) > 0.2) &
                                                     (final_cumulative_varimps.mean(axis=1) < 0.8)].select_dtypes(float)
 
+# NOTE: FOR REFERENCE
+# Plot heatmap of variable importances across all model combinations
 fig, ax = plt.subplots(figsize=(32, 64))
 sns_fig = sns.heatmap(final_cumulative_varimps, annot=False)
 sns_fig.get_figure().savefig('Modeling Reference Files/svm_conf.pdf', bbox_inches="tight")
@@ -261,6 +269,7 @@ _ = """
 #######################################################################################################################
 """
 
+# Shutdown the cluster
 shutdown_confirm(h2o.cluster())
 
 
