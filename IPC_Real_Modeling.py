@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 11-Mar-2021 13:03:66:664  GMT-0700
+# @Last modified time: 11-Mar-2021 14:03:85:858  GMT-0700
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -208,28 +208,37 @@ aml_fe_obj.train(x=SENSOR_PREDICTORS,
                  y=PRODUCTION_TARGET,                                   # A single responder
                  training_frame=TEST_DATA)                              # All the data is used for training, CV
 
-# Determine Variable Importance
+# Determine Variable Importance of Sensor Features
 cumulative_fe_varimps, excluded = exp_cumulative_varimps(aml_fe_obj)
 # Reindex output to name of model (for seaborn labeling)
 cumulative_fe_varimps.index = cumulative_fe_varimps['model_name']
 # Determine the feature rank depending on the mean of ach predictor column
-ranking = cumulative_fe_varimps.select_dtypes(float).mean(axis=0).sort_values(ascending=False)
-# Reorder columns by ranking, Reorder rows by mean of model's variable importances
-cumulative_fe_varimps = cumulative_fe_varimps.select_dtypes(float)[ranking.keys()]
+SENSOR_RANKING = cumulative_fe_varimps.select_dtypes(float).mean(axis=0).sort_values(ascending=False)
+# Reorder columns by SENSOR_RANKING, Reorder rows by mean of model's variable importances
+cumulative_fe_varimps = cumulative_fe_varimps.select_dtypes(float)[SENSOR_RANKING.keys()]
 cumulative_fe_varimps = cumulative_fe_varimps.reindex(cumulative_fe_varimps.mean(axis=1).sort_values(axis=0).index,
                                                       axis=0)
+
+print('STATUS: Optimal Sensor Oil Proxies Determined.')
 
 # NOTE: For reference
 # _ = plt.hist(cumulative_fe_varimps, bins=45, stacked=True)
 # Save oil-sensor correlations to PDF
 fig, ax = plt.subplots(figsize=(8, 16))
-sns_fig = sns.heatmap(cumulative_fe_varimps, annot=False).set_title('Feature Ranking: Best -> Worst')
+sns_fig = sns.heatmap(cumulative_fe_varimps, annot=True).set_title('Feature Ranking:\nBest -> Worst')
 sns_fig.get_figure().savefig('Modeling Reference Files/cumulative_fe_varimps.pdf', bbox_inches="tight")
 
+# NOTE: For reference
 # Correlation heatmaps
-fig, ax = plt.subplots(figsize=(8, 8))
+type_corrs = ['Pearson', 'Kendall', 'Spearman']
+fig, ax = plt.subplots(ncols=len(type_corrs), sharey=True, figsize=(24, 8))
 cmap = sns.diverging_palette(240, 10, n=9, as_cmap=True)
-sns_fig = sns.heatmap(cumulative_fe_varimps.abs().corr(), annot=True).set_title("Pearson's Correlation Matrix")
+for typec in type_corrs:
+    sns_fig = sns.heatmap(cumulative_fe_varimps.abs().corr(typec.lower()),
+                          mask=np.triu(cumulative_fe_varimps.abs().corr()),
+                          ax=ax[type_corrs.index(typec)],
+                          annot=True).set_title("{cortype}'s Correlation Matrix".format(cortype=typec))
+plt.tight_layout()
 sns_fig.get_figure().savefig('Modeling Reference Files/cumulative_fe_varimps.abs().corr().pdf', bbox_inches="tight")
 
 _ = """
@@ -277,41 +286,48 @@ aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,           # How long shoul
                     seed=RANDOM_SEED,
                     project_name="IPC_MacroModeling")
 
-# Run the experiment (for the specified responder)
-# NOTE: Fold column specified for cross validation to mitigate leakage
-# https://docs.h2o.ai/h2o/latest-stable/h2o-py/docs/_modules/h2o/automl/autoh2o.html
-aml_obj.train(x=PREDICTORS,                                 # All the depedent variables in each model
-              y=PRO,                                  # A single responder
-              fold_column=FOLD_COLUMN,                      # Fold column name, as specified from encoding
-              training_frame=data)                          # All the data is used for training, cross-validation
-exp_leaderboard = aml_obj.leaderboard
-
-# Retrieve all the model objects from the given experiment
-exp_models = [h2o.get_model(exp_leaderboard[m_num, "model_id"]) for m_num in range(exp_leaderboard.shape[0])]
+RESPONDERS = SENSOR_RANKING[:3].keys()
+# For every predictor feature, run an experiment
 cumulative_varimps = []
 model_novarimps = []
-for model in exp_models:
-    model_name = model.params['model_id']['actual']['name']
-    print('\n{block}> STATUS: Model {MDL}'.format(block=OUT_BLOCK,
-                                                  MDL=model_name))
-    # Determine and store variable importances (for specific responder-model combination)
-    variable_importance = model.varimp(use_pandas=True)
+for responder in RESPONDERS:
+    print('\n{block}{block}STATUS: Responder {RESP}'.format(block=OUT_BLOCK,
+                                                            RESP=responder))
+    # Run the experiment (for the specified responder)
+    # NOTE: Fold column specified for cross validation to mitigate leakage
+    # https://docs.h2o.ai/h2o/latest-stable/h2o-py/docs/_modules/h2o/automl/autoh2o.html
+    aml_obj.train(x=PREDICTORS,                                 # All the depedent variables in each model
+                  y=responder,                                  # A single responder
+                  # fold_column=FOLD_COLUMN,                      # Fold column name, as specified from encoding
+                  training_frame=data)                          # All the data is used for training, cross-validation
+    exp_leaderboard = aml_obj.leaderboard
 
-    # Only conduct variable importance dataset manipulation if ranking data is available (eg. unavailable, stacked)
-    if(variable_importance is not None):
-        variable_importance = pd.pivot_table(variable_importance,
-                                             values='scaled_importance',
-                                             columns='variable').reset_index(drop=True)
-        variable_importance['model_name'] = model_name
-        variable_importance['model_object'] = model
-        variable_importance['responder'] = responder
-        variable_importance.columns.name = None
+    # Retrieve all the model objects from the given experiment
+    exp_models = [h2o.get_model(exp_leaderboard[m_num, "model_id"]) for m_num in range(exp_leaderboard.shape[0])]
+    cumulative_varimps = []
+    model_novarimps = []
+    for model in exp_models:
+        model_name = model.params['model_id']['actual']['name']
+        print('\n{block}> STATUS: Model {MDL}'.format(block=OUT_BLOCK,
+                                                      MDL=model_name))
+        # Determine and store variable importances (for specific responder-model combination)
+        variable_importance = model.varimp(use_pandas=True)
 
-        cumulative_varimps.append(variable_importance)
-    else:
-        print('\n{block}> WARNING: Variable importances unavailable for {MDL}'.format(block=OUT_BLOCK,
-                                                                                      MDL=model_name))
-        model_novarimps.append((responder, model_name))
+        # Only conduct variable importance dataset manipulation if ranking data is available (eg. unavailable, stacked)
+        if(variable_importance is not None):
+            variable_importance = pd.pivot_table(variable_importance,
+                                                 values='scaled_importance',
+                                                 columns='variable').reset_index(drop=True)
+            variable_importance['model_name'] = model_name
+            variable_importance['model_object'] = model
+            variable_importance['responder'] = responder
+            variable_importance.columns.name = None
+
+            cumulative_varimps.append(variable_importance)
+        else:
+            print('\n{block}> WARNING: Variable importances unavailable for {MDL}'.format(block=OUT_BLOCK,
+                                                                                          MDL=model_name))
+            model_novarimps.append((responder, model_name))
 
 
 # Concatenate all the individual model variable importances into one dataframe
