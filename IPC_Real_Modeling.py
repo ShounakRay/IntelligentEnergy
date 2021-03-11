@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 10-Mar-2021 18:03:94:943  GMT-0700
+# @Last modified time: 10-Mar-2021 18:03:25:254  GMT-0700
 # @License: [Private IP]
 
 import os
@@ -240,8 +240,8 @@ cumulative_varimps = pd.concat(cumulative_varimps)
 final_cumulative_varimps = cumulative_varimps.reset_index(drop=True)
 
 final_cumulative_varimps.to_pickle('experiment_results.pkl')
-
-test_input = pd.read_pickle('experiment_results.pkl')
+fig, ax = plt.subplots(figsize=(16, 16))
+sns.heatmap(final_cumulative_varimps[final_cumulative_varimps.columns[:-5]][:], annot=False)
 _ = """
 #######################################################################################################################
 #################################################   SHUT DOWN H2O   ###################################################
