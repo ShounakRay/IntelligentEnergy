@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 11-Mar-2021 12:03:84:840  GMT-0700
+# @Last modified time: 11-Mar-2021 12:03:77:771  GMT-0700
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -56,7 +56,7 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 1 * 60                               # The longest that the experiment will tun
+MAX_EXP_RUNTIME: Final = 2 * 60                               # The longest that the experiment will tun
 RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments
 EVAL_METRIC: Final = 'auto'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'auto'                                   # Leaderboard ranking metric after all trainings
@@ -198,10 +198,7 @@ aml_fe_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,          # How long sho
                        stopping_metric=EVAL_METRIC,               # The evaluation metric to discontinue model training
                        sort_metric=RANK_METRIC,                   # Leaderboard ranking metric after all trainings
                        seed=RANDOM_SEED,
-                       project_name="IPC_MacroModeling")
-# Run the experiment
-# NOTE: Fold column specified for cross validation to mitigate leakage
-# https://docs.h2o.ai/h2o/latest-stable/h2o-py/docs/_modules/h2o/automl/autoh2o.html
+                       project_name="IPC_OilLimitedModeling")
 
 SENSOR_PREDICTORS = ['Tubing_Pressure', 'Casing_Pressure', 'Heel_Pressure', 'Toe_Pressure', 'Heel_Temp', 'Toe_Temp']
 PRODUCTION_TARGET = 'Oil'
@@ -211,11 +208,13 @@ aml_fe_obj.train(x=SENSOR_PREDICTORS,
                  y=PRODUCTION_TARGET,                                   # A single responder
                  training_frame=TEST_DATA)                              # All the data is used for training, CV
 
-# h2o.no_progress()
-# y = h2o.get_model(aml_fe_obj.leaderboard[0, "model_id"])
+# Determine Variable Importance
 cumulative_fe_varimps, excluded = exp_cumulative_varimps(aml_fe_obj)
+# Reindex output to name of model (for seaborn labeling)
 cumulative_fe_varimps.index = cumulative_fe_varimps['model_name']
+# Determine the feature rank depending on the mean of ach predictor column
 ranking = cumulative_fe_varimps.select_dtypes(float).mean(axis=0).sort_values(ascending=False)
+# Reorder columns by ranking, Reorder rows by mean of model's variable importances
 cumulative_fe_varimps = cumulative_fe_varimps.select_dtypes(float)[ranking.keys()]
 cumulative_fe_varimps = cumulative_fe_varimps.reindex(cumulative_fe_varimps.mean(axis=1).sort_values(axis=0).index,
                                                       axis=0)
