@@ -1,0 +1,106 @@
+IntelligentEnergy/
+├── .DS_Store
+>>>> SKIPPED .GIT FILES !
+├── .ipynb_checkpoints/
+│   └── JUPYTER-IPC_Real_Modeling-checkpoint.ipynb
+├── __init__.py
+├── __pycache__/
+│   └── util_traversal.cpython-38.pyc
+├── Data/
+│   ├── FINALE.csv
+│   ├── FINALE_INTERP.csv
+│   ├── Isolated/
+│   │   ├── OLT injection data.xlsx
+│   │   ├── OLT production data (rev 1).xlsx
+│   │   ├── OLT production data.xlsx
+│   │   └── OLT well test data.xlsx
+│   └── Pickles/
+│       ├── DATA_INJECTION_ORIG.pkl
+│       ├── DATA_INJECTION_PRESS.pkl
+│       ├── DATA_INJECTION_STEAM.pkl
+│       ├── DATA_PRODUCTION.pkl
+│       ├── DATA_PRODUCTION_ORIG.pkl
+│       ├── DATA_TEST.pkl
+│       ├── DATA_TEST_ORIG.pkl
+│       ├── FIBER_DATA.pkl
+│       ├── FINALE.pkl
+│       ├── PRODUCTION_WELL_INTER.pkl
+│       └── PRODUCTION_WELL_WSENSOR.pkl
+├── Exploratory Data Analysis/
+│   ├── report_DATA_INJECTION_PRESS.html
+│   ├── report_DATA_INJECTION_STEAM.html
+│   ├── report_DATA_PRODUCTION.html
+│   ├── report_DATA_TEST.html
+│   ├── report_FIBER_DATA.html
+│   ├── report_FINALE.html
+│   ├── report_PRODUCTION_WELL_INTER.html
+│   └── report_PRODUCTION_WELL_WSENSOR.html
+├── Exploratory Data Analysis.zip
+├── extracontent.py
+├── H2O Testing/
+│   ├── .ipynb_checkpoints/
+│   │   └── automl_regression_powerplant_output-checkpoint.ipynb
+│   ├── automl_regression_powerplant_output.ipynb
+│   └── automl_regression_powerplant_output.py
+├── IntelligentEnergy_Dependency.svg
+├── IPC_Modeling.py
+├── IPC_Real_Manipulation.py
+├── IPC_Real_Modeling.py
+├── LICENSE
+├── Manipulation Reference Files/
+│   ├── .DS_Store
+│   ├── JUPYTER-IPC_Real_Modeling.ipynb
+│   ├── Schematic 1/
+│   │   ├── .DS_Store
+│   │   ├── File_IO_Error_log.png
+│   │   ├── injection.png
+│   │   ├── IPC Layout.pdf
+│   │   ├── IPC_BASE.html.zip
+│   │   ├── IPC_BASE.png
+│   │   ├── IPC_BASE.svg
+│   │   ├── production.png
+│   │   ├── target.png
+│   │   ├── testing.png
+│   │   └── well_example.png
+│   ├── Schematic 2/
+│   │   ├── .DS_Store
+│   │   ├── DATA_INJECTION.png
+│   │   ├── DATA_INJECTION_PRESS.png
+│   │   ├── DATA_INJECTION_STEAM.png
+│   │   ├── DATA_PRODUCTION.png
+│   │   ├── DATA_TEST.png
+│   │   ├── FIBER_DATA.png
+│   │   ├── FINALE.png
+│   │   ├── IPC Layout-1.png
+│   │   ├── IPC Layout.pdf
+│   │   ├── IPC_BASE.png
+│   │   ├── PRODUCTION_WELL_INTER.png
+│   │   ├── PRODUCTION_WELL_WSENSOR.png
+│   │   └── target.png
+│   └── Schematic 3/
+│       ├── IPC_BASE.png
+│       └── IPC_BASE.svg
+├── Manipulation Validation/
+│   ├── IPC_Validation_initial.pdf
+│   └── IPC_Validation_revised.pdf
+├── Modeling Pickles/
+│   ├── final_cumulative_varimps.pkl
+│   └── model_novarimps.pkl
+├── Modeling Reference Files/
+│   ├── final_cumulative_varimps.html
+│   └── svm_conf.pdf
+├── R&D References/
+│   ├── Adaptive TS SVM.pdf
+│   ├── Anomaly Detection.pdf
+│   ├── Feature Selection.pdf
+│   ├── ND Phase Space.pdf
+│   ├── Plan 1, Anomaly Detection.pdf
+│   ├── SAGD Math.pdf
+│   ├── SAGD Vertical Injection Wells.pdf
+│   ├── TS ND OCSVM.pdf
+│   ├── TS Phase Space Theoretical.pdf
+│   └── TS Phase Space.pdf
+├── README.md
+├── run_remote.py
+└── util_traversal.py
+
