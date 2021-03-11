@@ -14,6 +14,9 @@ Data
 *.xls
 *.xlsx
 *.pkl
+*.svg
+*.pdf
+
 
 # Ignore Literature References
 R&D References/*.pdf
@@ -21,4 +24,3 @@ R&D References/*.pdf
 
 # Jupyter Meta Data
 .ipynb_checkpoints
-*.svg

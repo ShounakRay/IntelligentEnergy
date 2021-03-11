@@ -3,14 +3,16 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 10-Mar-2021 18:03:25:254  GMT-0700
+# @Last modified time: 10-Mar-2021 22:03:32:326  GMT-0700
 # @License: [Private IP]
 
 import os
+import pickle
 import subprocess
 
 import h2o
 import matplotlib.pyplot as plt  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp_plot()
+import numpy as np
 import pandas as pd  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp()
 import seaborn as sns
 from h2o.automl import H2OAutoML
@@ -235,13 +237,24 @@ for responder in RESPONDERS:
                                                                                           MDL=model_name))
             model_novarimps.append((responder, model_name))
 
+# with open('Modeling Pickles/model_novarimps.pkl', 'wb') as f:
+#     pickle.dump(model_novarimps, f)
 
 cumulative_varimps = pd.concat(cumulative_varimps)
 final_cumulative_varimps = cumulative_varimps.reset_index(drop=True)
+final_cumulative_varimps.index = final_cumulative_varimps['model'] + '___' + final_cumulative_varimps['responder']
+# final_cumulative_varimps.to_pickle('Modeling Pickles/final_cumulative_varimps.pkl')
 
-final_cumulative_varimps.to_pickle('experiment_results.pkl')
-fig, ax = plt.subplots(figsize=(16, 16))
-sns.heatmap(final_cumulative_varimps[final_cumulative_varimps.columns[:-5]][:], annot=False)
+# final_cumulative_varimps.to_html('final_cumulative_varimps.html')
+final_cumulative_varimps = final_cumulative_varimps[~final_cumulative_varimps['model'].str.contains('XGBoost')
+                                                    ].reset_index(drop=True).select_dtypes(float)
+
+final_cumulative_varimps = final_cumulative_varimps[(final_cumulative_varimps.mean(axis=1) > 0.2) &
+                                                    (final_cumulative_varimps.mean(axis=1) < 0.8)].select_dtypes(float)
+
+fig, ax = plt.subplots(figsize=(32, 64))
+sns_fig = sns.heatmap(final_cumulative_varimps, annot=False)
+sns_fig.get_figure().savefig('Modeling Reference Files/svm_conf.pdf', bbox_inches="tight")
 _ = """
 #######################################################################################################################
 #################################################   SHUT DOWN H2O   ###################################################
