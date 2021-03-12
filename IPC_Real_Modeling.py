@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 11-Mar-2021 14:03:85:858  GMT-0700
+# @Last modified time: 12-Mar-2021 11:03:73:736  GMT-0700
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -56,7 +56,7 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 2 * 60                               # The longest that the experiment will tun
+MAX_EXP_RUNTIME: Final = 2 * 60                               # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments
 EVAL_METRIC: Final = 'auto'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'auto'                                   # Leaderboard ranking metric after all trainings
@@ -71,7 +71,7 @@ util_traversal.print_tree_to_txt()
 
 
 def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict:
-    """Provides a snapshot of the h2o cluster and different status/performance indicators.
+    """Provides a snapshot of the H2O cluster and different status/performance indicators.
 
     Parameters
     ----------
@@ -99,12 +99,12 @@ def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict
 
 
 def shutdown_confirm(cluster: h2o.backend.cluster.H2OCluster) -> None:
-    """Terminates the provided h2o cluster.
+    """Terminates the provided H2O cluster.
 
     Parameters
     ----------
     cluster : h2o.backend.cluster.H2OCluster
-        The h2o cluster where the server was initialized.
+        The H2O cluster where the server was initialized.
 
     Returns
     -------
@@ -122,7 +122,40 @@ def shutdown_confirm(cluster: h2o.backend.cluster.H2OCluster) -> None:
         pass
 
 
-def exp_cumulative_varimps(aml_obj):
+def exp_cumulative_varimps(aml_obj, tag=None, tag_name=None):
+    """Determines variable importances for all models in an experiment.
+
+    Parameters
+    ----------
+    aml_obj : h2o.automl.autoh2o.H2OAutoML
+        The H2O AutoML experiment configuration.
+    tag: iterable (of str) OR None
+        The value(s) for the desired tag per experiment iteration.
+        Must be in iterable AND len(tag) == len(tag_name).
+    tag_name: iterable (of str) OR None
+        The value(s) for the desired identifier for the specifc tag. Must be in iterable.
+        Must be in iterable AND len(tag) == len(tag_name).
+
+    Returns
+    -------
+    pandas.core.frame.DataFrame, list (of tuples)
+        A concatenated DataFrame with all the model's variable importances for all the input features.
+        A list of the models that did not have a variable importance. Format: (name, model object).
+
+    """
+
+    # Minor data sanitation
+    if(tag is not None and tag_name is not None):
+        if(len(tag) != len(tag_name)):
+            raise ValueError('ERROR: Length of specified tag and tag names are not equal.')
+        else:
+            pass
+    else:
+        if(tag == tag_name):    # If both the arguments are None
+            pass
+        else:   # If one of the arguments is None but the other isn't
+            raise ValueError("ERROR: One of the arguments is None but the other is not.")
+
     cumulative_varimps = []
     model_novarimps = []
     exp_leaderboard = aml_obj.leaderboard
@@ -142,16 +175,76 @@ def exp_cumulative_varimps(aml_obj):
                                                  columns='variable').reset_index(drop=True)
             variable_importance['model_name'] = model_name
             variable_importance['model_object'] = model
+            if(tag is not None and tag_name is not None):
+                for i in range(len(tag)):
+                    variable_importance[tag_name[i]] = tag[i]
             variable_importance.columns.name = None
 
             cumulative_varimps.append(variable_importance)
         else:
             print('\n{block}> WARNING: Variable importances unavailable for {MDL}'.format(block=OUT_BLOCK,
                                                                                           MDL=model_name))
-            model_novarimps.append(model_name)
+            model_novarimps.append((model_name, model))
 
     return pd.concat(cumulative_varimps).reset_index(drop=True), model_novarimps
 
+
+# Diverging: sns.diverging_palette(240, 10, n=9, as_cmap=True)
+# https://seaborn.pydata.org/generated/seaborn.color_palette.html
+def correlation_matrix(df, FPATH, abs_arg=True, mask=True, annot=False, type_corrs=['Pearson', 'Kendall', 'Spearman'],
+                       cmap=sns.color_palette('flare', as_cmap=True), figsize=(24, 8), contrast_factor=1.0):
+    """Outputs to console and saves to file correlation matrices given data with input features.
+    Intended to represent the parameter space and different relationships within. Tool for modeling.
+
+    Parameters
+    ----------
+    df : pandas.core.frame.DataFrame
+        Input dataframe where each column is a feature that is to be correlated.
+    FPATH : str
+        Where the file should be saved. If directory is provided, it should already be created.
+    abs_arg : bool
+        Whether the absolute value of the correlations should be plotted (for strength magnitude).
+        Impacts cmap, switches to diverging instead of sequential.
+    mask : bool
+        Whether only the bottom left triange of the matrix should be rendered.
+    annot : bool
+        Whether each cell should be annotated with its numerical value
+    type_corrs : list
+        All the different correlations that should be provided. Default to all built-in pandas options for df.corr().
+    cmap : child of matplotlib.colors
+        The color map which should be used for the heatmap. Dependent on abs_arg.
+    figsize : tuple
+        The size of the outputted/saved heatmap (width, height).
+    contrast_factor:
+        The factor/exponent by which all the correlationed should be raised to the power of.
+        Purpose is for high-contrast, better identification of highly correlated features.
+
+    Returns
+    -------
+    pandas.core.frame.DataFrame
+        The correlations given the input data, and other transformation arguments (abs_arg, contrast_factor)
+        Furthermore, heatmap is saved in specifid format and printed to console.
+
+    """
+
+    # NOTE: Conditional assignment of sns.heatmap based on parameters
+    # > Mask sns.heatmap parameter is conditionally controlled
+    # > If absolute value is not chosen by the user, switch to divergent heatmap. Otherwise keep it as sequential.
+    fig, ax = plt.subplots(ncols=len(type_corrs), sharey=True, figsize=figsize)
+    for typec in type_corrs:
+        input_data = (df.corr(typec.lower())**contrast_factor.abs() if abs_arg
+                      else df.corr(typec.lower())**contrast_factor)
+        sns_fig = sns.heatmap(input_data,
+                              mask=np.triu(df.corr().abs()) if mask else None,
+                              ax=ax[type_corrs.index(typec)],
+                              annot=annot,
+                              cmap=cmap if abs_arg else sns.diverging_palette(240, 10, n=9, as_cmap=True)
+                              ).set_title("{cortype}'s Correlation Matrix".format(cortype=typec))
+    plt.tight_layout()
+    sns_fig.get_figure().savefig(FPATH, box_inches="tight")
+
+
+print('STATUS: Hyperparameters assigned and functions defined')
 
 _ = """
 #######################################################################################################################
@@ -182,11 +275,7 @@ data = h2o.import_file(DATA_PATH)
 # > 24_Water    -> High Correlation with `Water` feature in data
 data = data.drop(['C1', 'unique_id', '24_Fluid', '24_Oil', '24_Water', 'Date'])
 
-# Each of the features individually predicted
-# NOTE: The model predictors a should only use the target encoded versions, and not the older versions
-PREDICTORS = [col for col in data.columns
-              if col not in [FOLD_COLUMN] + [col.replace('_te', '') for col in data.columns if '_te' in col]]
-
+print('STATUS: Server initialized and data imported.')
 
 _ = """
 #######################################################################################################################
@@ -202,24 +291,25 @@ aml_fe_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,          # How long sho
 
 SENSOR_PREDICTORS = ['Tubing_Pressure', 'Casing_Pressure', 'Heel_Pressure', 'Toe_Pressure', 'Heel_Temp', 'Toe_Temp']
 PRODUCTION_TARGET = 'Oil'
-# pd_data_temp = data.as_data_frame()
+
+# Only look at data from test days (to minimize/eliminate missing values for PRODUCTION_TARGET)
 TEST_DATA = data[data['test_flag'].isin(['True'])]
 aml_fe_obj.train(x=SENSOR_PREDICTORS,
                  y=PRODUCTION_TARGET,                                   # A single responder
                  training_frame=TEST_DATA)                              # All the data is used for training, CV
 
+print('STATUS: Selective Sensor-Predictor Model Determined')
+
 # Determine Variable Importance of Sensor Features
 cumulative_fe_varimps, excluded = exp_cumulative_varimps(aml_fe_obj)
 # Reindex output to name of model (for seaborn labeling)
 cumulative_fe_varimps.index = cumulative_fe_varimps['model_name']
-# Determine the feature rank depending on the mean of ach predictor column
+# Determine the feature rank depending on the mean of each predictor column
 SENSOR_RANKING = cumulative_fe_varimps.select_dtypes(float).mean(axis=0).sort_values(ascending=False)
 # Reorder columns by SENSOR_RANKING, Reorder rows by mean of model's variable importances
 cumulative_fe_varimps = cumulative_fe_varimps.select_dtypes(float)[SENSOR_RANKING.keys()]
 cumulative_fe_varimps = cumulative_fe_varimps.reindex(cumulative_fe_varimps.mean(axis=1).sort_values(axis=0).index,
                                                       axis=0)
-
-print('STATUS: Optimal Sensor Oil Proxies Determined.')
 
 # NOTE: For reference
 # _ = plt.hist(cumulative_fe_varimps, bins=45, stacked=True)
@@ -230,16 +320,10 @@ sns_fig.get_figure().savefig('Modeling Reference Files/cumulative_fe_varimps.pdf
 
 # NOTE: For reference
 # Correlation heatmaps
-type_corrs = ['Pearson', 'Kendall', 'Spearman']
-fig, ax = plt.subplots(ncols=len(type_corrs), sharey=True, figsize=(24, 8))
-cmap = sns.diverging_palette(240, 10, n=9, as_cmap=True)
-for typec in type_corrs:
-    sns_fig = sns.heatmap(cumulative_fe_varimps.abs().corr(typec.lower()),
-                          mask=np.triu(cumulative_fe_varimps.abs().corr()),
-                          ax=ax[type_corrs.index(typec)],
-                          annot=True).set_title("{cortype}'s Correlation Matrix".format(cortype=typec))
-plt.tight_layout()
-sns_fig.get_figure().savefig('Modeling Reference Files/cumulative_fe_varimps.abs().corr().pdf', bbox_inches="tight")
+correlation_matrix(cumulative_fe_varimps,
+                   FPATH='Modeling Reference Files/cumulative_fe_varimps.corr().abs().pdf')
+
+print('STATUS: Optimal Sensor Oil Proxies Determined.\nThese will now be the responders for future predictive models.')
 
 _ = """
 #######################################################################################################################
@@ -273,11 +357,18 @@ data_est_te.train(x=encoded_columns,
 # Encode the data based on the trained encoder
 data = data_est_te.transform(frame=data, as_training=True)
 
+print('STATUS: Completed Mean Target Encoding for all categorical features.')
+
 _ = """
 #######################################################################################################################
 #########################################   MODEL TRAINING AND DEVELOPMENT   ##########################################
 #######################################################################################################################
 """
+
+# Each of the features individually predicted
+# NOTE: The model predictors a should only use the target encoded versions, and not the older versions
+PREDICTORS = [col for col in data.columns
+              if col not in [FOLD_COLUMN] + [col.replace('_te', '') for col in data.columns if '_te' in col]]
 
 # Configure experiment
 aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,           # How long should the experiment run for?
@@ -286,53 +377,36 @@ aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,           # How long shoul
                     seed=RANDOM_SEED,
                     project_name="IPC_MacroModeling")
 
+# Each of the responders the features with the highest correlations to PRODUCTION_TARGET
+# NOTE: The reason this is automated and not hard-coded is for a general solution, when the lack of domain-specific
+#       engineering knowledge is unavailable
 RESPONDERS = SENSOR_RANKING[:3].keys()
 # For every predictor feature, run an experiment
-cumulative_varimps = []
+cumulative_varimps = {}
 model_novarimps = []
 for responder in RESPONDERS:
     print('\n{block}{block}STATUS: Responder {RESP}'.format(block=OUT_BLOCK,
                                                             RESP=responder))
     # Run the experiment (for the specified responder)
-    # NOTE: Fold column specified for cross validation to mitigate leakage
+    # NOTE: Fold column specified for cross validation to mitigate leakage (absent if no encoding was performed)
     # https://docs.h2o.ai/h2o/latest-stable/h2o-py/docs/_modules/h2o/automl/autoh2o.html
     aml_obj.train(x=PREDICTORS,                                 # All the depedent variables in each model
                   y=responder,                                  # A single responder
-                  # fold_column=FOLD_COLUMN,                      # Fold column name, as specified from encoding
+                  # fold_column=FOLD_COLUMN,                    # Fold column name, as specified from encoding
                   training_frame=data)                          # All the data is used for training, cross-validation
-    exp_leaderboard = aml_obj.leaderboard
 
-    # Retrieve all the model objects from the given experiment
-    exp_models = [h2o.get_model(exp_leaderboard[m_num, "model_id"]) for m_num in range(exp_leaderboard.shape[0])]
-    cumulative_varimps = []
-    model_novarimps = []
-    for model in exp_models:
-        model_name = model.params['model_id']['actual']['name']
-        print('\n{block}> STATUS: Model {MDL}'.format(block=OUT_BLOCK,
-                                                      MDL=model_name))
-        # Determine and store variable importances (for specific responder-model combination)
-        variable_importance = model.varimp(use_pandas=True)
-
-        # Only conduct variable importance dataset manipulation if ranking data is available (eg. unavailable, stacked)
-        if(variable_importance is not None):
-            variable_importance = pd.pivot_table(variable_importance,
-                                                 values='scaled_importance',
-                                                 columns='variable').reset_index(drop=True)
-            variable_importance['model_name'] = model_name
-            variable_importance['model_object'] = model
-            variable_importance['responder'] = responder
-            variable_importance.columns.name = None
-
-            cumulative_varimps.append(variable_importance)
-        else:
-            print('\n{block}> WARNING: Variable importances unavailable for {MDL}'.format(block=OUT_BLOCK,
-                                                                                          MDL=model_name))
-            model_novarimps.append((responder, model_name))
-
+    # Calculate variable importance for these specific responders
+    varimps = exp_cumulative_varimps(aml_obj, tag=[responder], tag_name=['responder'])
+    cumulative_varimps[responder] = varimps
 
 # Concatenate all the individual model variable importances into one dataframe
-final_cumulative_varimps = pd.concat(cumulative_varimps).reset_index(drop=True)
-final_cumulative_varimps.index = final_cumulative_varimps['model'] + '___' + final_cumulative_varimps['responder']
+final_cumulative_varimps = pd.concat(cumulative_varimps.values()).reset_index(drop=True)
+# Exclude any features encoded by default (H2O puts a `.` in the column name of these features)
+final_cumulative_varimps = final_cumulative_varimps.loc[:, ~final_cumulative_varimps.columns.str.contains('.',
+                                                                                                          regex=False)]
+final_cumulative_varimps.index = final_cumulative_varimps['model_name'] + '___' + final_cumulative_varimps['responder']
+
+print('STATUS: Completed experiments for all responders (oil proxies) and detecting variable importances.')
 
 # NOTE: Save outputs for reference (so you don't have to wait an hour every time)
 # with open('Modeling Pickles/model_novarimps.pkl', 'wb') as f:
@@ -342,16 +416,36 @@ final_cumulative_varimps.index = final_cumulative_varimps['model'] + '___' + fin
 
 # NOTE: FOR REFERENCE
 # Filtering of the variable importance summary
-final_cumulative_varimps = final_cumulative_varimps[~final_cumulative_varimps['model'].str.contains('XGBoost')
-                                                    ].reset_index(drop=True).select_dtypes(float)
-final_cumulative_varimps = final_cumulative_varimps[(final_cumulative_varimps.mean(axis=1) > 0.2) &
-                                                    (final_cumulative_varimps.mean(axis=1) < 0.8)].select_dtypes(float)
+FILT_final_cumulative_varimps = final_cumulative_varimps[~final_cumulative_varimps['model_name'
+                                                                                   ].str.contains('XGBoost')
+                                                         ].reset_index(drop=True).select_dtypes(float)
+FILT_final_cumulative_varimps = final_cumulative_varimps[(final_cumulative_varimps.mean(axis=1) > 0.2) &
+                                                         (final_cumulative_varimps.mean(axis=1) < 0.8)
+                                                         ].select_dtypes(float)
 
-# NOTE: FOR REFERENCE
 # Plot heatmap of variable importances across all model combinations
-fig, ax = plt.subplots(figsize=(32, 64))
-sns_fig = sns.heatmap(final_cumulative_varimps, annot=False)
-sns_fig.get_figure().savefig('Modeling Reference Files/svm_conf.pdf', bbox_inches="tight")
+fig, ax = plt.subplots(figsize=(64, 4))
+predictor_rank = FILT_final_cumulative_varimps.select_dtypes(float).mean(axis=0).sort_values(ascending=False)
+sns_fig = sns.heatmap(FILT_final_cumulative_varimps.select_dtypes(float)[predictor_rank.keys()], annot=False)
+sns_fig.get_figure().savefig('Modeling Reference Files/final_cumulative_varimps.pdf', bbox_inches="tight")
+
+correlation_matrix(FILT_final_cumulative_varimps,
+                   FPATH='Modeling Reference Files/FILT_final_cumulative_varimps.corr().abs().pdf')
+
+print('STATUS: Determined correlations and variable importance')
+
+_ = """
+#######################################################################################################################
+#########################################   EVALUATE MODEL PERFORMANCE   ##############################################
+#######################################################################################################################
+"""
+
+ALL_MODELS = dict(zip(final_cumulative_varimps['responder'], final_cumulative_varimps['model_object']))
+for model in ALL_MODELS:
+    3
+
+print('STATUS: Completed analysis of all models.')
+
 _ = """
 #######################################################################################################################
 #################################################   SHUT DOWN H2O   ###################################################
