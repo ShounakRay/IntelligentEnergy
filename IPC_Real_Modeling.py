@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 12-Mar-2021 11:03:73:736  GMT-0700
+# @Last modified time: 12-Mar-2021 11:03:14:142  GMT-0700
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -232,7 +232,7 @@ def correlation_matrix(df, FPATH, abs_arg=True, mask=True, annot=False, type_cor
     # > If absolute value is not chosen by the user, switch to divergent heatmap. Otherwise keep it as sequential.
     fig, ax = plt.subplots(ncols=len(type_corrs), sharey=True, figsize=figsize)
     for typec in type_corrs:
-        input_data = (df.corr(typec.lower())**contrast_factor.abs() if abs_arg
+        input_data = (df.corr(typec.lower()).abs()**contrast_factor if abs_arg
                       else df.corr(typec.lower())**contrast_factor)
         sns_fig = sns.heatmap(input_data,
                               mask=np.triu(df.corr().abs()) if mask else None,
@@ -273,7 +273,10 @@ data = h2o.import_file(DATA_PATH)
 # > 24_Fluid    -> High Correlation with `Fluid` feature in data
 # > 24_Oil      -> High Correlation with `Oil` feature in data
 # > 24_Water    -> High Correlation with `Water` feature in data
-data = data.drop(['C1', 'unique_id', '24_Fluid', '24_Oil', '24_Water', 'Date'])
+# > Pad         -> Pad not required, rather production well is enough
+data = data.drop(['C1', 'unique_id', '24_Fluid', '24_Oil', '24_Water', 'Date', 'Pad'])
+
+PRODUCTION_WELLS = list(data['Well'].unique().as_data_frame()['C1'])
 
 print('STATUS: Server initialized and data imported.')
 
@@ -282,6 +285,8 @@ _ = """
 ########################################   ENGINEERING | BEST OIL PROXIES   ###########################################
 #######################################################################################################################
 """
+# TODO: Determine best oil proxies for EACH production well
+
 
 aml_fe_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,          # How long should the experiment run for?
                        stopping_metric=EVAL_METRIC,               # The evaluation metric to discontinue model training
@@ -298,7 +303,7 @@ aml_fe_obj.train(x=SENSOR_PREDICTORS,
                  y=PRODUCTION_TARGET,                                   # A single responder
                  training_frame=TEST_DATA)                              # All the data is used for training, CV
 
-print('STATUS: Selective Sensor-Predictor Model Determined')
+print('STATUS: Selective sensor-predictor model trained.')
 
 # Determine Variable Importance of Sensor Features
 cumulative_fe_varimps, excluded = exp_cumulative_varimps(aml_fe_obj)
@@ -323,7 +328,7 @@ sns_fig.get_figure().savefig('Modeling Reference Files/cumulative_fe_varimps.pdf
 correlation_matrix(cumulative_fe_varimps,
                    FPATH='Modeling Reference Files/cumulative_fe_varimps.corr().abs().pdf')
 
-print('STATUS: Optimal Sensor Oil Proxies Determined.\nThese will now be the responders for future predictive models.')
+print('STATUS: Optimal sensor oil proxies determined. These will now be the responders for future predictive models.')
 
 _ = """
 #######################################################################################################################
@@ -364,11 +369,16 @@ _ = """
 #########################################   MODEL TRAINING AND DEVELOPMENT   ##########################################
 #######################################################################################################################
 """
+# TODO: Determine best proxy-predictive model for EACH production well
 
 # Each of the features individually predicted
 # NOTE: The model predictors a should only use the target encoded versions, and not the older versions
 PREDICTORS = [col for col in data.columns
               if col not in [FOLD_COLUMN] + [col.replace('_te', '') for col in data.columns if '_te' in col]]
+
+categorical_names = list(data.as_data_frame().select_dtypes(object).columns)
+if(len(categorical_names) > 0):
+    print('WARNING: {encoded} will be encoded by H2O model.'.format(encoded=categorical_names))
 
 # Configure experiment
 aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,           # How long should the experiment run for?

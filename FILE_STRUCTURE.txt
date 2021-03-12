@@ -88,11 +88,7 @@ IntelligentEnergy/
 │   ├── final_cumulative_varimps.pkl
 │   └── model_novarimps.pkl
 ├── Modeling Reference Files/
-│   ├── cumulative_fe_varimps.corr().abs().pdf
-│   ├── cumulative_fe_varimps.pdf
-│   ├── FILT_final_cumulative_varimps.corr().abs().pdf
-│   ├── final_cumulative_varimps.pdf
-│   └── svm_conf.pdf
+│   └── cumulative_fe_varimps.pdf
 ├── pool_error_log.txt
 ├── R&D References/
 │   ├── Adaptive TS SVM.pdf
