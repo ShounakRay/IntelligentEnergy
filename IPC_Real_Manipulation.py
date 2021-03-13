@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Feb-2021 14:02:60:603  GMT-0700
+# @Last modified time: 13-Mar-2021 14:03:63:637  GMT-0700
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -107,18 +107,18 @@ else:
     DATA_PRODUCTION_ORIG = pd.read_excel(PATH_PRODUCTION)
     DATA_TEST_ORIG = pd.read_excel(PATH_TEST)
 
-# DATA_INJECTION_ORIG.to_pickle('Pickles/DATA_INJECTION_ORIG.pkl')
-# DATA_PRODUCTION_ORIG.to_pickle('Pickles/DATA_PRODUCTION_ORIG.pkl')
-# DATA_TEST_ORIG.to_pickle('Pickles/DATA_TEST_ORIG.pkl')
+# DATA_INJECTION_ORIG.to_pickle('Data/Pickles/DATA_INJECTION_ORIG.pkl')
+# DATA_PRODUCTION_ORIG.to_pickle('Data/Pickles/DATA_PRODUCTION_ORIG.pkl')
+# DATA_TEST_ORIG.to_pickle('Data/Pickles/DATA_TEST_ORIG.pkl')
 # # ind_FIBER_DATA.to_pickle('Pickles/ind_FIBER_DATA.pkl')
-# FIBER_DATA.to_pickle('Pickles/FIBER_DATA.pkl')
-# DATA_INJECTION_STEAM.to_pickle('Pickles/DATA_INJECTION_STEAM.pkl')
-# DATA_INJECTION_PRESS.to_pickle('Pickles/DATA_INJECTION_PRESS.pkl')
-# DATA_PRODUCTION.to_pickle('Pickles/DATA_PRODUCTION.pkl')
-# DATA_TEST.to_pickle('Pickles/DATA_TEST.pkl')
-# PRODUCTION_WELL_INTER.to_pickle('Pickles/PRODUCTION_WELL_INTER.pkl')
-# PRODUCTION_WELL_WSENSOR.to_pickle('Pickles/PRODUCTION_WELL_WSENSOR.pkl')
-# FINALE.to_pickle('Pickles/FINALE.pkl')
+# FIBER_DATA.to_pickle('Data/Pickles/FIBER_DATA.pkl')
+# DATA_INJECTION_STEAM.to_pickle('Data/Pickles/DATA_INJECTION_STEAM.pkl')
+# DATA_INJECTION_PRESS.to_pickle('Data/Pickles/DATA_INJECTION_PRESS.pkl')
+# DATA_PRODUCTION.to_pickle('Data/Pickles/DATA_PRODUCTION.pkl')
+# DATA_TEST.to_pickle('Data/Pickles/DATA_TEST.pkl')
+# PRODUCTION_WELL_INTER.to_pickle('Data/Pickles/PRODUCTION_WELL_INTER.pkl')
+# PRODUCTION_WELL_WSENSOR.to_pickle('Data/Pickles/PRODUCTION_WELL_WSENSOR.pkl')
+# FINALE.to_pickle('Data/Pickles/FINALE.pkl')
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
