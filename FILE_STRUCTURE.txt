@@ -6,6 +6,7 @@ IntelligentEnergy/
 ├── __init__.py
 ├── __pycache__/
 │   └── util_traversal.cpython-38.pyc
+├── AUTO-IPC_Real_Manipulation.py
 ├── Data/
 │   ├── FINALE.csv
 │   ├── FINALE_INTERP.csv
@@ -43,7 +44,9 @@ IntelligentEnergy/
 │   │   └── automl_regression_powerplant_output-checkpoint.ipynb
 │   ├── automl_regression_powerplant_output.ipynb
 │   └── automl_regression_powerplant_output.py
-├── IntelligentEnergy_Dependency.svg
+├── IntelligentEnergy.png
+├── IntelligentEnergy.svg
+├── IntelligentEnergy_IPC_Real_Modeling.svg
 ├── IPC_Modeling.py
 ├── IPC_Real_Manipulation.py
 ├── IPC_Real_Modeling.py

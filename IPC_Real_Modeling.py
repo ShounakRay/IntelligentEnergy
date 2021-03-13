@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 12-Mar-2021 17:03:80:802  GMT-0700
+# @Last modified time: 13-Mar-2021 10:03:02:026  GMT-0700
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -16,6 +16,7 @@ from collections import Counter
 from itertools import chain
 from typing import Final
 
+import featuretools
 import h2o
 import matplotlib.pyplot as plt  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp_plot()
 import numpy as np
@@ -277,6 +278,22 @@ if not (os.path.isfile(DATA_PATH)):
 
 # Import the data from the file and exclude any obvious features
 data = h2o.import_file(DATA_PATH)
+
+print('STATUS: Server initialized and data imported.')
+
+_ = """
+#######################################################################################################################
+##########################################   TARGET FEATURE ENGINEERING   #############################################
+#######################################################################################################################
+"""
+# Data structure conversions and some manual pre-processing
+pd_data = data.as_data_frame()
+pd_data = pd_data.infer_objects()
+pd_data.drop(['C1', 'unique_id'], inplace=True, axis=1)
+
+# Convert the pandas DataFrame into an H2OFrame
+data = h2o.H2OFrame(pd_data)
+
 # NOTE: Reasoning on initial feature deletion:
 # > C1          -> This is simply a consecutive counter column. No relation to target
 # > unique_id   -> This is simply a consecutive counter column. No relation to target
@@ -288,7 +305,7 @@ data = data.drop(['C1', 'unique_id', '24_Fluid', '24_Oil', '24_Water', 'Date', '
 
 PRODUCTION_WELLS = list(data['Well'].unique().as_data_frame()['C1'])
 
-print('STATUS: Server initialized and data imported.')
+print('STATUS: Complete automatic and manual feature engineering.')
 
 _ = """
 #######################################################################################################################
@@ -372,7 +389,7 @@ plt.clf()
 
 
 for i, column in enumerate(aggregated_srank.columns):
-    sns.displot(aggregated_srank[column], ax=axes[i // 2, i % 2], bins=1 -)
+    sns.displot(aggregated_srank[column], ax=axes[i // 2, i % 2], bins=1 - )
 
 _ = """
 #######################################################################################################################
