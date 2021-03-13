@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 12-Mar-2021 14:03:28:283  GMT-0700
+# @Last modified time: 12-Mar-2021 17:03:80:802  GMT-0700
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -12,6 +12,8 @@
 import os
 import pickle
 import subprocess
+from collections import Counter
+from itertools import chain
 from typing import Final
 
 import h2o
@@ -56,7 +58,7 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 2 * 60                               # The longest that the experiment will run (seconds)
+MAX_EXP_RUNTIME: Final = int(0.25 * 60)                       # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments
 EVAL_METRIC: Final = 'auto'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'auto'                                   # Leaderboard ranking metric after all trainings
@@ -163,8 +165,8 @@ def exp_cumulative_varimps(aml_obj, tag=None, tag_name=None):
     exp_models = [h2o.get_model(exp_leaderboard[m_num, "model_id"]) for m_num in range(exp_leaderboard.shape[0])]
     for model in exp_models:
         model_name = model.params['model_id']['actual']['name']
-        print('\n{block}> STATUS: Model {MDL}'.format(block=OUT_BLOCK,
-                                                      MDL=model_name))
+        # print('\n{block}> STATUS: Model {MDL}'.format(block=OUT_BLOCK,
+        #                                               MDL=model_name))
         # Determine and store variable importances (for specific responder-model combination)
         variable_importance = model.varimp(use_pandas=True)
 
@@ -182,16 +184,18 @@ def exp_cumulative_varimps(aml_obj, tag=None, tag_name=None):
 
             cumulative_varimps.append(variable_importance)
         else:
-            print('\n{block}> WARNING: Variable importances unavailable for {MDL}'.format(block=OUT_BLOCK,
-                                                                                          MDL=model_name))
+            # print('> WARNING: Variable importances unavailable for {MDL}'.format(MDL=model_name))
             model_novarimps.append((model_name, model))
+
+    print('> STATUS: Determined variable importances of all models in {} experiment.'.format(aml_obj.project_name))
 
     return pd.concat(cumulative_varimps).reset_index(drop=True), model_novarimps
 
 
 # Diverging: sns.diverging_palette(240, 10, n=9, as_cmap=True)
 # https://seaborn.pydata.org/generated/seaborn.color_palette.html
-def correlation_matrix(df, FPATH, abs_arg=True, mask=True, annot=False, type_corrs=['Pearson', 'Kendall', 'Spearman'],
+def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False,
+                       type_corrs=['Pearson', 'Kendall', 'Spearman'],
                        cmap=sns.color_palette('flare', as_cmap=True), figsize=(24, 8), contrast_factor=1.0):
     """Outputs to console and saves to file correlation matrices given data with input features.
     Intended to represent the parameter space and different relationships within. Tool for modeling.
@@ -240,14 +244,17 @@ def correlation_matrix(df, FPATH, abs_arg=True, mask=True, annot=False, type_cor
                               ax=ax[type_corrs.index(typec)],
                               annot=annot,
                               cmap=cmap if abs_arg else sns.diverging_palette(240, 10, n=9, as_cmap=True)
-                              ).set_title("{cortype}'s Correlation Matrix".format(cortype=typec))
+                              ).set_title("{cortype}'s Correlation Matrix\n{EXP_NAME}".format(cortype=typec,
+                                                                                              EXP_NAME=EXP_NAME))
     plt.tight_layout()
-    sns_fig.get_figure().savefig(FPATH, box_inches="tight")
+    sns_fig.get_figure().savefig(FPATH, bbox_inches='tight')
+
+    plt.clf()
 
     return input_data
 
 
-print('STATUS: Hyperparameters assigned and functions defined')
+print('STATUS: Hyperparameters assigned and functions defined.')
 
 _ = """
 #######################################################################################################################
@@ -288,22 +295,20 @@ _ = """
 ########################################   ENGINEERING | BEST OIL PROXIES   ###########################################
 #######################################################################################################################
 """
-# TODO: Determine best oil proxies for EACH production well
-
-
-aml_fe_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,          # How long should the experiment run for?
-                       stopping_metric=EVAL_METRIC,               # The evaluation metric to discontinue model training
-                       sort_metric=RANK_METRIC,                   # Leaderboard ranking metric after all trainings
-                       seed=RANDOM_SEED,
-                       project_name="IPC_OilLimitedModeling")
-
-SENSOR_PREDICTORS = ['Tubing_Pressure', 'Casing_Pressure', 'Heel_Pressure', 'Toe_Pressure', 'Heel_Temp', 'Toe_Temp']
+SENSOR_PREDICTORS = ['Tubing_Pressure', 'Casing_Pressure', 'Heel_Pressure', 'Toe_Pressure', 'Heel_Temp', 'Toe_Temp',
+                     'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5']
 PRODUCTION_TARGET = 'Oil'
 
 # FOR EACH PRODUCTION WELL
 proxy_correlations = {}
 proxy_sensor_rankings = {}
 for prod_well in PRODUCTION_WELLS:
+    aml_fe_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,      # How long should the experiment run for?
+                           stopping_metric=EVAL_METRIC,           # The evaluation metric to discontinue model training
+                           sort_metric=RANK_METRIC,               # Leaderboard ranking metric after all trainings
+                           seed=RANDOM_SEED,
+                           project_name="OilProxy_{PWELL}".format(PWELL=prod_well))
+
     # Only look at data from test days (to minimize/eliminate missing values for PRODUCTION_TARGET)
     TEST_DATA = data[data['test_flag'].isin(['True'])]
     TEST_DATA = TEST_DATA[TEST_DATA['Well'] == prod_well]
@@ -326,17 +331,48 @@ for prod_well in PRODUCTION_WELLS:
 
     # Save oil-sensor correlations to PDF
     fig, ax = plt.subplots(figsize=(8, 16))
-    sns_fig = sns.heatmap(cumulative_fe_varimps, annot=True).set_title('Feature Ranking:\nBest -> Worst')
-    sns_fig.get_figure().savefig('Modeling Reference Files/cumulative_fe_varimps__{PWELL}.pdf'.format(PWELL=prod_well),
-                                 bbox_inches="tight")
+    sns_fig = sns.heatmap(cumulative_fe_varimps, annot=True).set_title('Feature Ranking: Best -> Worst\n{}'
+                                                                       .format(aml_fe_obj.project_name))
+    sns_fig.get_figure().savefig('Modeling Reference Files/OilProxy/oilproxy_variable_importance_{PWELL}.pdf'.format(
+        PWELL=prod_well), bbox_inches='tight')
+
+    plt.clf()
 
     # Correlation heatmaps
-    proxy_correlations[prod_well] = correlation_matrix(cumulative_fe_varimps,
-                                                       FPATH='Modeling Reference Files/cumulative_fe_varimps.corr()' +
-                                                       '.abs()__{PWELL}.pdf'.format(PWELL=prod_well))
+    proxy_correlations[prod_well] = correlation_matrix(cumulative_fe_varimps, EXP_NAME=aml_fe_obj.project_name,
+                                                       FPATH='Modeling Reference Files/OilProxy/oilproxy_correlation' +
+                                                       '_{PWELL}.pdf'.format(PWELL=prod_well))
     proxy_sensor_rankings[prod_well] = SENSOR_RANKING
 
-print('STATUS: Optimal sensor oil proxies determined. These will now be the responders for future predictive models.')
+    print('> STATUS: Identified optimal oil sensor-proxies for {PWELL} production well.'.format(PWELL=prod_well))
+
+print('STATUS: Completed identification of oil proxies for all production wells.' +
+      '\n\tThese will now be the responders for future predictive models.')
+
+# Aggregated Variable Importances
+SENSOR_RANKING_AGG = pd.concat(proxy_sensor_rankings.values(), axis=1).mean(axis=1)
+plt.figure(figsize=(12, 8))
+sns_fig = sns.barplot(x=SENSOR_RANKING_AGG.index,
+                      y=SENSOR_RANKING_AGG.values).set_title('Best Oil Proxies\n' +
+                                                             'Averaged Variable Importances Across Production Wells')
+plt.tight_layout()
+sns_fig.get_figure().savefig('Modeling Reference Files/OilProxy/Averaged Variable Importance Distributions.pdf',
+                             bbox_inches='tight')
+plt.clf()
+
+# Variable Importance Distributions for Each Target Feature
+_ = plt.figure(figsize=(12, 12))
+for i, column in enumerate(aggregated_srank.columns, 1):
+    __ = plt.subplot(3, 3, i)
+    sns.histplot(aggregated_srank[column], bins=10)
+plt.suptitle("Best Oil Proxies\nVariable Importance Distributions for All Proxy Features", fontsize=16)
+plt.tight_layout(pad=2)
+plt.savefig('Modeling Reference Files/OilProxy/Variable Importance Distributions.pdf', bbox_inches='tight')
+plt.clf()
+
+
+for i, column in enumerate(aggregated_srank.columns):
+    sns.displot(aggregated_srank[column], ax=axes[i // 2, i % 2], bins=1 -)
 
 _ = """
 #######################################################################################################################
@@ -388,13 +424,6 @@ categorical_names = list(data.as_data_frame().select_dtypes(object).columns)
 if(len(categorical_names) > 0):
     print('WARNING: {encoded} will be encoded by H2O model.'.format(encoded=categorical_names))
 
-# Configure experiment
-aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,           # How long should the experiment run for?
-                    stopping_metric=EVAL_METRIC,                # The evaluation metric to discontinue model training
-                    sort_metric=RANK_METRIC,                    # Leaderboard ranking metric after all trainings
-                    seed=RANDOM_SEED,
-                    project_name="IPC_MacroModeling")
-
 # Each of the responders the features with the highest correlations to PRODUCTION_TARGET
 # NOTE: The reason this is automated and not hard-coded is for a general solution, when the lack of domain-specific
 #       engineering knowledge is unavailable
@@ -407,6 +436,14 @@ for responder in RESPONDERS:
                                                             RESP=responder))
     cumulative_varimps[responder] = {}
     for prod_well in PRODUCTION_WELLS:
+        # Configure experiment
+        aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,     # How long should the experiment run for?
+                            stopping_metric=EVAL_METRIC,          # The evaluation metric to discontinue model training
+                            sort_metric=RANK_METRIC,              # Leaderboard ranking metric after all trainings
+                            seed=RANDOM_SEED,
+                            project_name="IPC_MacroModeling_{RESP}_{PWELL}".format(RESP=responder,
+                                                                                   PWELL=prod_well))
+
         TEST_DATA = data[data['Well'] == prod_well]
         # Run the experiment (for the specified responder)
         # NOTE: Fold column specified for cross validation to mitigate leakage (absent if no encoding was performed)
@@ -450,10 +487,13 @@ FILT_final_cumulative_varimps = final_cumulative_varimps[(final_cumulative_varim
 fig, ax = plt.subplots(figsize=(64, 4))
 predictor_rank = FILT_final_cumulative_varimps.select_dtypes(float).mean(axis=0).sort_values(ascending=False)
 sns_fig = sns.heatmap(FILT_final_cumulative_varimps.select_dtypes(float)[predictor_rank.keys()], annot=False)
-sns_fig.get_figure().savefig('Modeling Reference Files/final_cumulative_varimps.pdf', bbox_inches="tight")
+sns_fig.get_figure().savefig('Modeling Reference Files/PredictProxy/predictproxy_variable_importance.pdf',
+                             bbox_inches='tight')
 
-correlation_matrix(FILT_final_cumulative_varimps,
-                   FPATH='Modeling Reference Files/FILT_final_cumulative_varimps.corr().abs().pdf')
+plt.clf()
+
+correlation_matrix(FILT_final_cumulative_varimps, EXP_NAME='Aggregated Experiment Results',
+                   FPATH='Modeling Reference Files/PredictProxy/predictproxy_correlation.pdf')
 
 print('STATUS: Determined correlations and variable importance')
 

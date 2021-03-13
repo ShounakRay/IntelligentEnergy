@@ -88,8 +88,36 @@ IntelligentEnergy/
 │   ├── final_cumulative_varimps.pkl
 │   └── model_novarimps.pkl
 ├── Modeling Reference Files/
-│   ├── cumulative_fe_varimps.corr().abs()__AP3.pdf
-│   └── cumulative_fe_varimps.pdf
+│   ├── .DS_Store
+│   ├── Oil Proxy/
+│   ├── OilProxy_NoFiber/
+│   │   ├── Averaged Variable Importance Distributions.pdf
+│   │   ├── oilproxy_correlation_AP3.pdf
+│   │   ├── oilproxy_correlation_AP4.pdf
+│   │   ├── oilproxy_correlation_AP5.pdf
+│   │   ├── oilproxy_correlation_AP6.pdf
+│   │   ├── oilproxy_correlation_AP7.pdf
+│   │   ├── oilproxy_correlation_AP8.pdf
+│   │   ├── oilproxy_correlation_BP1.pdf
+│   │   ├── oilproxy_correlation_BP2.pdf
+│   │   ├── oilproxy_correlation_BP3.pdf
+│   │   ├── oilproxy_correlation_BP4.pdf
+│   │   ├── oilproxy_correlation_BP5.pdf
+│   │   ├── oilproxy_correlation_BP6.pdf
+│   │   ├── oilproxy_variable_importance_AP3.pdf
+│   │   ├── oilproxy_variable_importance_AP4.pdf
+│   │   ├── oilproxy_variable_importance_AP5.pdf
+│   │   ├── oilproxy_variable_importance_AP6.pdf
+│   │   ├── oilproxy_variable_importance_AP7.pdf
+│   │   ├── oilproxy_variable_importance_AP8.pdf
+│   │   ├── oilproxy_variable_importance_BP1.pdf
+│   │   ├── oilproxy_variable_importance_BP2.pdf
+│   │   ├── oilproxy_variable_importance_BP3.pdf
+│   │   ├── oilproxy_variable_importance_BP4.pdf
+│   │   ├── oilproxy_variable_importance_BP5.pdf
+│   │   ├── oilproxy_variable_importance_BP6.pdf
+│   │   └── Variable Importance Distributions.pdf
+│   └── PredictProxy/
 ├── pool_error_log.txt
 ├── R&D References/
 │   ├── Adaptive TS SVM.pdf
