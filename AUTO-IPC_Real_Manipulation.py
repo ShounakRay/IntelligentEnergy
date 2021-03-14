@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: AUTO-IPC_Real_Manipulation.py
 # @Last modified by:   Ray
-# @Last modified time: 13-Mar-2021 14:03:56:562  GMT-0700
+# @Last modified time: 14-Mar-2021 17:03:55:554  GMT-0600
 # @License: [Private IP]
 
 
@@ -26,6 +26,10 @@ import featuretools as ft
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from autofeat import AutoFeatRegressor
+from sklearn.datasets import load_boston, load_diabetes
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.model_selection import GridSearchCV, train_test_split
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -103,14 +107,72 @@ else:
     DATA_PRODUCTION_ORIG = pd.read_excel(PATH_PRODUCTION)
     DATA_TEST_ORIG = pd.read_excel(PATH_TEST)
 
-# es = ft.EntitySet(id='ipc_entityset')
-#
-# es = es.entity_from_dataframe(entity_id='FINALE', dataframe=FINALE,
-#                               index='unique_id', time_index='Date')
-#
-# # Create new features using specified primitives
-# features, feature_names = ft.dfs(entityset=es, target_entity='FINALE',
-#                                  max_depth=10, verbose=True)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+model = AutoFeatRegressor(feateng_steps=2)
+train_pct = 0.8
+X_FROM_FINALE = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'Well', 'test_flag',
+                                                               '24_Fluid',  '24_Oil', '24_Water', 'Oil', 'Water',
+                                                               'Gas', 'Fluid']]].replace(0.0, 0.1)[:100].to_numpy()
+Y_FROM_FINALE = FINALE['Heel_Pressure'].replace(0.0, 0.1).to_numpy()
+
+X_TRAIN = X_FROM_FINALE[:int(len(X_FROM_FINALE) * train_pct)]
+Y_TRAIN = Y_FROM_FINALE[:int(len(Y_FROM_FINALE) * train_pct)]
+
+pd.DataFrame(X_TRAIN)
+
+X_TEST = X_FROM_FINALE[int(len(X_FROM_FINALE) * train_pct):]
+Y_TEST = Y_FROM_FINALE[int(len(X_FROM_FINALE) * train_pct):]
+
+df = model.fit_transform(X_TRAIN, Y_TRAIN)
+model.score(X_FROM_FINALE, Y_FROM_FINALE)
+plt.scatter(model.predict(X_FROM_FINALE), Y_FROM_FINALE, s=2)
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+X, y = load_boston(True)
+pd.DataFrame(y)
+
+afreg = AutoFeatRegressor(verbose=1, feateng_steps=2)
+# fit autofeat on less data, otherwise ridge reg model with xval will overfit on new features
+X_train_tr = afreg.fit_transform(X[:480], y[:480])
+X_test_tr = afreg.transform(X[480:])
+print("autofeat new features:", len(afreg.new_feat_cols_))
+print("autofeat MSE on training data:", mean_squared_error(y[:480], afreg.predict(X_train_tr)))
+print("autofeat MSE on test data:", mean_squared_error(y[480:], afreg.predict(X_test_tr)))
+print("autofeat R^2 on training data:", r2_score(y[:480], afreg.predict(X_train_tr)))
+print("autofeat R^2 on test data:", r2_score(y[480:], afreg.predict(X_test_tr)))
+
+for c in FINALE.columns:
+    print(c, sum(FINALE[c].isna()))
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+es = ft.EntitySet(id='ipc_entityset')
+
+es = es.entity_from_dataframe(entity_id='FINALE', dataframe=FINALE,
+                              index='unique_id', time_index='Date')
+
+# Default primitives from featuretools
+default_agg_primitives = ft.list_primitives()[(ft.list_primitives()['type'] == 'aggregation') &
+                                              (ft.list_primitives()['valid_inputs'] == 'Numeric')
+                                              ]['name'].to_list()
+default_trans_primitives = [op for op in ft.list_primitives()[(ft.list_primitives()['type'] == 'transform') &
+                                                              (ft.list_primitives()['valid_inputs'] == 'Numeric')
+                                                              ]['name'].to_list()[:2]
+                            if op not in ['scalar_subtract_numeric_feature']]
+
+# DFS with specified primitives
+feature_names = ft.dfs(entityset=es, target_entity='FINALE',
+                       trans_primitives=default_trans_primitives,
+                       agg_primitives=None,
+                       max_depth=2,
+                       # n_jobs=-1,
+                       features_only=True)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -138,6 +200,9 @@ es = es.entity_from_dataframe(entity_id='DATA_TEST', dataframe=DATA_TEST.copy(),
 es = es.entity_from_dataframe(entity_id='FIBER_DATA', dataframe=FIBER_DATA.copy(),
                               make_index=True, index='id_production', time_index='Date')
 
+rel_producer = ft.Relationship(es['DATA_PRODUCTION']['id_production'],
+                               es['DATA_TEST']['id_production'])
+es.add_relationship(rel_producer)
 
 # Add relationships for all columns between injection steam and pressure data
 injector_sensor_cols = [c for c in DATA_INJECTION_STEAM.columns.copy() if c not in ['Date']]
