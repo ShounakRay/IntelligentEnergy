@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: AUTO-IPC_Real_Manipulation.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Mar-2021 21:03:14:147  GMT-0600
+# @Last modified time: 14-Mar-2021 22:03:63:638  GMT-0600
 # @License: [Private IP]
 
 
@@ -130,29 +130,23 @@ for well in FINALE_FILTERED['Well'].unique():
     SOURCE = FINALE_FILTERED[FINALE_FILTERED['Well'] == well]
     SOURCE.drop(['Well'], axis=1, inplace=True)
 
-    msk = np.random.rand(len(SOURCE)) < 0.8
-
-    # This is just the length split, no column filtering
-    TRAIN = SOURCE[msk]
-    TEST = SOURCE[~msk]
-
-    X_TRAIN = TRAIN[[c for c in SOURCE.columns if c != TARGET]]
-    Y_TRAIN = pd.DataFrame(TRAIN[TARGET])
+    msk = np.random.rand(len(SOURCE)) < train_pct
 
     # Variable Selection (NOT Engineering)
-    new_X = selector.fit_transform(pd.DataFrame(X_TRAIN), pd.DataFrame(Y_TRAIN))
+    new_X = selector.fit_transform(SOURCE[[c for c in SOURCE.columns if c != TARGET]],
+                                   SOURCE[TARGET])
     filtered_features = new_X.columns
 
+    # Length filtering, no column filtering
     # Filter training and testing sets to only include the selected features
-    TRAIN = TRAIN[filtered_features]
-    TEST = TEST[filtered_features]
+    TRAIN = SOURCE[msk][filtered_features.union([TARGET])]
+    TEST = SOURCE[~msk][filtered_features.union([TARGET])]
 
-    # Re-evaluate splits, no change in logic, just a difference in starting data
-    X_TRAIN = TRAIN[[c for c in SOURCE.columns if c != TARGET]]
-    Y_TRAIN = pd.DataFrame(TRAIN[TARGET])[filtered_features]
+    X_TRAIN = TRAIN[[c for c in TRAIN.columns if c != TARGET]]
+    Y_TRAIN = pd.DataFrame(TRAIN[TARGET])
 
-    X_TEST = TEST[[c for c in SOURCE.columns if c != TARGET]][filtered_features]
-    Y_TEST = pd.DataFrame(TEST[TARGET])[filtered_features]
+    X_TEST = TEST[[c for c in TEST.columns if c != TARGET]]
+    Y_TEST = pd.DataFrame(TEST[TARGET])
 
     df = model.fit_transform(X_TRAIN, Y_TRAIN)
     model.score(X_TRAIN, Y_TRAIN)
