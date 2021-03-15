@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 11-Mar-2021 13:03:99:991  GMT-0700
+# @Last modified time: 15-Mar-2021 17:03:54:549  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -139,3 +139,15 @@
 # ==> Summary
 # 🍺  /usr/local/Cellar/git/2.30.2: 1,501 files, 40.5MB
 # Ray@Whites-MacBook-Pro ~ %
+
+# fig, ax = plt.subplots(ncols=len(key_features), sharey=False, figsize=(20, 20))
+# for feat in key_features:
+#     final_data = correlated_df.abs()[key_features].dropna().drop(key_features[:6]).sort_values(feat)
+#     pos = [list(final_data.index).index(val) for val in list(filtered_features)]
+#
+#     hmap = sns.heatmap(final_data, annot=False, ax=ax[key_features.index(feat)])
+#     for p in pos:
+#         hmap.add_patch(Rectangle((0, p), len(key_features), 1, edgecolor='blue', fill=False, lw=3))
+#     hmap.set_title('Ordered by ' + feat + ' for ' + well)
+#     plt.tight_layout()
+# hmap.get_figure().savefig('WELL-{WELL}_TARGET-{TARGET}.pdf'.format(WELL=well, TARGET=TARGET), bbox_inches='tight')
