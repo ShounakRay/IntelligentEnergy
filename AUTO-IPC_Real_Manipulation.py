@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: AUTO-IPC_Real_Manipulation.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Mar-2021 17:03:55:554  GMT-0600
+# @Last modified time: 14-Mar-2021 21:03:14:147  GMT-0600
 # @License: [Private IP]
 
 
@@ -26,7 +26,7 @@ import featuretools as ft
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from autofeat import AutoFeatRegressor
+from autofeat import AutoFeatRegressor, FeatureSelector
 from sklearn.datasets import load_boston, load_diabetes
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import GridSearchCV, train_test_split
@@ -111,29 +111,60 @@ else:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 model = AutoFeatRegressor(feateng_steps=2)
+selector = FeatureSelector(verbose=3)
 train_pct = 0.8
-X_FROM_FINALE = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'Well', 'test_flag',
-                                                               '24_Fluid',  '24_Oil', '24_Water', 'Oil', 'Water',
-                                                               'Gas', 'Fluid']]].replace(0.0, 0.1)[:100].to_numpy()
-Y_FROM_FINALE = FINALE['Heel_Pressure'].replace(0.0, 0.1).to_numpy()
+TARGET = 'Heel_Pressure'
 
-X_TRAIN = X_FROM_FINALE[:int(len(X_FROM_FINALE) * train_pct)]
-Y_TRAIN = Y_FROM_FINALE[:int(len(Y_FROM_FINALE) * train_pct)]
+FINALE = FINALE.fillna(0).replace(np.nan, 0)
 
-pd.DataFrame(X_TRAIN)
+# for c in FINALE_NEW.columns:
+#     print(c, sum(FINALE_NEW[c].isna()))
 
-X_TEST = X_FROM_FINALE[int(len(X_FROM_FINALE) * train_pct):]
-Y_TEST = Y_FROM_FINALE[int(len(X_FROM_FINALE) * train_pct):]
+FINALE_FILTERED = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'test_flag',
+                                                                 '24_Fluid',  '24_Oil', '24_Water', 'Oil', 'Water',
+                                                                 'Gas', 'Fluid']]].replace(0.0, 0.1)
+# FINALE_FILTERED = FINALE_FILTERED.astype(np.float64)
+# well = FINALE_FILTERED['Well'].unique()[0]
+# Split into source datasets for each production well
+for well in FINALE_FILTERED['Well'].unique():
+    SOURCE = FINALE_FILTERED[FINALE_FILTERED['Well'] == well]
+    SOURCE.drop(['Well'], axis=1, inplace=True)
 
-df = model.fit_transform(X_TRAIN, Y_TRAIN)
-model.score(X_FROM_FINALE, Y_FROM_FINALE)
-plt.scatter(model.predict(X_FROM_FINALE), Y_FROM_FINALE, s=2)
+    msk = np.random.rand(len(SOURCE)) < 0.8
+
+    # This is just the length split, no column filtering
+    TRAIN = SOURCE[msk]
+    TEST = SOURCE[~msk]
+
+    X_TRAIN = TRAIN[[c for c in SOURCE.columns if c != TARGET]]
+    Y_TRAIN = pd.DataFrame(TRAIN[TARGET])
+
+    # Variable Selection (NOT Engineering)
+    new_X = selector.fit_transform(pd.DataFrame(X_TRAIN), pd.DataFrame(Y_TRAIN))
+    filtered_features = new_X.columns
+
+    # Filter training and testing sets to only include the selected features
+    TRAIN = TRAIN[filtered_features]
+    TEST = TEST[filtered_features]
+
+    # Re-evaluate splits, no change in logic, just a difference in starting data
+    X_TRAIN = TRAIN[[c for c in SOURCE.columns if c != TARGET]]
+    Y_TRAIN = pd.DataFrame(TRAIN[TARGET])[filtered_features]
+
+    X_TEST = TEST[[c for c in SOURCE.columns if c != TARGET]][filtered_features]
+    Y_TEST = pd.DataFrame(TEST[TARGET])[filtered_features]
+
+    df = model.fit_transform(X_TRAIN, Y_TRAIN)
+    model.score(X_TRAIN, Y_TRAIN)
+    model.new_feat_cols_
+    plt.scatter(model.predict(X_TEST), Y_TEST)
+    model.score(model.predict(X_TEST), Y_TEST)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 X, y = load_boston(True)
-pd.DataFrame(y)
+pd.DataFrame(X)
 
 afreg = AutoFeatRegressor(verbose=1, feateng_steps=2)
 # fit autofeat on less data, otherwise ridge reg model with xval will overfit on new features
@@ -144,9 +175,6 @@ print("autofeat MSE on training data:", mean_squared_error(y[:480], afreg.predic
 print("autofeat MSE on test data:", mean_squared_error(y[480:], afreg.predict(X_test_tr)))
 print("autofeat R^2 on training data:", r2_score(y[:480], afreg.predict(X_train_tr)))
 print("autofeat R^2 on test data:", r2_score(y[480:], afreg.predict(X_test_tr)))
-
-for c in FINALE.columns:
-    print(c, sum(FINALE[c].isna()))
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
