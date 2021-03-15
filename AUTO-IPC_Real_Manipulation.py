@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: AUTO-IPC_Real_Manipulation.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Mar-2021 22:03:63:638  GMT-0600
+# @Last modified time: 15-Mar-2021 09:03:77:774  GMT-0600
 # @License: [Private IP]
 
 
@@ -110,15 +110,15 @@ else:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-model = AutoFeatRegressor(feateng_steps=2)
-selector = FeatureSelector(verbose=3)
+model_feateng = AutoFeatRegressor(feateng_steps=1)
+model_featsel = FeatureSelector(verbose=3)
 train_pct = 0.8
 TARGET = 'Heel_Pressure'
 
-FINALE = FINALE.fillna(0).replace(np.nan, 0)
+FINALE = FINALE.fillna(0.1).replace(np.nan, 0.1)
 
-# for c in FINALE_NEW.columns:
-#     print(c, sum(FINALE_NEW[c].isna()))
+for c in FINALE.columns:
+    print(c, sum(FINALE[c].isna()))
 
 FINALE_FILTERED = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'test_flag',
                                                                  '24_Fluid',  '24_Oil', '24_Water', 'Oil', 'Water',
@@ -129,18 +129,19 @@ FINALE_FILTERED = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique
 for well in FINALE_FILTERED['Well'].unique():
     SOURCE = FINALE_FILTERED[FINALE_FILTERED['Well'] == well]
     SOURCE.drop(['Well'], axis=1, inplace=True)
+    SOURCE.reset_index(drop=True, inplace=True)
 
     msk = np.random.rand(len(SOURCE)) < train_pct
 
     # Variable Selection (NOT Engineering)
-    new_X = selector.fit_transform(SOURCE[[c for c in SOURCE.columns if c != TARGET]],
-                                   SOURCE[TARGET])
+    new_X = model_featsel.fit_transform(SOURCE[[c for c in SOURCE.columns if c != TARGET]],
+                                        SOURCE[TARGET])
     filtered_features = new_X.columns
 
     # Length filtering, no column filtering
     # Filter training and testing sets to only include the selected features
-    TRAIN = SOURCE[msk][filtered_features.union([TARGET])]
-    TEST = SOURCE[~msk][filtered_features.union([TARGET])]
+    TRAIN = SOURCE[msk][filtered_features.union([TARGET])].reset_index(drop=True)
+    TEST = SOURCE[~msk][filtered_features.union([TARGET])].reset_index(drop=True)
 
     X_TRAIN = TRAIN[[c for c in TRAIN.columns if c != TARGET]]
     Y_TRAIN = pd.DataFrame(TRAIN[TARGET])
@@ -148,11 +149,11 @@ for well in FINALE_FILTERED['Well'].unique():
     X_TEST = TEST[[c for c in TEST.columns if c != TARGET]]
     Y_TEST = pd.DataFrame(TEST[TARGET])
 
-    df = model.fit_transform(X_TRAIN, Y_TRAIN)
-    model.score(X_TRAIN, Y_TRAIN)
-    model.new_feat_cols_
-    plt.scatter(model.predict(X_TEST), Y_TEST)
-    model.score(model.predict(X_TEST), Y_TEST)
+    df = model_feateng.fit_transform(X_TRAIN, Y_TRAIN)
+    model_feateng.score(X_TRAIN, Y_TRAIN)
+    model_feateng.new_feat_cols_
+    plt.scatter(model_feateng.predict(X_TEST), Y_TEST)
+    model_feateng.score(model_feateng.predict(X_TEST), Y_TEST)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -161,7 +162,7 @@ X, y = load_boston(True)
 pd.DataFrame(X)
 
 afreg = AutoFeatRegressor(verbose=1, feateng_steps=2)
-# fit autofeat on less data, otherwise ridge reg model with xval will overfit on new features
+# fit autofeat on less data, otherwise ridge reg model_feateng with xval will overfit on new features
 X_train_tr = afreg.fit_transform(X[:480], y[:480])
 X_test_tr = afreg.transform(X[480:])
 print("autofeat new features:", len(afreg.new_feat_cols_))
