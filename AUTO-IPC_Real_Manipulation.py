@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: AUTO-IPC_Real_Manipulation.py
 # @Last modified by:   Ray
-# @Last modified time: 15-Mar-2021 17:03:28:286  GMT-0600
+# @Last modified time: 16-Mar-2021 10:03:70:708  GMT-0600
 # @License: [Private IP]
 
 
@@ -188,12 +188,19 @@ model_feateng = AutoFeatRegressor(feateng_steps=2, verbose=3)
 model_featsel = FeatureSelector(verbose=6)
 train_pct = 0.8
 TARGET = 'Heel_Pressure'
-key_features = ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5']
+key_features = ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5'] + ['Toe_Pressure', 'Casing_Pressure', 'Tubing_Pressure',
+                                                                'Heel_Temp', 'Toe_Temp', 'Heel_Pressure']
 
+# Deletes any single-value columns
+for col in FINALE.columns:
+    if len(FINALE[col].unique()) == 1:
+        FINALE.drop(col, inplace=True, axis=1)
+
+# Fills all nan with small value (for feature selection)
 FINALE = FINALE.fillna(0.000000001).replace(np.nan, 0.000000001)
 
-for c in FINALE.columns:
-    print(c, sum(FINALE[c].isna()))
+# for c in correlated_df.columns:
+#     print(c, sum(correlated_df[c].isna()))
 
 # Ultimate Goal
 # FINALE = FINALE[FINALE['test_flag'] == True].reset_index(drop=True)
@@ -205,66 +212,70 @@ for c in FINALE.columns:
 # 'Casing_Pressure', 'Tubing_Pressure', 'Heel_Temp',
 # 'Toe_Temp', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4',
 # 'Bin_5']]].replace(0.0, 0.0000001)
-FINALE_FILTERED = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'test_flag',
-                                                                 '24_Fluid',  '24_Oil', '24_Water', 'Oil', 'Water',
-                                                                 'Gas', 'Fluid', 'Toe_Pressure', 'Pump_Speed',
-                                                                 'Casing_Pressure', 'Tubing_Pressure', 'Heel_Temp',
-                                                                 'Toe_Temp', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5']]
-                         ].replace(0.0, 0.0000001)
+# FINALE_FILTERED = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'test_flag',
+#                                                                  '24_Fluid',  '24_Oil', '24_Water', 'Oil', 'Water',
+#                                                                  'Gas', 'Fluid', 'Toe_Pressure', 'Pump_Speed',
+#                                                                  'Casing_Pressure', 'Tubing_Pressure', 'Heel_Temp',
+#                                                                  'Toe_Temp', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4',
+#                                                                  'Bin_5']]
+#                          ].replace(0.0, 0.0000001)
 FINALE_FILTERED_wbins = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'test_flag',
                                                                        '24_Fluid',  '24_Oil', '24_Water', 'Oil', 'Water',
-                                                                       'Gas', 'Fluid', 'Toe_Pressure', 'Pump_Speed',
-                                                                       'Casing_Pressure', 'Tubing_Pressure', 'Heel_Temp',
-                                                                       'Toe_Temp', 'Heel_Pressure']]
+                                                                       'Gas', 'Fluid', 'Pump_Speed']]
                                ].replace(0.0, 0.0000001)
 
 
 # list(FINALE_FILTERED.columns)
 # FINALE_FILTERED = FINALE_FILTERED.astype(np.float64)
 
-FINALE_FILTERED_ULTIMATE = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'test_flag',
-                                                                          '24_Fluid',  '24_Oil', '24_Water', 'Water',
-                                                                          'Gas', 'Fluid', 'Toe_Pressure', 'Pump_Speed',
-                                                                          'Casing_Pressure', 'Tubing_Pressure', 'Heel_Temp',
-                                                                          'Toe_Temp', 'Bin_1', 'Bin_2', 'Heel_Pressure',
-                                                                          'Bin_3', 'Bin_4', 'Bin_5']]
-                                  ].replace(0.0, 0.0000001)
+# FINALE_FILTERED_ULTIMATE = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'test_flag',
+#                                         '24_Fluid',  '24_Oil', '24_Water', 'Water',
+#                                         'Gas', 'Fluid', 'Toe_Pressure', 'Pump_Speed',
+#                                         'Casing_Pressure', 'Tubing_Pressure', 'Heel_Temp',
+#                                         'Toe_Temp', 'Bin_1', 'Bin_2', 'Heel_Pressure',
+#                                         'Bin_3', 'Bin_4', 'Bin_5']]
+# ].replace(0.0, 0.0000001)
 
-# aplt.hist(FINALE_FILTERED_ULTIMATE['Oil'], bins=100)
+unique_well_list = FINALE_FILTERED_wbins['Well'].unique()
+fig, ax = plt.subplots(ncols=len(unique_well_list), sharey=True, figsize=(30, 15))
 
-# FINALE_FILTERED = FINALE_FILTERED_ULTIMATE.copy()
-# well = FINALE_FILTERED['Well'].unique()[0]
+# well = unique_well_list[0]
 # Split into source datasets for each production well
-for well in FINALE_FILTERED['Well'].unique():
-    SOURCE = FINALE_FILTERED[FINALE_FILTERED['Well'] == well]
-    SOURCE.drop(['Well'], axis=1, inplace=True)
-    SOURCE.reset_index(drop=True, inplace=True)
-    SOURCE = SOURCE.rolling(window=7).mean().fillna(method='bfill').fillna(method='ffill')
+correlation_tracker = {}
+for well in unique_well_list:
+    # SOURCE = FINALE_FILTERED[FINALE_FILTERED['Well'] == well]
+    # SOURCE.drop(['Well'], axis=1, inplace=True)
+    # SOURCE.reset_index(drop=True, inplace=True)
+    # SOURCE = SOURCE.rolling(window=7).mean().fillna(method='bfill').fillna(method='ffill')
 
     SOURCE_wbins = FINALE_FILTERED_wbins[FINALE_FILTERED_wbins['Well'] == well]
     SOURCE_wbins.drop(['Well'], axis=1, inplace=True)
     SOURCE_wbins.reset_index(drop=True, inplace=True)
+
     SOURCE_wbins = SOURCE_wbins.rolling(window=7).mean().fillna(method='bfill').fillna(method='ffill')
+    SOURCE_wbins = SOURCE_wbins.astype(np.float64)
 
-    msk = np.random.rand(len(SOURCE)) < train_pct
-
-    # Variable Selection (NOT Engineering)
-    new_X = model_featsel.fit_transform(SOURCE[[c for c in SOURCE.columns if c != TARGET]],
-                                        SOURCE[TARGET])
-    filtered_features = new_X.columns
+    # msk = np.random.rand(len(SOURCE)) < train_pct
+    #
+    # # Variable Selection (NOT Engineering)
+    # new_X = model_featsel.fit_transform(SOURCE[[c for c in SOURCE.columns if c != TARGET]],
+    #                                     SOURCE[TARGET])
+    # filtered_features = new_X.columns
 
     correlated_df = SOURCE_wbins.corr()
+    final_data = correlated_df.abs()[key_features].drop(key_features)
+    # pos = [list(final_data.index).index(val) for val in list(filtered_features)]
 
-    plt.subplots(figsize=(5, 20))
-    final_data = correlated_df.abs()[key_features].dropna().drop(key_features[:6])
-    pos = [list(final_data.index).index(val) for val in list(filtered_features)]
+    hmap = sns.heatmap(final_data, annot=False, ax=ax[list(unique_well_list).index(well)],
+                       cbar=False) if well != 'BP6' else sns.heatmap(final_data, annot=False,
+                                                                     ax=ax[list(unique_well_list).index(well)])
 
-    hmap = sns.heatmap(final_data, annot=False)
-    for p in pos:
-        hmap.add_patch(Rectangle((0, p), len(key_features), 1, edgecolor='blue', fill=False, lw=3))
+    # for p in pos:
+    #     hmap.add_patch(Rectangle((0, p), len(key_features), 1, edgecolor='blue', fill=False, lw=3))
     hmap.set_title('Well ' + well)
     plt.tight_layout()
-    hmap.get_figure().savefig('WELL-{WELL}_TARGET-{TARGET}.pdf'.format(WELL=well, TARGET=TARGET), bbox_inches='tight')
+
+    correlation_tracker[well] = final_data
 
     # # >>> THIS IS THE REGRESSION PART
     # # Length filtering, no column filtering
@@ -287,6 +298,12 @@ for well in FINALE_FILTERED['Well'].unique():
     # # model_feateng.score(X_TEST, Y_TEST)
     #
     # # performance(Y_TRAIN, model_feateng.predict(feateng_X_TRAIN))
+
+# fig.colorbar(ax[12].collections[0], cax=ax[12])
+hmap.get_figure().savefig('CrossCorrelation/WELL-{WELL}_TARGET-{TARGET}.pdf'.format(WELL='ALL_PRODUCTION',
+                                                                                    TARGET='UNSPECIFIED'),
+                          bbox_inches='tight')
+
 
 # plt.plot(SOURCE['I08'])
 #
@@ -320,85 +337,85 @@ for well in FINALE_FILTERED['Well'].unique():
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-
-X, y = load_boston(True)
-pd.DataFrame(X)
-
-afreg = AutoFeatRegressor(verbose=1, feateng_steps=2)
-# fit autofeat on less data, otherwise ridge reg model_feateng with xval will overfit on new features
-X_train_tr = afreg.fit_transform(X[:480], y[:480])
-X_test_tr = afreg.transform(X[480:])
-print("autofeat new features:", len(afreg.new_feat_cols_))
-print("autofeat MSE on training data:", mean_squared_error(pd.DataFrame(y[:480]), afreg.predict(X_train_tr)))
-print("autofeat MSE on test data:", mean_squared_error(y[480:], afreg.predict(X_test_tr)))
-print("autofeat R^2 on training data:", r2_score(y[:480], afreg.predict(X_train_tr)))
-print("autofeat R^2 on test data:", r2_score(y[480:], afreg.predict(X_test_tr)))
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-es = ft.EntitySet(id='ipc_entityset')
-
-es = es.entity_from_dataframe(entity_id='FINALE', dataframe=FINALE,
-                              index='unique_id', time_index='Date')
-
-# Default primitives from featuretools
-default_agg_primitives = ft.list_primitives()[(ft.list_primitives()['type'] == 'aggregation') &
-                                              (ft.list_primitives()['valid_inputs'] == 'Numeric')
-                                              ]['name'].to_list()
-default_trans_primitives = [op for op in ft.list_primitives()[(ft.list_primitives()['type'] == 'transform') &
-                                                              (ft.list_primitives()['valid_inputs'] == 'Numeric')
-                                                              ]['name'].to_list()[:2]
-                            if op not in ['scalar_subtract_numeric_feature']]
-
-# DFS with specified primitives
-feature_names = ft.dfs(entityset=es, target_entity='FINALE',
-                       trans_primitives=default_trans_primitives,
-                       agg_primitives=None,
-                       max_depth=2,
-                       # n_jobs=-1,
-                       features_only=True)
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-# Create Entity Set for this project
-es = ft.EntitySet(id='ipc_entityset')
-
-FIBER_DATA.reset_index(inplace=True)
-DATA_INJECTION_STEAM.reset_index(inplace=True)
-DATA_INJECTION_PRESS.reset_index(inplace=True)
-DATA_PRODUCTION.reset_index(inplace=True)
-DATA_TEST.reset_index(inplace=True)
-
-# Create an entity from the client dataframe
-# This dataframe already has an index and a time index
-es = es.entity_from_dataframe(entity_id='DATA_INJECTION_STEAM', dataframe=DATA_INJECTION_STEAM.copy(),
-                              make_index=True, index='id_injector', time_index='Date')
-es = es.entity_from_dataframe(entity_id='DATA_INJECTION_PRESS', dataframe=DATA_INJECTION_PRESS.copy(),
-                              make_index=True, index='id_injector', time_index='Date')
-
-es = es.entity_from_dataframe(entity_id='DATA_PRODUCTION', dataframe=DATA_PRODUCTION.copy(),
-                              make_index=True, index='id_production', time_index='Date')
-es = es.entity_from_dataframe(entity_id='DATA_TEST', dataframe=DATA_TEST.copy(),
-                              make_index=True, index='id_production', time_index='Date')
-es = es.entity_from_dataframe(entity_id='FIBER_DATA', dataframe=FIBER_DATA.copy(),
-                              make_index=True, index='id_production', time_index='Date')
-
-rel_producer = ft.Relationship(es['DATA_PRODUCTION']['id_production'],
-                               es['DATA_TEST']['id_production'])
-es.add_relationship(rel_producer)
-
-# Add relationships for all columns between injection steam and pressure data
-injector_sensor_cols = [c for c in DATA_INJECTION_STEAM.columns.copy() if c not in ['Date']]
-injector_sensor_cols = ['CI06']
-for common_col in injector_sensor_cols:
-    rel_injector = ft.Relationship(es['DATA_INJECTION_STEAM']['id_injector'],
-                                   es['DATA_INJECTION_PRESS']['id_injector'])
-    es = es.add_relationship(rel_injector)
-
-es['DATA_INJECTION_STEAM']
-
-# EOF
-# EOF
+#
+# X, y = load_boston(True)
+# pd.DataFrame(X)
+#
+# afreg = AutoFeatRegressor(verbose=1, feateng_steps=2)
+# # fit autofeat on less data, otherwise ridge reg model_feateng with xval will overfit on new features
+# X_train_tr = afreg.fit_transform(X[:480], y[:480])
+# X_test_tr = afreg.transform(X[480:])
+# print("autofeat new features:", len(afreg.new_feat_cols_))
+# print("autofeat MSE on training data:", mean_squared_error(pd.DataFrame(y[:480]), afreg.predict(X_train_tr)))
+# print("autofeat MSE on test data:", mean_squared_error(y[480:], afreg.predict(X_test_tr)))
+# print("autofeat R^2 on training data:", r2_score(y[:480], afreg.predict(X_train_tr)))
+# print("autofeat R^2 on test data:", r2_score(y[480:], afreg.predict(X_test_tr)))
+#
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#
+# es = ft.EntitySet(id='ipc_entityset')
+#
+# es = es.entity_from_dataframe(entity_id='FINALE', dataframe=FINALE,
+#                               index='unique_id', time_index='Date')
+#
+# # Default primitives from featuretools
+# default_agg_primitives = ft.list_primitives()[(ft.list_primitives()['type'] == 'aggregation') &
+#                                               (ft.list_primitives()['valid_inputs'] == 'Numeric')
+#                                               ]['name'].to_list()
+# default_trans_primitives = [op for op in ft.list_primitives()[(ft.list_primitives()['type'] == 'transform') &
+#                                                               (ft.list_primitives()['valid_inputs'] == 'Numeric')
+#                                                               ]['name'].to_list()[:2]
+#                             if op not in ['scalar_subtract_numeric_feature']]
+#
+# # DFS with specified primitives
+# feature_names = ft.dfs(entityset=es, target_entity='FINALE',
+#                        trans_primitives=default_trans_primitives,
+#                        agg_primitives=None,
+#                        max_depth=2,
+#                        # n_jobs=-1,
+#                        features_only=True)
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#
+# # Create Entity Set for this project
+# es = ft.EntitySet(id='ipc_entityset')
+#
+# FIBER_DATA.reset_index(inplace=True)
+# DATA_INJECTION_STEAM.reset_index(inplace=True)
+# DATA_INJECTION_PRESS.reset_index(inplace=True)
+# DATA_PRODUCTION.reset_index(inplace=True)
+# DATA_TEST.reset_index(inplace=True)
+#
+# # Create an entity from the client dataframe
+# # This dataframe already has an index and a time index
+# es = es.entity_from_dataframe(entity_id='DATA_INJECTION_STEAM', dataframe=DATA_INJECTION_STEAM.copy(),
+#                               make_index=True, index='id_injector', time_index='Date')
+# es = es.entity_from_dataframe(entity_id='DATA_INJECTION_PRESS', dataframe=DATA_INJECTION_PRESS.copy(),
+#                               make_index=True, index='id_injector', time_index='Date')
+#
+# es = es.entity_from_dataframe(entity_id='DATA_PRODUCTION', dataframe=DATA_PRODUCTION.copy(),
+#                               make_index=True, index='id_production', time_index='Date')
+# es = es.entity_from_dataframe(entity_id='DATA_TEST', dataframe=DATA_TEST.copy(),
+#                               make_index=True, index='id_production', time_index='Date')
+# es = es.entity_from_dataframe(entity_id='FIBER_DATA', dataframe=FIBER_DATA.copy(),
+#                               make_index=True, index='id_production', time_index='Date')
+#
+# rel_producer = ft.Relationship(es['DATA_PRODUCTION']['id_production'],
+#                                es['DATA_TEST']['id_production'])
+# es.add_relationship(rel_producer)
+#
+# # Add relationships for all columns between injection steam and pressure data
+# injector_sensor_cols = [c for c in DATA_INJECTION_STEAM.columns.copy() if c not in ['Date']]
+# injector_sensor_cols = ['CI06']
+# for common_col in injector_sensor_cols:
+#     rel_injector = ft.Relationship(es['DATA_INJECTION_STEAM']['id_injector'],
+#                                    es['DATA_INJECTION_PRESS']['id_injector'])
+#     es = es.add_relationship(rel_injector)
+#
+# es['DATA_INJECTION_STEAM']
+#
+# # EOF
+# # EOF
