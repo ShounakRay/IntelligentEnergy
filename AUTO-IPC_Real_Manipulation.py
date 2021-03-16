@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: AUTO-IPC_Real_Manipulation.py
 # @Last modified by:   Ray
-# @Last modified time: 16-Mar-2021 11:03:73:733  GMT-0600
+# @Last modified time: 16-Mar-2021 11:03:74:740  GMT-0600
 # @License: [Private IP]
 
 
@@ -15,6 +15,7 @@
 # PASTE IMAGE: CTRL + OPTION + SHIFT + V
 # Todo: Opt + K  Opt + T
 
+import json
 import math
 import os
 import re
@@ -67,6 +68,87 @@ FINALE                  --> Join of PRODUCTION_WELL_WSENSOR
 BINS = 5
 FIG_SIZE = (220, 7)
 DIR_EXISTS = Path('Data/Pickles').is_dir()
+
+_attrs = dict(id='id', source='source', target='target', key='key')
+
+# This is stolen from networkx JSON serialization. It basically just changes what certain keys are.
+
+
+def node_link_data(G, attrs=_attrs):
+    """Return data in node-link format that is suitable for JSON serialization
+    and use in Javascript documents.
+
+    Parameters
+    ----------
+    G : NetworkX graph
+
+    attrs : dict
+        A dictionary that contains four keys 'id', 'source', 'target' and
+        'key'. The corresponding values provide the attribute names for storing
+        NetworkX-internal graph data. The values should be unique. Default
+        value:
+        :samp:`dict(id='id', source='source', target='target', key='key')`.
+
+        If some user-defined graph data use these attribute names as data keys,
+        they may be silently dropped.
+
+    Returns
+    -------
+    data : dict
+       A dictionary with node-link formatted data.
+
+    Raises
+    ------
+    NetworkXError
+        If values in attrs are not unique.
+
+    Examples
+    --------
+    >>> from networkx.readwrite import json_graph
+    >>> G = nx.Graph([(1,2)])
+    >>> data = json_graph.node_link_data(G)
+
+    To serialize with json
+
+    >>> import json
+    >>> s = json.dumps(data)
+
+    Notes
+    -----
+    Graph, node, and link attributes are stored in this format. Note that
+    attribute keys will be converted to strings in order to comply with
+    JSON.
+
+    The default value of attrs will be changed in a future release of NetworkX.
+
+    See Also
+    --------
+    node_link_graph, adjacency_data, tree_data
+    """
+    multigraph = G.is_multigraph()
+    id_ = attrs['id']
+    source = attrs['source']
+    target = attrs['target']
+    # Allow 'key' to be omitted from attrs if the graph is not a multigraph.
+    key = None if not multigraph else attrs['key']
+    if len(set([source, target, key])) < 3:
+        raise nx.NetworkXError('Attribute names are not unique.')
+    data = {}
+    data['directed'] = G.is_directed()
+    data['multigraph'] = multigraph
+    data['graph'] = G.graph
+    data['nodes'] = [dict(chain(G.node[n].items(), [(id_, n), ('label', n)])) for n in G]
+    if multigraph:
+        data['links'] = [
+            dict(chain(d.items(),
+                       [('from', u), ('to', v), (key, k)]))
+            for u, v, k, d in G.edges_iter(keys=True, data=True)]
+    else:
+        data['links'] = [
+            dict(chain(d.items(),
+                       [('from', u), ('to', v)]))
+            for u, v, d in G.edges_iter(data=True)]
+    return data
 
 
 def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False,
@@ -316,7 +398,7 @@ MACRO_GROUPS = {'Bin Temps': ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5'],
 
 # m_group = MACRO_GROUPS[0]
 # well = unique_well_list[0]
-G = nx.MultiGraph()
+G = nx.Graph()
 macro_correlation_tracker = {}
 macro_version = {}
 pad_well_assoc = dict(FINALE[['Well', 'Pad']].values)
@@ -331,13 +413,20 @@ for well in unique_well_list:
                                                          [key_tag] * len(macro_version[key_tag]),
                                                          chain.from_iterable(macro_version[key_tag].values))),
                                   weight='correlation_weight',
-                                  attr=3)
+                                  producer_well=well)
     macro_correlation_tracker[well] = macro_version.copy()
     macro_version.clear()
 
-pos = nx.spring_layout(G)
-nx.draw(G, pos)
-labels = nx.get_edge_attributes(G, 'correlation_weight')
+G.nodes
+
+json_graph.node_link_data(G)
+nx.write_gexf(G, "test.gexf")
+
+print(json.dumps({'nodes': node_link_data(G)['nodes'], 'edges': node_link_data(G)['links']}, indent=4))
+
+# pos = nx.spring_layout(G)
+# nx.draw(G, pos)
+# labels = nx.get_edge_attributes(G, 'correlation_weight')
 
 # plt.plot(SOURCE['I08'])
 #

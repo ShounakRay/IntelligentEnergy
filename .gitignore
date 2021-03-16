@@ -17,6 +17,11 @@ Data
 *.svg
 *.pdf
 *.html
+*.gexf
+
+# Ignore JS Libraris
+sigma.js-master
+vis
 
 # Ignore Literature References
 R&D References/*.pdf
