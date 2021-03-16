@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: AUTO-IPC_Real_Manipulation.py
 # @Last modified by:   Ray
-# @Last modified time: 16-Mar-2021 10:03:70:708  GMT-0600
+# @Last modified time: 16-Mar-2021 11:03:73:733  GMT-0600
 # @License: [Private IP]
 
 
@@ -21,15 +21,18 @@ import re
 import sys
 from collections import Counter
 from functools import reduce
+from itertools import chain
 from pathlib import Path
 
 import featuretools as ft
 import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from autofeat import AutoFeatRegressor, FeatureSelector
 from matplotlib.patches import Rectangle
+from networkx.readwrite import json_graph
 from sklearn.datasets import load_boston, load_diabetes
 from sklearn.metrics import (explained_variance_score, max_error,
                              mean_absolute_error, mean_squared_error,
@@ -188,8 +191,9 @@ model_feateng = AutoFeatRegressor(feateng_steps=2, verbose=3)
 model_featsel = FeatureSelector(verbose=6)
 train_pct = 0.8
 TARGET = 'Heel_Pressure'
-key_features = ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5'] + ['Toe_Pressure', 'Casing_Pressure', 'Tubing_Pressure',
-                                                                'Heel_Temp', 'Toe_Temp', 'Heel_Pressure']
+key_features = ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5'] + ['Heel_Temp', 'Toe_Temp',
+                                                                'Toe_Pressure', 'Heel_Pressure',
+                                                                'Casing_Pressure', 'Tubing_Pressure']
 
 # Deletes any single-value columns
 for col in FINALE.columns:
@@ -197,10 +201,10 @@ for col in FINALE.columns:
         FINALE.drop(col, inplace=True, axis=1)
 
 # Fills all nan with small value (for feature selection)
-FINALE = FINALE.fillna(0.000000001).replace(np.nan, 0.000000001)
+# FINALE = FINALE.fillna(0.000000001).replace(np.nan, 0.000000001)
 
-# for c in correlated_df.columns:
-#     print(c, sum(correlated_df[c].isna()))
+# for c in FINALE.columns:
+#     print(c, sum(FINALE[c].isna()))
 
 # Ultimate Goal
 # FINALE = FINALE[FINALE['test_flag'] == True].reset_index(drop=True)
@@ -237,7 +241,7 @@ FINALE_FILTERED_wbins = FINALE[[c for c in FINALE.columns if c not in ['Date', '
 # ].replace(0.0, 0.0000001)
 
 unique_well_list = FINALE_FILTERED_wbins['Well'].unique()
-fig, ax = plt.subplots(ncols=len(unique_well_list), sharey=True, figsize=(30, 15))
+fig, ax = plt.subplots(ncols=len(unique_well_list), sharey=True, figsize=(35, 15))
 
 # well = unique_well_list[0]
 # Split into source datasets for each production well
@@ -304,6 +308,36 @@ hmap.get_figure().savefig('CrossCorrelation/WELL-{WELL}_TARGET-{TARGET}.pdf'.for
                                                                                     TARGET='UNSPECIFIED'),
                           bbox_inches='tight')
 
+# Calculate the means (macro-state)
+MACRO_GROUPS = {'Bin Temps': ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5'],
+                'End Temps': ['Heel_Temp', 'Toe_Temp'],
+                'End Press': ['Toe_Pressure', 'Heel_Pressure'],
+                'Lin Press': ['Casing_Pressure', 'Tubing_Pressure']}
+
+# m_group = MACRO_GROUPS[0]
+# well = unique_well_list[0]
+G = nx.MultiGraph()
+macro_correlation_tracker = {}
+macro_version = {}
+pad_well_assoc = dict(FINALE[['Well', 'Pad']].values)
+for well in unique_well_list:
+    local_df = correlation_tracker[well]
+    for m_group in MACRO_GROUPS.values():
+        macro_i_avg = pd.DataFrame(data=final_data)[m_group].sum(axis=1)
+        key_tag = list(MACRO_GROUPS.keys())[list(MACRO_GROUPS.values()).index(m_group)]
+        macro_version[key_tag] = pd.DataFrame(macro_i_avg, columns=[key_tag])
+        # Add edges to network graph
+        G.add_weighted_edges_from(ebunch_to_add=list(zip(macro_version[key_tag].index,
+                                                         [key_tag] * len(macro_version[key_tag]),
+                                                         chain.from_iterable(macro_version[key_tag].values))),
+                                  weight='correlation_weight',
+                                  attr=3)
+    macro_correlation_tracker[well] = macro_version.copy()
+    macro_version.clear()
+
+pos = nx.spring_layout(G)
+nx.draw(G, pos)
+labels = nx.get_edge_attributes(G, 'correlation_weight')
 
 # plt.plot(SOURCE['I08'])
 #
