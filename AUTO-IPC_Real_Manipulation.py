@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: AUTO-IPC_Real_Manipulation.py
 # @Last modified by:   Ray
-# @Last modified time: 16-Mar-2021 11:03:74:740  GMT-0600
+# @Last modified time: 18-Mar-2021 00:03:06:068  GMT-0600
 # @License: [Private IP]
 
 
@@ -15,29 +15,38 @@
 # PASTE IMAGE: CTRL + OPTION + SHIFT + V
 # Todo: Opt + K  Opt + T
 
+import colorsys
+import datetime
 import json
 import math
 import os
 import re
+import shutil
 import sys
 from collections import Counter
 from functools import reduce
 from itertools import chain
 from pathlib import Path
+from random import shuffle
 
 import featuretools as ft
+import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from autofeat import AutoFeatRegressor, FeatureSelector
+from colorutils import Color
 from matplotlib.patches import Rectangle
 from networkx.readwrite import json_graph
+from sklearn import manifold
 from sklearn.datasets import load_boston, load_diabetes
-from sklearn.metrics import (explained_variance_score, max_error,
-                             mean_absolute_error, mean_squared_error,
-                             median_absolute_error, r2_score)
+from sklearn.decomposition import PCA
+from sklearn.metrics import (euclidean_distances, explained_variance_score,
+                             max_error, mean_absolute_error,
+                             mean_squared_error, median_absolute_error,
+                             r2_score)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -68,6 +77,37 @@ FINALE                  --> Join of PRODUCTION_WELL_WSENSOR
 BINS = 5
 FIG_SIZE = (220, 7)
 DIR_EXISTS = Path('Data/Pickles').is_dir()
+distinct_colors = ["#FFFF00", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941", "#006FA6", "#A30059", "#FFDBE5",
+                   "#7A4900", "#0000A6", "#63FFAC", "#B79762", "#004D43", "#8FB0FF", "#997D87", "#5A0007", "#809693",
+                   "#FEFFE6", "#1B4400", "#4FC601", "#3B5DFF", "#4A3B53", "#FF2F80", "#61615A", "#BA0900", "#6B7900",
+                   "#00C2A0", "#FFAA92", "#FF90C9", "#B903AA", "#D16100", "#DDEFFF", "#7B4F4B", "#A1C299",
+                   "#0AA6D8", "#00846F", "#FFB500", "#C2FFED", "#A079BF", "#CC0744",
+                   "#C0B9B2", "#C2FF99", "#00489C", "#6F0062", "#0CBD66", "#EEC3FF", "#456D75", "#B77B68",
+                   "#7A87A1", "#788D66", "#885578", "#FAD09F", "#FF8A9A", "#D157A0", "#BEC459", "#456648", "#0086ED",
+                   "#886F4C", "#34362D", "#B4A8BD", "#00A6AA", "#452C2C", "#636375", "#A3C8C9", "#FF913F", "#938A81",
+                   "#575329", "#00FECF", "#B05B6F", "#8CD0FF", "#3B9700", "#04F757", "#C8A1A1", "#1E6E00", "#7900D7",
+                   "#A77500", "#6367A9", "#A05837", "#6B002C", "#772600", "#D790FF", "#9B9700", "#549E79", "#FFF69F",
+                   "#72418F", "#BC23FF", "#99ADC0", "#3A2465", "#922329", "#5B4534", "#FDE8DC", "#404E55",
+                   "#0089A3", "#CB7E98", "#A4E804", "#324E72", "#6A3A4C", "#83AB58", "#D1F7CE", "#004B28",
+                   "#C8D0F6", "#A3A489", "#806C66", "#BF5650", "#E83000", "#66796D", "#DA007C", "#FF1A59",
+                   "#8ADBB4", "#5B4E51", "#C895C5", "#FF6832", "#66E1D3", "#CFCDAC", "#D0AC94",
+                   "#7ED379", "#7A7BFF", "#D68E01", "#353339", "#78AFA1", "#FEB2C6", "#75797C", "#837393",
+                   "#943A4D", "#B5F4FF", "#D2DCD5", "#9556BD", "#6A714A", "#02525F", "#0AA3F7", "#E98176",
+                   "#DBD5DD", "#5EBCD1", "#3D4F44", "#7E6405", "#02684E", "#962B75", "#8D8546", "#9695C5", "#E773CE",
+                   "#D86A78", "#3E89BE", "#CA834E", "#518A87", "#5B113C", "#55813B", "#E704C4", "#A97399",
+                   "#4B8160", "#59738A", "#FF5DA7", "#F7C9BF", "#643127", "#513A01", "#6B94AA", "#51A058", "#A45B02",
+                   "#E20027", "#E7AB63", "#4C6001", "#9C6966", "#64547B", "#97979E", "#006A66",
+                   "#F4D749", "#0045D2", "#006C31", "#DDB6D0", "#7C6571", "#9FB2A4", "#00D891", "#15A08A", "#BC65E9",
+                   "#FFFFFE", "#C6DC99", "#671190", "#6B3A64", "#F5E1FF", "#FFA0F2", "#CCAA35", "#374527",
+                   "#8BB400", "#797868", "#C6005A", "#3B000A", "#C86240", "#29607C", "#402334", "#7D5A44", "#CCB87C",
+                   "#B88183", "#AA5199", "#B5D6C3", "#A38469", "#9F94F0", "#A74571", "#B894A6", "#71BB8C", "#00B433",
+                   "#789EC9", "#6D80BA", "#953F00", "#5EFF03", "#E4FFFC", "#1BE177", "#BCB1E5", "#76912F", "#003109",
+                   "#0060CD", "#D20096", "#895563", "#A76F42", "#89412E", "#1A3A2A", "#494B5A",
+                   "#A88C85", "#F4ABAA", "#A3F3AB", "#00C6C8", "#EA8B66", "#958A9F", "#BDC9D2", "#9FA064", "#BE4700",
+                   "#658188", "#83A485", "#453C23", "#47675D", "#3A3F00", "#DFFB71", "#868E7E", "#98D058",
+                   "#6C8F7D", "#D7BFC2", "#3C3E6E", "#D83D66", "#2F5D9B", "#6C5E46", "#D25B88", "#5B656C", "#00B57F",
+                   "#545C46", "#866097", "#365D25", "#252F99", "#00CCFF", "#674E60", "#FC009C", "#92896B"]
+diverging_palette_Global = sns.diverging_palette(240, 10, n=9, as_cmap=True)
 
 _attrs = dict(id='id', source='source', target='target', key='key')
 
@@ -137,17 +177,17 @@ def node_link_data(G, attrs=_attrs):
     data['directed'] = G.is_directed()
     data['multigraph'] = multigraph
     data['graph'] = G.graph
-    data['nodes'] = [dict(chain(G.node[n].items(), [(id_, n), ('label', n)])) for n in G]
+    data['nodes'] = [dict(chain(G.nodes[n].items(), [(id_, n), ('label', n)])) for n in G]
     if multigraph:
         data['links'] = [
             dict(chain(d.items(),
                        [('from', u), ('to', v), (key, k)]))
-            for u, v, k, d in G.edges_iter(keys=True, data=True)]
+            for u, v, k, d in G.edges(keys=True, data=True)]
     else:
         data['links'] = [
             dict(chain(d.items(),
                        [('from', u), ('to', v)]))
-            for u, v, d in G.edges_iter(data=True)]
+            for u, v, d in G.edges(data=True)]
     return data
 
 
@@ -197,10 +237,10 @@ def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False
         input_data[typec] = (df.corr(typec.lower()).abs()**contrast_factor if abs_arg
                              else df.corr(typec.lower())**contrast_factor)
         sns_fig = sns.heatmap(input_data[typec],
-                              mask=np.triu(df.corr().abs()) if mask else None,
+                              mask=np.triu(input_data[typec]) if mask else None,
                               ax=ax[type_corrs.index(typec)],
                               annot=annot,
-                              cmap=cmap if abs_arg else sns.diverging_palette(240, 10, n=9, as_cmap=True)
+                              cmap=cmap if abs_arg else diverging_palette_Global
                               ).set_title("{cortype}'s Correlation Matrix\n{EXP_NAME}".format(cortype=typec,
                                                                                               EXP_NAME=EXP_NAME))
     plt.tight_layout()
@@ -238,6 +278,22 @@ def rect_heatmap(rect_posx, hmap_data, title='Heatmap'):
 
     return hmap
 
+
+def remove_dupl_edges(G_func):
+    # REMOVE DUPLICATE EDGES
+    stripped_list = list(set([tuple(set(edge)) for edge in G_func.edges()]))
+    stripped_list = [(u, v, d) for u, v, d in G_func.edges(data=True) if (u, v) in stripped_list]
+    G_func.remove_edges_from([e for e in G.edges()])
+    G_func.add_edges_from(stripped_list)
+
+    return G_func
+
+
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -269,47 +325,28 @@ else:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-model_feateng = AutoFeatRegressor(feateng_steps=2, verbose=3)
-model_featsel = FeatureSelector(verbose=6)
+# model_feateng = AutoFeatRegressor(feateng_steps=2, verbose=3)
+# model_featsel = FeatureSelector(verbose=6)
 train_pct = 0.8
 TARGET = 'Heel_Pressure'
-key_features = ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5'] + ['Heel_Temp', 'Toe_Temp',
-                                                                'Toe_Pressure', 'Heel_Pressure',
-                                                                'Casing_Pressure', 'Tubing_Pressure']
+key_features = ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5']
+DATE_BINS = 5
 
 # Deletes any single-value columns
 for col in FINALE.columns:
     if len(FINALE[col].unique()) == 1:
         FINALE.drop(col, inplace=True, axis=1)
 
-# Fills all nan with small value (for feature selection)
-# FINALE = FINALE.fillna(0.000000001).replace(np.nan, 0.000000001)
 
-# for c in FINALE.columns:
-#     print(c, sum(FINALE[c].isna()))
-
-# Ultimate Goal
-# FINALE = FINALE[FINALE['test_flag'] == True].reset_index(drop=True)
-# TARGET = 'Oil'
-
-# FINALE_FILTERED = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'test_flag',
-# '24_Fluid',  '24_Oil', '24_Water', 'Oil', 'Water',
-# 'Gas', 'Fluid', 'Toe_Pressure', 'Pump_Speed',
-# 'Casing_Pressure', 'Tubing_Pressure', 'Heel_Temp',
-# 'Toe_Temp', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4',
-# 'Bin_5']]].replace(0.0, 0.0000001)
-# FINALE_FILTERED = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'test_flag',
-#                                                                  '24_Fluid',  '24_Oil', '24_Water', 'Oil', 'Water',
-#                                                                  'Gas', 'Fluid', 'Toe_Pressure', 'Pump_Speed',
-#                                                                  'Casing_Pressure', 'Tubing_Pressure', 'Heel_Temp',
-#                                                                  'Toe_Temp', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4',
-#                                                                  'Bin_5']]
-#                          ].replace(0.0, 0.0000001)
-FINALE_FILTERED_wbins = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'test_flag',
-                                                                       '24_Fluid',  '24_Oil', '24_Water', 'Oil', 'Water',
-                                                                       'Gas', 'Fluid', 'Pump_Speed']]
+FINALE_FILTERED_wbins = FINALE[[c for c in FINALE.columns if c not in ['unique_id', 'Pad', 'test_flag',
+                                                                       '24_Fluid',  '24_Oil', '24_Water', 'Oil',
+                                                                       'Water', 'Gas', 'Fluid', 'Pump_Speed']]
                                ].replace(0.0, 0.0000001)
 
+for_injectors = FINALE_FILTERED_wbins[:]
+plt.subplots(figsize=(20, 20))
+hmapc = sns.heatmap(for_injectors.corr(), cmap=diverging_palette_Global)
+hmapc.get_figure().savefig('CrossCorrelation/Injector Cross Correlation.png', bbox_inches='tight')
 
 # list(FINALE_FILTERED.columns)
 # FINALE_FILTERED = FINALE_FILTERED.astype(np.float64)
@@ -323,78 +360,65 @@ FINALE_FILTERED_wbins = FINALE[[c for c in FINALE.columns if c not in ['Date', '
 # ].replace(0.0, 0.0000001)
 
 unique_well_list = FINALE_FILTERED_wbins['Well'].unique()
-fig, ax = plt.subplots(ncols=len(unique_well_list), sharey=True, figsize=(35, 15))
+fig, ax = plt.subplots(ncols=len(unique_well_list), nrows=DATE_BINS, sharey=True, figsize=(35, 35))
 
 # well = unique_well_list[0]
 # Split into source datasets for each production well
 correlation_tracker = {}
 for well in unique_well_list:
-    # SOURCE = FINALE_FILTERED[FINALE_FILTERED['Well'] == well]
-    # SOURCE.drop(['Well'], axis=1, inplace=True)
-    # SOURCE.reset_index(drop=True, inplace=True)
-    # SOURCE = SOURCE.rolling(window=7).mean().fillna(method='bfill').fillna(method='ffill')
+    well_date_range = sorted(
+        set(FINALE_FILTERED_wbins[FINALE_FILTERED_wbins['Well'] == well
+                                  ].drop(['Well'], 1).reset_index(drop=True)['Date']))
+    dbins = list(chunks(well_date_range, int(len(well_date_range) / DATE_BINS)))
+    if(len(dbins) > DATE_BINS):
+        del dbins[-1]
+    for dbin in dbins:
+        SOURCE_wbins = FINALE_FILTERED_wbins[FINALE_FILTERED_wbins['Well'] == well]
+        SOURCE_wbins = SOURCE_wbins.drop(['Well'], axis=1, inplace=False).reset_index(drop=True)
 
-    SOURCE_wbins = FINALE_FILTERED_wbins[FINALE_FILTERED_wbins['Well'] == well]
-    SOURCE_wbins.drop(['Well'], axis=1, inplace=True)
-    SOURCE_wbins.reset_index(drop=True, inplace=True)
+        first_date = dbin[0]
+        last_date = dbin[-1]
 
-    SOURCE_wbins = SOURCE_wbins.rolling(window=7).mean().fillna(method='bfill').fillna(method='ffill')
-    SOURCE_wbins = SOURCE_wbins.astype(np.float64)
+        SOURCE_wbins = SOURCE_wbins[(SOURCE_wbins['Date'] >= first_date) &
+                                    (SOURCE_wbins['Date'] <= last_date)].drop('Date', 1).reset_index(drop=True)
+        SOURCE_wbins = SOURCE_wbins.rolling(window=7).mean().fillna(method='bfill').fillna(method='ffill')
+        SOURCE_wbins = SOURCE_wbins.astype(np.float64)
 
-    # msk = np.random.rand(len(SOURCE)) < train_pct
-    #
-    # # Variable Selection (NOT Engineering)
-    # new_X = model_featsel.fit_transform(SOURCE[[c for c in SOURCE.columns if c != TARGET]],
-    #                                     SOURCE[TARGET])
-    # filtered_features = new_X.columns
+        correlated_df = SOURCE_wbins.corr()
+        final_data = correlated_df[key_features].drop(key_features).dropna(how='all')
+        # pos = [list(final_data.index).index(val) for val in list(filtered_features)]
 
-    correlated_df = SOURCE_wbins.corr()
-    final_data = correlated_df.abs()[key_features].drop(key_features)
-    # pos = [list(final_data.index).index(val) for val in list(filtered_features)]
+        hmap_row = list(unique_well_list).index(well)
+        hmap_col = dbins.index(dbin)
+        hmap = sns.heatmap(final_data, annot=False, ax=ax[hmap_col][hmap_row], center=0.0,
+                           cbar=False, cmap=diverging_palette_Global
+                           ) if well != unique_well_list[-1] else sns.heatmap(final_data,
+                                                                              annot=False,
+                                                                              ax=ax[hmap_col][hmap_row],
+                                                                              cmap=diverging_palette_Global,
+                                                                              center=0.0)
 
-    hmap = sns.heatmap(final_data, annot=False, ax=ax[list(unique_well_list).index(well)],
-                       cbar=False) if well != 'BP6' else sns.heatmap(final_data, annot=False,
-                                                                     ax=ax[list(unique_well_list).index(well)])
+        hmap.set_title(well + ': ' + str(first_date) + ' > ' + str(last_date))
+        plt.tight_layout()
 
-    # for p in pos:
-    #     hmap.add_patch(Rectangle((0, p), len(key_features), 1, edgecolor='blue', fill=False, lw=3))
-    hmap.set_title('Well ' + well)
-    plt.tight_layout()
+        correlation_tracker[well] = final_data
 
-    correlation_tracker[well] = final_data
-
-    # # >>> THIS IS THE REGRESSION PART
-    # # Length filtering, no column filtering
-    # # Filter training and testing sets to only include the selected features
-    # TRAIN = SOURCE[msk][filtered_features.union([TARGET])].reset_index(drop=True)
-    # TEST = SOURCE[~msk][filtered_features.union([TARGET])].reset_index(drop=True)
-    #
-    # X_TRAIN = TRAIN[[c for c in TRAIN.columns if c != TARGET]]
-    # Y_TRAIN = pd.DataFrame(TRAIN[TARGET])
-    #
-    # X_TEST = TEST[[c for c in TEST.columns if c != TARGET]]
-    # Y_TEST = pd.DataFrame(TEST[TARGET])
-    #
-    # feateng_X_TRAIN = model_feateng.fit_transform(X_TRAIN, Y_TRAIN)
-    # feating_X_TEST = model_feateng.transform(X_TEST)
-    #
-    # # model_feateng.score(X_TRAIN, Y_TRAIN)
-    # # model_feateng.new_feat_cols_
-    # # plt.scatter(model_feateng.predict(X_TEST), Y_TEST[TARGET], s=2)
-    # # model_feateng.score(X_TEST, Y_TEST)
-    #
-    # # performance(Y_TRAIN, model_feateng.predict(feateng_X_TRAIN))
 
 # fig.colorbar(ax[12].collections[0], cax=ax[12])
-hmap.get_figure().savefig('CrossCorrelation/WELL-{WELL}_TARGET-{TARGET}.pdf'.format(WELL='ALL_PRODUCTION',
-                                                                                    TARGET='UNSPECIFIED'),
-                          bbox_inches='tight')
+hmap.get_figure().savefig('CrossCorrelation/WELL-{WELL}_TARGET-{TARGET}_TIMED-{TIME}.png'.format(
+    WELL='ALL_PRODUCTION',
+    TARGET='UNSPECIFIED',
+    TIME='True'), bbox_inches='tight')
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # Calculate the means (macro-state)
-MACRO_GROUPS = {'Bin Temps': ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5'],
-                'End Temps': ['Heel_Temp', 'Toe_Temp'],
-                'End Press': ['Toe_Pressure', 'Heel_Pressure'],
-                'Lin Press': ['Casing_Pressure', 'Tubing_Pressure']}
+# MACRO_GROUPS = {'Bin Temps': ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5'],
+#                 'End Temps': ['Heel_Temp', 'Toe_Temp'],
+#                 'End Press': ['Toe_Pressure', 'Heel_Pressure'],
+#                 'Lin Press': ['Casing_Pressure', 'Tubing_Pressure']}
+MACRO_GROUPS = {'Bin Temps': ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5']}
 
 # m_group = MACRO_GROUPS[0]
 # well = unique_well_list[0]
@@ -405,140 +429,196 @@ pad_well_assoc = dict(FINALE[['Well', 'Pad']].values)
 for well in unique_well_list:
     local_df = correlation_tracker[well]
     for m_group in MACRO_GROUPS.values():
-        macro_i_avg = pd.DataFrame(data=final_data)[m_group].sum(axis=1)
-        key_tag = list(MACRO_GROUPS.keys())[list(MACRO_GROUPS.values()).index(m_group)]
+        macro_i_avg = pd.DataFrame(data=local_df)[m_group].mean(axis=1)
+        key_tag = list(MACRO_GROUPS.keys())[list(MACRO_GROUPS.values()).index(m_group)] + ', ' + well
         macro_version[key_tag] = pd.DataFrame(macro_i_avg, columns=[key_tag])
         # Add edges to network graph
         G.add_weighted_edges_from(ebunch_to_add=list(zip(macro_version[key_tag].index,
                                                          [key_tag] * len(macro_version[key_tag]),
                                                          chain.from_iterable(macro_version[key_tag].values))),
-                                  weight='correlation_weight',
+                                  weight='value',
                                   producer_well=well)
     macro_correlation_tracker[well] = macro_version.copy()
     macro_version.clear()
 
-G.nodes
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-json_graph.node_link_data(G)
-nx.write_gexf(G, "test.gexf")
+# Filtering/Truncation (p << 80 ISH)
+percentile = 50
+weights_all = list(set([d['value'] for u, v, d in G.edges(data=True)]))
+plt.hist(weights_all, bins=50)
+# sorted(weights_all, reverse=True)
+cutoff = np.percentile([c for c in weights_all if c > 0], percentile)
+# cutoff = min(weights_all)
+print('STATUS: Cuttoff is: ' + str(cutoff) + ' @ {} percentile'.format(percentile))
+G_dupl = nx.Graph([(u, v, d) for u, v, d in G.edges(data=True) if d['value'] > cutoff])
 
-print(json.dumps({'nodes': node_link_data(G)['nodes'], 'edges': node_link_data(G)['links']}, indent=4))
+# stripped_list = list(set([tuple(set(edge)) for edge in G_dupl.edges()]))
+# stripped_list = [(u, v, d) for u, v, d in G_dupl.edges(data=True) if (u, v) in stripped_list]
+# G_func.remove_edges_from([e for e in G.edges()])
+# G_func.add_edges_from(stripped_list)
 
-# pos = nx.spring_layout(G)
-# nx.draw(G, pos)
-# labels = nx.get_edge_attributes(G, 'correlation_weight')
+G_dupl = remove_dupl_edges(G_dupl)
+# nx.node_link_data(remove_dupl_edges(G_dupl))
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# plt.plot(SOURCE['I08'])
-#
-# plt.plot(SOURCE['I08'] / SOURCE['I08'].quantile(0.92))
-# plt.plot(SOURCE['I30'] / SOURCE['I30'].quantile(0.92))
-# plt.plot(SOURCE['I10'] / SOURCE['I10'].quantile(0.92))
-# plt.plot(SOURCE['I43'] / SOURCE['I43'].quantile(0.92))
-# plt.plot(SOURCE['I29'] / SOURCE['I29'].quantile(0.92))
-# plt.plot(SOURCE['I56'] / SOURCE['I56'].quantile(0.92))
-#
-# plt.plot(SOURCE['I32'] / SOURCE['I32'].quantile(0.92))
-# SOURCE.corr()
-# plt.plot(SOURCE['I29'] / SOURCE['I29'].quantile(0.92))
-#
-# plt.plot(SOURCE['I10'] / SOURCE['I10'].quantile(0.92))
-# plt.plot(SOURCE[TARGET])
-
-# _ = plt.hist(Y_TRAIN, bins=90)
-# _ = plt.hist(model_feateng.predict(feateng_X_TRAIN), bins=90)
-
-# Diverging: sns.diverging_palette(240, 10, n=9, as_cmap=True)
-# https://seaborn.pydata.org/generated/seaborn.color_palette.html
-
-# _ = correlation_matrix(SOURCE, 'Modeling.pdf', 'test', mask=False)
+# Remove anything that isn't temperature bins or injectors
+keep_columns = [c for c in FINALE_FILTERED_wbins.columns if 'Bin' in c or 'I' in c]
+forbidden_columns = [c for c in FINALE_FILTERED_wbins.columns if c not in keep_columns]
+remove = [node for node in G_dupl.nodes if node in forbidden_columns]
+G_dupl.remove_nodes_from(remove)
 
 
-# dict(SOURCE.corr()['Heel_Pressure'].dropna().sort_values(ascending=False))
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# model_metrics = performance(Y_TRAIN, model_feateng.predict(feateng_X_TRAIN))
+# Set note attributes (whether well is injector or producer)
+well_attr = [e[-1].strip() for e in [n.split(',') if len(n.split(',')) != 1 else ['Injector'] for n in G_dupl.nodes]]
+well_attr = dict(zip(G_dupl.nodes, well_attr))
+nx.set_node_attributes(G_dupl, well_attr, 'group')
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Add injector cross-correlations
+G_node_inj = [n for n in G_dupl.nodes if 'I' in n]
+adj_matrix = FINALE_FILTERED_wbins[G_node_inj].corr()
+_ = correlation_matrix(FINALE_FILTERED_wbins[G_node_inj], 'CrossCorrelation/selective_matrix.png',
+                       '', abs_arg=False)
+G_internal = nx.from_pandas_adjacency(adj_matrix, create_using=nx.Graph)
+inj_internal_edges = [(to, fr, val['weight']) for to, fr, val in list(G_internal.edges(data=True))]
+G_dupl.add_weighted_edges_from(ebunch_to_add=inj_internal_edges, weight='value')
 
-#
-# X, y = load_boston(True)
-# pd.DataFrame(X)
-#
-# afreg = AutoFeatRegressor(verbose=1, feateng_steps=2)
-# # fit autofeat on less data, otherwise ridge reg model_feateng with xval will overfit on new features
-# X_train_tr = afreg.fit_transform(X[:480], y[:480])
-# X_test_tr = afreg.transform(X[480:])
-# print("autofeat new features:", len(afreg.new_feat_cols_))
-# print("autofeat MSE on training data:", mean_squared_error(pd.DataFrame(y[:480]), afreg.predict(X_train_tr)))
-# print("autofeat MSE on test data:", mean_squared_error(y[480:], afreg.predict(X_test_tr)))
-# print("autofeat R^2 on training data:", r2_score(y[:480], afreg.predict(X_train_tr)))
-# print("autofeat R^2 on test data:", r2_score(y[480:], afreg.predict(X_test_tr)))
-#
-#
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#
-# es = ft.EntitySet(id='ipc_entityset')
-#
-# es = es.entity_from_dataframe(entity_id='FINALE', dataframe=FINALE,
-#                               index='unique_id', time_index='Date')
-#
-# # Default primitives from featuretools
-# default_agg_primitives = ft.list_primitives()[(ft.list_primitives()['type'] == 'aggregation') &
-#                                               (ft.list_primitives()['valid_inputs'] == 'Numeric')
-#                                               ]['name'].to_list()
-# default_trans_primitives = [op for op in ft.list_primitives()[(ft.list_primitives()['type'] == 'transform') &
-#                                                               (ft.list_primitives()['valid_inputs'] == 'Numeric')
-#                                                               ]['name'].to_list()[:2]
-#                             if op not in ['scalar_subtract_numeric_feature']]
-#
-# # DFS with specified primitives
-# feature_names = ft.dfs(entityset=es, target_entity='FINALE',
-#                        trans_primitives=default_trans_primitives,
-#                        agg_primitives=None,
-#                        max_depth=2,
-#                        # n_jobs=-1,
-#                        features_only=True)
-#
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#
-# # Create Entity Set for this project
-# es = ft.EntitySet(id='ipc_entityset')
-#
-# FIBER_DATA.reset_index(inplace=True)
-# DATA_INJECTION_STEAM.reset_index(inplace=True)
-# DATA_INJECTION_PRESS.reset_index(inplace=True)
-# DATA_PRODUCTION.reset_index(inplace=True)
-# DATA_TEST.reset_index(inplace=True)
-#
-# # Create an entity from the client dataframe
-# # This dataframe already has an index and a time index
-# es = es.entity_from_dataframe(entity_id='DATA_INJECTION_STEAM', dataframe=DATA_INJECTION_STEAM.copy(),
-#                               make_index=True, index='id_injector', time_index='Date')
-# es = es.entity_from_dataframe(entity_id='DATA_INJECTION_PRESS', dataframe=DATA_INJECTION_PRESS.copy(),
-#                               make_index=True, index='id_injector', time_index='Date')
-#
-# es = es.entity_from_dataframe(entity_id='DATA_PRODUCTION', dataframe=DATA_PRODUCTION.copy(),
-#                               make_index=True, index='id_production', time_index='Date')
-# es = es.entity_from_dataframe(entity_id='DATA_TEST', dataframe=DATA_TEST.copy(),
-#                               make_index=True, index='id_production', time_index='Date')
-# es = es.entity_from_dataframe(entity_id='FIBER_DATA', dataframe=FIBER_DATA.copy(),
-#                               make_index=True, index='id_production', time_index='Date')
-#
-# rel_producer = ft.Relationship(es['DATA_PRODUCTION']['id_production'],
-#                                es['DATA_TEST']['id_production'])
-# es.add_relationship(rel_producer)
-#
-# # Add relationships for all columns between injection steam and pressure data
-# injector_sensor_cols = [c for c in DATA_INJECTION_STEAM.columns.copy() if c not in ['Date']]
-# injector_sensor_cols = ['CI06']
-# for common_col in injector_sensor_cols:
-#     rel_injector = ft.Relationship(es['DATA_INJECTION_STEAM']['id_injector'],
-#                                    es['DATA_INJECTION_PRESS']['id_injector'])
-#     es = es.add_relationship(rel_injector)
-#
-# es['DATA_INJECTION_STEAM']
-#
-# # EOF
-# # EOF
+# Remove duplicate edges
+G_dupl = remove_dupl_edges(G_dupl)
+# Remove any self-loops
+G_dupl.remove_edges_from(nx.selfloop_edges(G_dupl))
+# Remove and childless nodes
+loners = list(nx.isolates(G_dupl))
+G_dupl.remove_nodes_from(loners)
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Check JSON data (for reference)
+json_graph.node_link_data(G_dupl)
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# VIS.JS
+json_dict = {'nodes': node_link_data(G_dupl)['nodes'], 'edges': node_link_data(G_dupl)['links']}
+
+# Add edge color inheritance
+for ed_i in range(len(json_dict['edges'])):
+    if(json_dict['edges'][ed_i]['to'] in G_node_inj and json_dict['edges'][ed_i]['from'] in G_node_inj):
+        json_dict['edges'][ed_i]['color'] = {'color': "red"}
+    else:
+        json_dict['edges'][ed_i]['color'] = {'inherit': "from"}
+
+# Restructure nodes and edges data
+node_data = str(json_dict['nodes']).replace('[', '').replace(']', '')
+edges_data = str(json_dict['edges']).replace('[', '').replace(']', '')
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Assign colors (of producers)
+group_color = list(set(["""'{}': {{'color':{{'background':'grey'}}, 'borderWidth':3}}""".format(val)
+                        for val in [a['group'] for n, a in G_dupl.nodes(data=True)] if val != 'Injector']))
+N = len(group_color)
+# sns.color_palette("tab10", len([c for c in macro_i_avg.keys()])).as_hex()
+shuffle(distinct_colors)
+group_color = [item.replace('grey', str(distinct_colors[group_color.index(item)])) for item in group_color]
+# group_color += ["""'{}': {{'color':{{'background':'#FF0000'}}, 'borderWidth':3}}""".format(val) for val in G_node_inj]
+group_color = str(group_color)[2:-2].replace('"', '')
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Duplicate the base HTML file
+shutil.copy2('nx_visjs.html', 'nx_visjs_TAILOR.html')
+
+# Key for inserting options, etc.
+# insertions = {74: node_data,
+#               78: edges_data}
+
+insertions = {73: node_data,
+              77: edges_data,
+              86: group_color}
+
+# Insert options, etc.
+for line_num, ins_text in list(insertions.items()):
+    # # Insert node and edge data in html file
+    with open('nx_visjs_TAILOR.html', 'r') as b:
+        lines = b.readlines()
+
+    with open('nx_visjs_TAILOR.html', 'w') as b:
+        for i, line in enumerate(lines):
+            if i == line_num:
+                b.write(ins_text)
+            b.write(line)
+
+# # #
+# # #
+# ANIMATIONS
+
+data_temp = FINALE_FILTERED_wbins[FINALE_FILTERED_wbins['Well'] == well]
+# data_temp = data_temp[(data_temp['Date'] >= first_date) & (data_temp['Date'] <= last_date)]
+
+all_data = generate_depn_animation(data_temp[data_temp['Well'] == 'AP3'].reset_index(drop=True),
+                                   'Well', 'Date', period=200)
+
+
+def generate_depn_animation(df, groupby, time_feature, fig_size=(12.5, 9), resolution='high', period=7):
+    # For every well...
+    for w in df[groupby].unique():
+        filtered_df = df[df[groupby] == w]
+        images = []
+        traversed_dates = []
+
+        print('ANIMATION >> ' + w + ': Determining Frames...')
+        all_dates = filtered_df['Date'].values
+        focus_dates = np.array(filtered_df[time_feature].index)
+        good_indices = np.array(filtered_df[time_feature].index)[::period]
+        focus_dates = [all_dates[i] for i in good_indices]
+        for d_i in range(len(focus_dates) - 1):
+            frame_start_ind = focus_dates[d_i]
+            frame_end_ind = focus_dates[d_i + 1]
+            traversed_dates.append((frame_start_ind, frame_end_ind))
+            data_frame = filtered_df[(filtered_df[time_feature] > frame_start_ind) &
+                                     (filtered_df[time_feature] < frame_end_ind)
+                                     ].select_dtypes(float).corr()
+            images.append(data_frame)
+
+        print('ANIMATION >> Image Vector Dimension: ' + str(len(images)))
+
+        fig = plt.figure(figsize=(10, 10))
+        sns.heatmap(images[0], annot=False, center=0.0, cbar=False, square=True,
+                    cmap=diverging_palette_Global, mask=np.triu(images[0])
+                    ).set_title(str(traversed_dates[0][0]) + ' to ' + str(traversed_dates[0][1]))
+        plt.tight_layout()
+
+        def init():
+            sns.heatmap(images[0], annot=False, center=0.0, cbar=False, square=True,
+                        cmap=diverging_palette_Global, mask=np.triu(images[0])
+                        ).set_title(str(traversed_dates[0][0]) + ' to ' + str(traversed_dates[0][1]))
+            plt.tight_layout()
+
+        def animate(i):
+            data = images[i]
+            sns.heatmap(data, vmax=.8, annot=False, center=0.0, cbar=False, square=True,
+                        cmap=diverging_palette_Global, mask=np.triu(images[0])
+                        ).set_title(str(traversed_dates[i][0]) + ' to ' + str(traversed_dates[i][1]))
+            plt.tight_layout()
+
+        anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(images), repeat=False)
+        try:
+            writer = animation.writers['ffmpeg']
+        except KeyError:
+            writer = animation.writers['avconv']
+        writer = writer(fps=60)
+        anim.save('CrossCorrelation/test.mp4', writer=writer, dpi=500)
+
+        return images

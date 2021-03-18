@@ -18,6 +18,9 @@ Data
 *.pdf
 *.html
 *.gexf
+*.json
+*.png
+*.mp4
 
 # Ignore JS Libraris
 sigma.js-master

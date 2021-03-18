@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 15-Mar-2021 17:03:54:549  GMT-0600
+# @Last modified time: 17-Mar-2021 14:03:23:238  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -151,3 +151,189 @@
 #     hmap.set_title('Ordered by ' + feat + ' for ' + well)
 #     plt.tight_layout()
 # hmap.get_figure().savefig('WELL-{WELL}_TARGET-{TARGET}.pdf'.format(WELL=well, TARGET=TARGET), bbox_inches='tight')
+
+# msk = np.random.rand(len(SOURCE)) < train_pct
+#
+# # Variable Selection (NOT Engineering)
+# new_X = model_featsel.fit_transform(SOURCE[[c for c in SOURCE.columns if c != TARGET]],
+#                                     SOURCE[TARGET])
+# filtered_features = new_X.columns
+
+
+# # >>> THIS IS THE REGRESSION PART
+# # Length filtering, no column filtering
+# # Filter training and testing sets to only include the selected features
+# TRAIN = SOURCE[msk][filtered_features.union([TARGET])].reset_index(drop=True)
+# TEST = SOURCE[~msk][filtered_features.union([TARGET])].reset_index(drop=True)
+#
+# X_TRAIN = TRAIN[[c for c in TRAIN.columns if c != TARGET]]
+# Y_TRAIN = pd.DataFrame(TRAIN[TARGET])
+#
+# X_TEST = TEST[[c for c in TEST.columns if c != TARGET]]
+# Y_TEST = pd.DataFrame(TEST[TARGET])
+#
+# feateng_X_TRAIN = model_feateng.fit_transform(X_TRAIN, Y_TRAIN)
+# feating_X_TEST = model_feateng.transform(X_TEST)
+#
+# # model_feateng.score(X_TRAIN, Y_TRAIN)
+# # model_feateng.new_feat_cols_
+# # plt.scatter(model_feateng.predict(X_TEST), Y_TEST[TARGET], s=2)
+# # model_feateng.score(X_TEST, Y_TEST)
+#
+# # performance(Y_TRAIN, model_feateng.predict(feateng_X_TRAIN))
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# MDS
+# node_order = sorted(G_dupl.nodes())
+# similarities = nx.adjacency_matrix(G_dupl, nodelist=node_order, weight='value').toarray()
+#
+# mds = manifold.MDS(n_components=2, max_iter=3000, eps=1e-9, random_state=1,
+#                    dissimilarity="precomputed", n_jobs=1)
+# pos = mds.fit(similarities).embedding_
+# plt.scatter(pos[:, 0], pos[:, 1])
+
+
+# plt.plot(SOURCE['I08'])
+#
+# plt.plot(SOURCE['I08'] / SOURCE['I08'].quantile(0.92))
+# plt.plot(SOURCE['I30'] / SOURCE['I30'].quantile(0.92))
+# plt.plot(SOURCE['I10'] / SOURCE['I10'].quantile(0.92))
+# plt.plot(SOURCE['I43'] / SOURCE['I43'].quantile(0.92))
+# plt.plot(SOURCE['I29'] / SOURCE['I29'].quantile(0.92))
+# plt.plot(SOURCE['I56'] / SOURCE['I56'].quantile(0.92))
+#
+# plt.plot(SOURCE['I32'] / SOURCE['I32'].quantile(0.92))
+# SOURCE.corr()
+# plt.plot(SOURCE['I29'] / SOURCE['I29'].quantile(0.92))
+#
+# plt.plot(SOURCE['I10'] / SOURCE['I10'].quantile(0.92))
+# plt.plot(SOURCE[TARG_duplET])
+
+# _ = plt.hist(Y_TRAIN, bins=90)
+# _ = plt.hist(model_feateng.predict(feateng_X_TRAIN), bins=90)
+
+# Diverging: diverging_palette_Global
+# https://seaborn.pydata.org/generated/seaborn.color_palette.html
+
+# _ = correlation_matrix(SOURCE, 'Modeling.pdf', 'test', mask=False)
+
+
+# dict(SOURCE.corr()['Heel_Pressure'].dropna().sort_values(ascending=False))
+
+# model_metrics = performance(Y_TRAIN, model_feateng.predict(feateng_X_TRAIN))
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+#
+# X, y = load_boston(True)
+# pd.DataFrame(X)
+#
+# afreg = AutoFeatRegressor(verbose=1, feateng_steps=2)
+# # fit autofeat on less data, otherwise ridge reg model_feateng with xval will overfit on new features
+# X_train_tr = afreg.fit_transform(X[:480], y[:480])
+# X_test_tr = afreg.transform(X[480:])
+# print("autofeat new features:", len(afreg.new_feat_cols_))
+# print("autofeat MSE on training data:", mean_squared_error(pd.DataFrame(y[:480]), afreg.predict(X_train_tr)))
+# print("autofeat MSE on test data:", mean_squared_error(y[480:], afreg.predict(X_test_tr)))
+# print("autofeat R^2 on training data:", r2_score(y[:480], afreg.predict(X_train_tr)))
+# print("autofeat R^2 on test data:", r2_score(y[480:], afreg.predict(X_test_tr)))
+#
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#
+# es = ft.EntitySet(id='ipc_entityset')
+#
+# es = es.entity_from_dataframe(entity_id='FINALE', dataframe=FINALE,
+#                               index='unique_id', time_index='Date')
+#
+# # Default primitives from featuretools
+# default_agg_primitives = ft.list_primitives()[(ft.list_primitives()['type'] == 'aggregation') &
+#                                               (ft.list_primitives()['valid_inputs'] == 'Numeric')
+#                                               ]['name'].to_list()
+# default_trans_primitives = [op for op in ft.list_primitives()[(ft.list_primitives()['type'] == 'transform') &
+#                                                               (ft.list_primitives()['valid_inputs'] == 'Numeric')
+#                                                               ]['name'].to_list()[:2]
+#                             if op not in ['scalar_subtract_numeric_feature']]
+#
+# # DFS with specified primitives
+# feature_names = ft.dfs(entityset=es, target_entity='FINALE',
+#                        trans_primitives=default_trans_primitives,
+#                        agg_primitives=None,
+#                        max_depth=2,
+#                        # n_jobs=-1,
+#                        features_only=True)
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#
+# # Create Entity Set for this project
+# es = ft.EntitySet(id='ipc_entityset')
+#
+# FIBER_DATA.reset_index(inplace=True)
+# DATA_INJECTION_STEAM.reset_index(inplace=True)
+# DATA_INJECTION_PRESS.reset_index(inplace=True)
+# DATA_PRODUCTION.reset_index(inplace=True)
+# DATA_TEST.reset_index(inplace=True)
+#
+# # Create an entity from the client dataframe
+# # This dataframe already has an index and a time index
+# es = es.entity_from_dataframe(entity_id='DATA_INJECTION_STEAM', dataframe=DATA_INJECTION_STEAM.copy(),
+#                               make_index=True, index='id_injector', time_index='Date')
+# es = es.entity_from_dataframe(entity_id='DATA_INJECTION_PRESS', dataframe=DATA_INJECTION_PRESS.copy(),
+#                               make_index=True, index='id_injector', time_index='Date')
+#
+# es = es.entity_from_dataframe(entity_id='DATA_PRODUCTION', dataframe=DATA_PRODUCTION.copy(),
+#                               make_index=True, index='id_production', time_index='Date')
+# es = es.entity_from_dataframe(entity_id='DATA_TEST', dataframe=DATA_TEST.copy(),
+#                               make_index=True, index='id_production', time_index='Date')
+# es = es.entity_from_dataframe(entity_id='FIBER_DATA', dataframe=FIBER_DATA.copy(),
+#                               make_index=True, index='id_production', time_index='Date')
+#
+# rel_producer = ft.Relationship(es['DATA_PRODUCTION']['id_production'],
+#                                es['DATA_TEST']['id_production'])
+# es.add_relationship(rel_producer)
+#
+# # Add relationships for all columns between injection steam and pressure data
+# injector_sensor_cols = [c for c in DATA_INJECTION_STEAM.columns.copy() if c not in ['Date']]
+# injector_sensor_cols = ['CI06']
+# for common_col in injector_sensor_cols:
+#     rel_injector = ft.Relationship(es['DATA_INJECTION_STEAM']['id_injector'],
+#                                    es['DATA_INJECTION_PRESS']['id_injector'])
+#     es = es.add_relationship(rel_injector)
+#
+# es['DATA_INJECTION_STEAM']
+#
+# # EOF
+# # EOF
+
+# Fills all nan with small value (for feature selection)
+# FINALE = FINALE.fillna(0.000000001).replace(np.nan, 0.000000001)
+
+# for c in FINALE.columns:
+#     print(c, sum(FINALE[c].isna()))
+
+# Ultimate Goal
+# FINALE = FINALE[FINALE['test_flag'] == True].reset_index(drop=True)
+# TARGET = 'Oil'
+
+# FINALE_FILTERED = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'test_flag',
+# '24_Fluid',  '24_Oil', '24_Water', 'Oil', 'Water',
+# 'Gas', 'Fluid', 'Toe_Pressure', 'Pump_Speed',
+# 'Casing_Pressure', 'Tubing_Pressure', 'Heel_Temp',
+# 'Toe_Temp', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4',
+# 'Bin_5']]].replace(0.0, 0.0000001)
+# FINALE_FILTERED = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'test_flag',
+#                                                                  '24_Fluid',  '24_Oil', '24_Water', 'Oil', 'Water',
+#                                                                  'Gas', 'Fluid', 'Toe_Pressure', 'Pump_Speed',
+#                                                                  'Casing_Pressure', 'Tubing_Pressure', 'Heel_Temp',
+#                                                                  'Toe_Temp', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4',
+#                                                                  'Bin_5']]
+#                          ].replace(0.0, 0.0000001)
+
+# SOURCE = FINALE_FILTERED[FINALE_FILTERED['Well'] == well]
+# SOURCE.drop(['Well'], axis=1, inplace=True)
+# SOURCE.reset_index(drop=True, inplace=True)
+# SOURCE = SOURCE.rolling(window=7).mean().fillna(method='bfill').fillna(method='ffill')
