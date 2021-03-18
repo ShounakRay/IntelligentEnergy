@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: AUTO-IPC_Real_Manipulation.py
 # @Last modified by:   Ray
-# @Last modified time: 18-Mar-2021 00:03:06:068  GMT-0600
+# @Last modified time: 18-Mar-2021 01:03:97:971  GMT-0600
 # @License: [Private IP]
 
 
@@ -294,6 +294,85 @@ def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
+
+def generate_depn_animation(df, groupby, time_feature, fig_size=(12.5, 9), resolution='high',
+                            period=7, moving=False, dpi=150):
+    # For every well...
+    for w in df[groupby].unique():
+        filtered_df = df[df[groupby] == w]
+        images = []
+        traversed_dates = []
+
+        print('ANIMATION >> ' + w + ': Determining Frames...')
+        all_dates = filtered_df['Date'].values
+        if not moving:
+            focus_dates = np.array(filtered_df[time_feature].index)
+            good_indices = np.array(filtered_df[time_feature].index)[::period]
+            focus_dates = [all_dates[i] for i in good_indices]
+            for d_i in range(len(focus_dates) - 1):
+                frame_start_ind = focus_dates[d_i]
+                frame_end_ind = focus_dates[d_i + 1]
+                traversed_dates.append((frame_start_ind, frame_end_ind))
+                data_frame = filtered_df[(filtered_df[time_feature] > frame_start_ind) &
+                                         (filtered_df[time_feature] < frame_end_ind)
+                                         ].select_dtypes(float).corr()
+                images.append(data_frame)
+        elif moving:
+            for d_i in range(len(all_dates) - period):
+                frame_start_ind = all_dates[d_i]
+                frame_end_ind = all_dates[d_i + period]
+                traversed_dates.append((frame_start_ind, frame_end_ind))
+                data_frame = filtered_df[(filtered_df[time_feature] > frame_start_ind) &
+                                         (filtered_df[time_feature] < frame_end_ind)
+                                         ].select_dtypes(float).corr()
+                images.append(data_frame)
+        else:
+            raise ValueError('FAILED: moving paramaters is FATAL.')
+
+        print('ANIMATION >> Image Vector Dimension: ' + str(len(images)))
+
+        fig = plt.figure(figsize=(10, 10))
+        sns.heatmap(images[0], annot=False, center=0.0, cbar=False, square=True,
+                    cmap=diverging_palette_Global, mask=np.triu(images[0])
+                    ).set_title(str(traversed_dates[0][0]) + ' to ' + str(traversed_dates[0][1]))
+        plt.tight_layout()
+
+        def init():
+            sns.heatmap(images[0], annot=False, center=0.0, cbar=False, square=True,
+                        cmap=diverging_palette_Global, mask=np.triu(images[0])
+                        ).set_title(str(traversed_dates[0][0]) + ' to ' + str(traversed_dates[0][1]))
+            plt.tight_layout()
+
+        def animate(i):
+            data = images[i]
+            sns.heatmap(data, vmax=.8, annot=False, center=0.0, cbar=False, square=True,
+                        cmap=diverging_palette_Global, mask=np.triu(images[0])
+                        ).set_title(str(traversed_dates[i][0]) + ' to ' + str(traversed_dates[i][1]))
+            plt.tight_layout()
+
+        anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(images), repeat=False)
+
+        print('ANIMATION >> Writing Animation...')
+
+        try:
+            writer = animation.writers['ffmpeg']
+        except KeyError:
+            writer = animation.writers['avconv']
+        writer = writer(fps=60)
+        anim.save('CrossCorrelation/test.mp4', writer=writer, dpi=dpi)
+
+        print('ANIMATION >> Animation created.')
+
+        return images
+
+
+def util_delete_alone(df):
+    for col in df.columns:
+        if len(df[col].unique()) == 1:
+            df.drop(col, inplace=True, axis=1)
+    return df
+
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -311,7 +390,8 @@ if(DIR_EXISTS):
     DATA_TEST = pd.read_pickle('Data/Pickles/DATA_TEST.pkl')
     PRODUCTION_WELL_INTER = pd.read_pickle('Data/Pickles/PRODUCTION_WELL_INTER.pkl')
     PRODUCTION_WELL_WSENSOR = pd.read_pickle('Data/Pickles/PRODUCTION_WELL_WSENSOR.pkl')
-    FINALE = pd.read_pickle('Data/Pickles/FINALE.pkl')
+    FINALE = pd.read_csv('Data/FINALE_INTERP.csv')
+    FINALE.drop(FINALE.columns[:2], axis=1, inplace=True)
 else:
     __FOLDER__ = r'Data/Isolated/'
     PATH_INJECTION = __FOLDER__ + r'OLT injection data.xlsx'
@@ -325,39 +405,20 @@ else:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# model_feateng = AutoFeatRegressor(feateng_steps=2, verbose=3)
-# model_featsel = FeatureSelector(verbose=6)
-train_pct = 0.8
 TARGET = 'Heel_Pressure'
 key_features = ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5']
 DATE_BINS = 5
 
-# Deletes any single-value columns
-for col in FINALE.columns:
-    if len(FINALE[col].unique()) == 1:
-        FINALE.drop(col, inplace=True, axis=1)
-
+FINALE = util_delete_alone(FINALE)
 
 FINALE_FILTERED_wbins = FINALE[[c for c in FINALE.columns if c not in ['unique_id', 'Pad', 'test_flag',
                                                                        '24_Fluid',  '24_Oil', '24_Water', 'Oil',
                                                                        'Water', 'Gas', 'Fluid', 'Pump_Speed']]
                                ].replace(0.0, 0.0000001)
 
-for_injectors = FINALE_FILTERED_wbins[:]
 plt.subplots(figsize=(20, 20))
-hmapc = sns.heatmap(for_injectors.corr(), cmap=diverging_palette_Global)
+hmapc = sns.heatmap(FINALE_FILTERED_wbins.corr(), cmap=diverging_palette_Global)
 hmapc.get_figure().savefig('CrossCorrelation/Injector Cross Correlation.png', bbox_inches='tight')
-
-# list(FINALE_FILTERED.columns)
-# FINALE_FILTERED = FINALE_FILTERED.astype(np.float64)
-
-# FINALE_FILTERED_ULTIMATE = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'test_flag',
-#                                         '24_Fluid',  '24_Oil', '24_Water', 'Water',
-#                                         'Gas', 'Fluid', 'Toe_Pressure', 'Pump_Speed',
-#                                         'Casing_Pressure', 'Tubing_Pressure', 'Heel_Temp',
-#                                         'Toe_Temp', 'Bin_1', 'Bin_2', 'Heel_Pressure',
-#                                         'Bin_3', 'Bin_4', 'Bin_5']]
-# ].replace(0.0, 0.0000001)
 
 unique_well_list = FINALE_FILTERED_wbins['Well'].unique()
 fig, ax = plt.subplots(ncols=len(unique_well_list), nrows=DATE_BINS, sharey=True, figsize=(35, 35))
@@ -385,7 +446,7 @@ for well in unique_well_list:
         SOURCE_wbins = SOURCE_wbins.astype(np.float64)
 
         correlated_df = SOURCE_wbins.corr()
-        final_data = correlated_df[key_features].drop(key_features).dropna(how='all')
+        final_data = correlated_df[key_features].drop(key_features)
         # pos = [list(final_data.index).index(val) for val in list(filtered_features)]
 
         hmap_row = list(unique_well_list).index(well)
@@ -401,10 +462,8 @@ for well in unique_well_list:
         hmap.set_title(well + ': ' + str(first_date) + ' > ' + str(last_date))
         plt.tight_layout()
 
-        correlation_tracker[well] = final_data
+        correlation_tracker[well] = {dbins.index(dbin): final_data}
 
-
-# fig.colorbar(ax[12].collections[0], cax=ax[12])
 hmap.get_figure().savefig('CrossCorrelation/WELL-{WELL}_TARGET-{TARGET}_TIMED-{TIME}.png'.format(
     WELL='ALL_PRODUCTION',
     TARGET='UNSPECIFIED',
@@ -560,65 +619,12 @@ for line_num, ins_text in list(insertions.items()):
                 b.write(ins_text)
             b.write(line)
 
-# # #
-# # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # ANIMATIONS
 
 data_temp = FINALE_FILTERED_wbins[FINALE_FILTERED_wbins['Well'] == well]
 # data_temp = data_temp[(data_temp['Date'] >= first_date) & (data_temp['Date'] <= last_date)]
 
 all_data = generate_depn_animation(data_temp[data_temp['Well'] == 'AP3'].reset_index(drop=True),
-                                   'Well', 'Date', period=200)
-
-
-def generate_depn_animation(df, groupby, time_feature, fig_size=(12.5, 9), resolution='high', period=7):
-    # For every well...
-    for w in df[groupby].unique():
-        filtered_df = df[df[groupby] == w]
-        images = []
-        traversed_dates = []
-
-        print('ANIMATION >> ' + w + ': Determining Frames...')
-        all_dates = filtered_df['Date'].values
-        focus_dates = np.array(filtered_df[time_feature].index)
-        good_indices = np.array(filtered_df[time_feature].index)[::period]
-        focus_dates = [all_dates[i] for i in good_indices]
-        for d_i in range(len(focus_dates) - 1):
-            frame_start_ind = focus_dates[d_i]
-            frame_end_ind = focus_dates[d_i + 1]
-            traversed_dates.append((frame_start_ind, frame_end_ind))
-            data_frame = filtered_df[(filtered_df[time_feature] > frame_start_ind) &
-                                     (filtered_df[time_feature] < frame_end_ind)
-                                     ].select_dtypes(float).corr()
-            images.append(data_frame)
-
-        print('ANIMATION >> Image Vector Dimension: ' + str(len(images)))
-
-        fig = plt.figure(figsize=(10, 10))
-        sns.heatmap(images[0], annot=False, center=0.0, cbar=False, square=True,
-                    cmap=diverging_palette_Global, mask=np.triu(images[0])
-                    ).set_title(str(traversed_dates[0][0]) + ' to ' + str(traversed_dates[0][1]))
-        plt.tight_layout()
-
-        def init():
-            sns.heatmap(images[0], annot=False, center=0.0, cbar=False, square=True,
-                        cmap=diverging_palette_Global, mask=np.triu(images[0])
-                        ).set_title(str(traversed_dates[0][0]) + ' to ' + str(traversed_dates[0][1]))
-            plt.tight_layout()
-
-        def animate(i):
-            data = images[i]
-            sns.heatmap(data, vmax=.8, annot=False, center=0.0, cbar=False, square=True,
-                        cmap=diverging_palette_Global, mask=np.triu(images[0])
-                        ).set_title(str(traversed_dates[i][0]) + ' to ' + str(traversed_dates[i][1]))
-            plt.tight_layout()
-
-        anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(images), repeat=False)
-        try:
-            writer = animation.writers['ffmpeg']
-        except KeyError:
-            writer = animation.writers['avconv']
-        writer = writer(fps=60)
-        anim.save('CrossCorrelation/test.mp4', writer=writer, dpi=500)
-
-        return images
+                                   'Well', 'Date', period=100, moving=False, dpi=350)

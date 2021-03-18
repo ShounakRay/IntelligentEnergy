@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 17-Mar-2021 14:03:23:238  GMT-0600
+# @Last modified time: 18-Mar-2021 01:03:97:971  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -337,3 +337,15 @@
 # SOURCE.drop(['Well'], axis=1, inplace=True)
 # SOURCE.reset_index(drop=True, inplace=True)
 # SOURCE = SOURCE.rolling(window=7).mean().fillna(method='bfill').fillna(method='ffill')
+
+# model_feateng = AutoFeatRegressor(feateng_steps=2, verbose=3)
+# model_featsel = FeatureSelector(verbose=6)
+# train_pct = 0.8
+
+# FINALE_FILTERED_ULTIMATE = FINALE[[c for c in FINALE.columns if c not in ['Date', 'unique_id', 'Pad', 'test_flag',
+#                                         '24_Fluid',  '24_Oil', '24_Water', 'Water',
+#                                         'Gas', 'Fluid', 'Toe_Pressure', 'Pump_Speed',
+#                                         'Casing_Pressure', 'Tubing_Pressure', 'Heel_Temp',
+#                                         'Toe_Temp', 'Bin_1', 'Bin_2', 'Heel_Pressure',
+#                                         'Bin_3', 'Bin_4', 'Bin_5']]
+# ].replace(0.0, 0.0000001)
