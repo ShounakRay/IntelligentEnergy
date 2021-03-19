@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 13-Mar-2021 14:03:63:637  GMT-0700
+# @Last modified time: 18-Mar-2021 20:03:70:700  GMT-0600
 # @License: No License for Distribution
 
 # G0TO: CTRL + OPTION + G
@@ -24,6 +24,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 try:
     from Anomaly_Detection_PKG import *
@@ -79,7 +80,7 @@ FINALE                  --> Join of PRODUCTION_WELL_WSENSOR
 BINS = 5
 FIG_SIZE = (220, 7)
 DIR_EXISTS = Path('Data/Pickles').is_dir()
-
+DIR_EXISTS = False
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -419,7 +420,7 @@ PAD_KEYS = dict(zip(DATA_PRODUCTION_ORIG['Well'], DATA_PRODUCTION_ORIG['Pad']))
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # FIBER DATA INGESTION AND REFORMATTING (~12 mins)
 
-
+DIR_EXISTS = False
 # TODO: !! Resolve and Optimize File IO
 # TODO: Modularize File IO
 if not DIR_EXISTS:
@@ -437,8 +438,12 @@ if not DIR_EXISTS:
                     exec(var_name + ' = pd.read_excel(\"' + well
                          + '/' + file + '")')
                 except Exception as e:
-                    print('Unable to read: ' + file + ', ' + str(e))
-                    continue
+                    try:
+                        exec(var_name + ' = pd.read_excel(\"' + well
+                             + '/' + file + '")')
+                    except Exception as e:
+                        print('Unable to read: ' + file + ', ' + str(e))
+                        continue
             elif ".csv" in file:
                 try:
                     exec(var_name + ' = pd.read_csv(\"' + well +
@@ -463,7 +468,7 @@ if not DIR_EXISTS:
                            ignore_index=True).sort_values('Date').reset_index(
                                drop=True)
 FIBER_DATA = FIBER_DATA.infer_objects()
-FIBER_DATA = complete_interpol(FIBER_DATA, FIBER_DATA.columns[1:6])
+# FIBER_DATA = complete_interpol(FIBER_DATA, FIBER_DATA.columns[1:6])
 # dict(FIBER_DATA.isnull().mean() * 100)
 FIBER_DATA['Pad'] = [PAD_KEYS.get(well) for well in FIBER_DATA['Well']]
 
@@ -500,9 +505,9 @@ DATA_INJECTION_STEAM = DATA_INJECTION['Meter_Steam'].reset_index()
 DATA_INJECTION_PRESS = DATA_INJECTION['Pressure'].reset_index()
 # DATA_INJECTION_STEAM = complete_interpol(DATA_INJECTION_STEAM, DATA_INJECTION_STEAM.columns[1:], PIVOT=False)
 # DATA_INJECTION_PRESS = complete_interpol(DATA_INJECTION_PRESS, DATA_INJECTION_PRESS.columns[1:], PIVOT=False)
-DATA_INJECTION_STEAM, DATA_INJECTION_STEAM_NANBENCH = interpol(DATA_INJECTION_STEAM,
+# DATA_INJECTION_STEAM, DATA_INJECTION_STEAM_NANBENCH = interpol(DATA_INJECTION_STEAM,
                                                                DATA_INJECTION_STEAM.columns[1:])
-DATA_INJECTION_PRESS, DATA_INJECTION_PRESS_NANBENCH = interpol(DATA_INJECTION_PRESS,
+# DATA_INJECTION_PRESS, DATA_INJECTION_PRESS_NANBENCH = interpol(DATA_INJECTION_PRESS,
                                                                DATA_INJECTION_PRESS.columns[1:])
 # dict(DATA_INJECTION_STEAM.isnull().mean() * 100)
 # dict(DATA_INJECTION_PRESS.isnull().mean() * 100)
@@ -510,24 +515,24 @@ DATA_INJECTION_PRESS, DATA_INJECTION_PRESS_NANBENCH = interpol(DATA_INJECTION_PR
 
 # DATA PROCESSING - DATA_PRODUCTION
 # Column Filtering, DateTime Setting, Delete Rows with Negative Numerical Cells
-DATA_PRODUCTION = DATA_PRODUCTION_ORIG.reset_index(drop=True)
-DATA_PRODUCTION.columns = ['Date', 'Pad', 'Well', 'UWI_Identifier', 'Time_On',
+DATA_PRODUCTION=DATA_PRODUCTION_ORIG.reset_index(drop=True)
+DATA_PRODUCTION.columns=['Date', 'Pad', 'Well', 'UWI_Identifier', 'Time_On',
                            'Downtime_Code', 'Alloc_Oil', 'Alloc_Water',
                            'Alloc_Gas', 'Alloc_Steam', 'Steam_To_Producer',
                            'Hourly_Meter_Steam', 'Daily_Meter_Steam',
                            'Pump_Speed', 'Tubing_Pressure', 'Casing_Pressure',
                            'Heel_Pressure', 'Toe_Pressure', 'Heel_Temp',
                            'Toe_Temp', 'Last_Test_Date', 'Reason', 'Comment']
-DATA_PRODUCTION_KEYS = ['Date', 'Pad', 'Well', 'Pump_Speed',
+DATA_PRODUCTION_KEYS=['Date', 'Pad', 'Well', 'Pump_Speed',
                         'Tubing_Pressure', 'Casing_Pressure', 'Heel_Pressure',
                         'Toe_Pressure', 'Heel_Temp', 'Toe_Temp']
-DATA_PRODUCTION = DATA_PRODUCTION[DATA_PRODUCTION_KEYS]
-DATA_PRODUCTION = filter_negatives(DATA_PRODUCTION,
-                                   DATA_PRODUCTION.select_dtypes(include=['float64']).columns[1:])
-DATA_PRODUCTION = convert_to_date(DATA_PRODUCTION, 'Date')
-DATA_PRODUCTION = DATA_PRODUCTION.infer_objects()
-DATA_PRODUCTION = complete_interpol(DATA_PRODUCTION, DATA_PRODUCTION.columns[3:])
-DATA_PRODUCTION['Pad'] = [PAD_KEYS.get(well) for well in DATA_PRODUCTION['Well']]
+DATA_PRODUCTION=DATA_PRODUCTION[DATA_PRODUCTION_KEYS]
+DATA_PRODUCTION=filter_negatives(DATA_PRODUCTION,
+                                   DATA_PRODUCTION.select_dtypes(include = ['float64']).columns[1:])
+DATA_PRODUCTION=convert_to_date(DATA_PRODUCTION, 'Date')
+DATA_PRODUCTION=DATA_PRODUCTION.infer_objects()
+# DATA_PRODUCTION = complete_interpol(DATA_PRODUCTION, DATA_PRODUCTION.columns[3:])
+DATA_PRODUCTION['Pad']=[PAD_KEYS.get(well) for well in DATA_PRODUCTION['Well']]
 
 # dict(DATA_PRODUCTION.isnull().mean() * 100)
 
@@ -551,60 +556,90 @@ DATA_PRODUCTION['Pad'] = [PAD_KEYS.get(well) for well in DATA_PRODUCTION['Well']
 # DATA PROCESSING - DATA_TEST
 # Column Filtering, DateTime Setting, Delete Rows with Negative Numerical Cells
 # TODO: (?) BSW, Chlorides, Pump_Speed, Pump_Efficiency, Pump_Size
-DATA_TEST = DATA_TEST_ORIG.reset_index(drop=True)
-DATA_TEST.columns = ['Pad', 'Well', 'Start_Time', 'End_Time', 'Duration',
+DATA_TEST=DATA_TEST_ORIG.reset_index(drop=True)
+DATA_TEST.columns=['Pad', 'Well', 'Start_Time', 'End_Time', 'Duration',
                      'Effective_Date', '24_Fluid', '24_Oil', '24_Water', 'Oil',
                      'Water', 'Gas', 'Fluid', 'BSW', 'Chlorides',
                      'Pump_Speed', 'Pump_Efficiency', 'Pump_Size',
                      'Operator_Approved', 'Operator_Rejected',
                      'Operator_Comment', 'Engineering_Approved',
                      'Engineering_Rejected', 'Engineering_Comment']
-DATA_TEST_KEYS = ['Well', 'Pad', 'Duration', 'Effective_Date',
+DATA_TEST_KEYS=['Well', 'Pad', 'Duration', 'Effective_Date',
                   '24_Fluid', '24_Oil', '24_Water',
                   'Oil', 'Water', 'Gas', 'Fluid']
-DATA_TEST = DATA_TEST[DATA_TEST_KEYS]
-DATA_TEST = filter_negatives(DATA_TEST, DATA_TEST.select_dtypes(include=['float64']).columns)
-DATA_TEST = convert_to_date(DATA_TEST, 'Effective_Date')
+DATA_TEST=DATA_TEST[DATA_TEST_KEYS]
+DATA_TEST=filter_negatives(DATA_TEST, DATA_TEST.select_dtypes(include = ['float64']).columns)
+DATA_TEST=convert_to_date(DATA_TEST, 'Effective_Date')
 DATA_TEST.rename(columns={'Effective_Date': 'Date'}, inplace=True)
-DATA_TEST = DATA_TEST.infer_objects()
-DATA_TEST = complete_interpol(DATA_TEST, DATA_TEST.columns[4:])
-DATA_TEST['Pad'] = [PAD_KEYS.get(well) for well in DATA_TEST['Well']]
+DATA_TEST=DATA_TEST.infer_objects()
+# DATA_TEST = complete_interpol(DATA_TEST, DATA_TEST.columns[4:])
+DATA_TEST['Pad']=[PAD_KEYS.get(well) for well in DATA_TEST['Well']]
 # dict(DATA_TEST.isnull().mean() * 100)
 
 # TODO: !! Update Data Schematic
 # TODO: !! Verify Columns of Underlying Datasets
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+#
+#
+#
+#
+#
+#
+
+FIBER_FIXED.columns=FIBER_DATA.columns
+FIBER_FIXED=pd.read_csv('Data/aggregate_fiber.csv')
+FIBER_DATA=FIBER_FIXED.copy().infer_objects()
+FIBER_DATA['Pad']=[PAD_KEYS.get(well) for well in FIBER_DATA['Well']]
+FIBER_DATA['Date']=pd.to_datetime(FIBER_DATA['Date'])
+FIBER_DATA=FIBER_DATA.infer_objects()
+
+plt.figure(100, 100)
+sns.heatmap(DATA_PRODUCTION.select_dtypes(float).fillna(-10000)).set_title('DATA_PRODUCTION')
+
+#
+#
+#
+#
+#
+#
+## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # CREATE ANALYTIC BASE TABLED, MERGED
 # Base Off DATA_PRODUCTION
 
+#
 # The wells and pads are identical across the L/R sources, however extraneous since !(a and b)
-PRODUCTION_WELL_INTER = pd.merge(DATA_PRODUCTION, DATA_TEST,
+PRODUCTION_WELL_INTER=pd.merge(DATA_PRODUCTION, DATA_TEST,
                                  how='outer', on=['Date', 'Pad', 'Well'], indicator=True)
+PRODUCTION_WELL_INTER['Date']=pd.to_datetime(PRODUCTION_WELL_INTER['Date'])
 
 # Add test flag based on NAN occurence after outer join
-PRODUCTION_WELL_INTER['test_flag'] = PRODUCTION_WELL_INTER['_merge'].replace(['both', 'left_only'],
+PRODUCTION_WELL_INTER['test_flag']=PRODUCTION_WELL_INTER['_merge'].replace(['both', 'left_only'],
                                                                              [True, False])
 PRODUCTION_WELL_INTER.drop('_merge', axis=1, inplace=True)
 # dict(PRODUCTION_WELL_INTER.isnull().mean() * 100)
 
 # The wells are not identical, FIBER_DATA has extra wells within A and B patterns (will be excluded)
 # and PRODUCTION_WELL_ITER has wells outside A and B patterns (will be excluded)
-PRODUCTION_WELL_WSENSOR = pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
+PRODUCTION_WELL_WSENSOR=pd.merge(PRODUCTION_WELL_INTER, FIBER_DATA,
                                    how='inner', on=['Date', 'Pad', 'Well'])
 # dict(PRODUCTION_WELL_WSENSOR.isnull().mean() * 100)
+PRODUCTION_WELL_WSENSOR['Date']=pd.to_datetime(PRODUCTION_WELL_WSENSOR['Date'])
+DATA_INJECTION_STEAM['Date']=pd.to_datetime(DATA_INJECTION_STEAM['Date'])
 
-FINALE = pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
+FINALE=pd.merge(PRODUCTION_WELL_WSENSOR, DATA_INJECTION_STEAM,
                   how='inner', on='Date')
+plt.figure(figsize=(100, 100))
+sns.heatmap(FINALE.select_dtypes(float).fillna(-10000))
 # ADD PAD KEYS based on production data, along with unique id (for DSP)
 # FINALE['Pad'] = [PAD_KEYS.get(well) for well in FINALE['Well']]
-FINALE['unique_id'] = FINALE.index + 1
+FINALE['unique_id']=FINALE.index + 1
 # Reorder columns (there will be duplicates, don't even try filtering them here)
-FINALE = FINALE[['unique_id', 'Date', 'Pad', 'Well'] +
+FINALE=FINALE[['unique_id', 'Date', 'Pad', 'Well'] +
                 list(FINALE.columns)]
 # drop columns with duplicate NAMES (doesn't assess values)
-FINALE = FINALE.loc[:, ~FINALE.columns.duplicated()]
+FINALE=FINALE.loc[:, ~FINALE.columns.duplicated()]
 # dict(FINALE.isnull().mean() * 100)
 # _ = plt.hist(FINALE['Pump_Speed'], bins=200)
 FINALE.to_csv('Data/FINALE_INTERP.csv')
@@ -612,7 +647,7 @@ FINALE.to_csv('Data/FINALE_INTERP.csv')
 
 # DATA_INJECTION_STEAM['Well'].unique()
 
-_ = """
+_="""
 list(FINALE.columns)
 # ANOMALY DETECTION AND FILTERING
 data = FINALE.copy()
@@ -674,7 +709,7 @@ FINALE.to_pickle('Data/Pickles/FINALE.pkl')
 
 """
 
-_ = """DIAGNOSTICS
+_="""DIAGNOSTICS
 #################
 # DATE OVERLAP #
 #################

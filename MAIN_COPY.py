@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: AUTO-IPC_Real_Manipulation.py
 # @Last modified by:   Ray
-# @Last modified time: 18-Mar-2021 20:03:46:468  GMT-0600
+# @Last modified time: 18-Mar-2021 15:03:93:930  GMT-0600
 # @License: [Private IP]
 
 
@@ -110,11 +110,6 @@ distinct_colors = ["#FFFF00", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941", "#006F
 diverging_palette_Global = sns.diverging_palette(240, 10, n=9, as_cmap=True)
 
 _attrs = dict(id='id', source='source', target='target', key='key')
-
-TARGET = 'Heel_Pressure'
-key_features = ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5']
-DATE_BINS = 5
-
 
 # This is stolen from networkx JSON serialization. It basically just changes what certain keys are.
 
@@ -301,7 +296,7 @@ def chunks(lst, n):
 
 
 def generate_depn_animation(df, groupby, time_feature, fig_size=(12.5, 9), resolution='high',
-                            period=7, moving=False, dpi=150, fps=30, moving_jump=100):
+                            period=7, moving=False, dpi=150):
     # For every well...
     for w in df[groupby].unique():
         filtered_df = df[df[groupby] == w]
@@ -310,31 +305,22 @@ def generate_depn_animation(df, groupby, time_feature, fig_size=(12.5, 9), resol
 
         print('ANIMATION >> ' + w + ': Determining Frames...')
         all_dates = filtered_df['Date'].values
-        last_date = all_dates[-1]
-        focus_dates = np.array(filtered_df[time_feature].index)
-        good_indices = np.array(filtered_df[time_feature].index)[::period]
-        focus_dates = [all_dates[i] for i in good_indices]
-        # print(focus_dates)
-        print('ANIMATION >> ' + str(len(focus_dates)) + ': Condsed Frame COUNT')
         if not moving:
+            focus_dates = np.array(filtered_df[time_feature].index)
+            good_indices = np.array(filtered_df[time_feature].index)[::period]
+            focus_dates = [all_dates[i] for i in good_indices]
             for d_i in range(len(focus_dates) - 1):
                 frame_start_ind = focus_dates[d_i]
                 frame_end_ind = focus_dates[d_i + 1]
-                if(frame_end_ind > last_date):
-                    break
                 traversed_dates.append((frame_start_ind, frame_end_ind))
                 data_frame = filtered_df[(filtered_df[time_feature] > frame_start_ind) &
                                          (filtered_df[time_feature] < frame_end_ind)
                                          ].select_dtypes(float).corr()
                 images.append(data_frame)
         elif moving:
-            for d_i in range(len(all_dates) - moving_jump):
-                # print(d_i)
-                frame_start_ind = all_dates[d_i * moving_jump]
-                if(d_i + moving_jump > len(all_dates)):
-                    break
-                else:
-                    frame_end_ind = all_dates[d_i * moving_jump]
+            for d_i in range(len(all_dates) - period):
+                frame_start_ind = all_dates[d_i]
+                frame_end_ind = all_dates[d_i + period]
                 traversed_dates.append((frame_start_ind, frame_end_ind))
                 data_frame = filtered_df[(filtered_df[time_feature] > frame_start_ind) &
                                          (filtered_df[time_feature] < frame_end_ind)
@@ -372,12 +358,12 @@ def generate_depn_animation(df, groupby, time_feature, fig_size=(12.5, 9), resol
             writer = animation.writers['ffmpeg']
         except KeyError:
             writer = animation.writers['avconv']
-        writer = writer(fps=fps)
+        writer = writer(fps=60)
         anim.save('CrossCorrelation/test.mp4', writer=writer, dpi=dpi)
 
         print('ANIMATION >> Animation created.')
 
-        return images, traversed_dates
+        return images
 
 
 def util_delete_alone(df):
@@ -393,7 +379,6 @@ def util_delete_alone(df):
 
 # > DATA INGESTION (Load of Pickle if available)
 # Folder Specifications
-DIR_EXISTS = False
 if(DIR_EXISTS):
     DATA_INJECTION_ORIG = pd.read_pickle('Data/Pickles/DATA_INJECTION_ORIG.pkl')
     DATA_PRODUCTION_ORIG = pd.read_pickle('Data/Pickles/DATA_PRODUCTION_ORIG.pkl')
@@ -405,8 +390,8 @@ if(DIR_EXISTS):
     DATA_TEST = pd.read_pickle('Data/Pickles/DATA_TEST.pkl')
     PRODUCTION_WELL_INTER = pd.read_pickle('Data/Pickles/PRODUCTION_WELL_INTER.pkl')
     PRODUCTION_WELL_WSENSOR = pd.read_pickle('Data/Pickles/PRODUCTION_WELL_WSENSOR.pkl')
-    FINALE = pd.read_csv('Data/combined_ipc.csv')
-    # FINALE.drop(FINALE.columns[:2], axis=1, inplace=True)
+    FINALE = pd.read_csv('Data/FINALE_INTERP.csv')
+    FINALE.drop(FINALE.columns[:2], axis=1, inplace=True)
 else:
     __FOLDER__ = r'Data/Isolated/'
     PATH_INJECTION = __FOLDER__ + r'OLT injection data.xlsx'
@@ -417,24 +402,60 @@ else:
     DATA_PRODUCTION_ORIG = pd.read_excel(PATH_PRODUCTION)
     DATA_TEST_ORIG = pd.read_excel(PATH_TEST)
 
-FINALE.columns = [elem.replace('date', 'Date').replace('bin_',
-                                                       'Bin_').replace('producer_well',
-                                                                       'Well') for elem in list(FINALE.columns)]
+    FINALE
+
+# plt.plot(FINALE[FINALE['Well'] == 'AP5']['Bin_1'])
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+TARGET = 'Heel_Pressure'
+key_features = ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5']
+DATE_BINS = 5
 
 FINALE = util_delete_alone(FINALE)
 
 FINALE_FILTERED_wbins = FINALE[[c for c in FINALE.columns if c not in ['unique_id', 'Pad', 'test_flag',
                                                                        '24_Fluid',  '24_Oil', '24_Water', 'Oil',
                                                                        'Water', 'Gas', 'Fluid', 'Pump_Speed']]
-                               ].replace(0.0, 0.0000001).dropna(subset=['Well'])
+                               ].replace(0.0, 0.0000001)
+FINALE_FILTERED_wbins = FINALE_FILTERED_wbins.rolling(window=7).mean().fillna(method='bfill').fillna(method='ffill')
+FINALE_FILTERED_wbins['Date'] = FINALE['Date']
+FINALE_FILTERED_wbins['Well'] = FINALE['Well']
 
-Counter(FINALE_FILTERED_wbins['Well'])
+
+dummy_for_pwell = FINALE_FILTERED_wbins[FINALE_FILTERED_wbins['Well'] == 'BP3'].drop('Well', 1)
+dummy_for_pwell = dummy_for_pwell[[c for c in dummy_for_pwell.columns if c in [
+    'Bin_1', 'I20', 'Date']]].reset_index(drop=True)
+# dummy_for_pwell.drop('Date', 1, inplace=True)
+
+DATE_BINS_DATA = list(chunks(dummy_for_pwell, int(len(dummy_for_pwell) / DATE_BINS)))
+# DATE_BINS_DATA[8]['Date'].iloc[1]
+
+storage = []
+for dbin in DATE_BINS_DATA:
+    first_date = dbin['Date'].iloc[0]
+    last_date = dbin['Date'].iloc[-1]
+    filt_data = dummy_for_pwell[(dummy_for_pwell['Date'] > first_date) & (dummy_for_pwell['Date'] < last_date)]
+    date_corr = filt_data.corr().iloc[0][1]
+    storage.append(date_corr)
+
+plt.plot(storage)
+
+fig = plt.figure(figsize=(20, 15))
+dummy_for_pwell.plot(figsize=(20, 15), cmap=diverging_palette_Global)
+
+#
+#
+#
+#
+#
+#
+#
+#
 
 plt.subplots(figsize=(20, 20))
-hmapc = sns.heatmap(FINALE_FILTERED_wbins.corr(), cmap=diverging_palette_Global)
+hmapc = sns.heatmap(FINALE_FILTERED_wbins.corr(), cmap=diverging_palette_Global, center=0.0)
 hmapc.get_figure().savefig('CrossCorrelation/Injector Cross Correlation.png', bbox_inches='tight')
 
 unique_well_list = FINALE_FILTERED_wbins['Well'].unique()
@@ -464,34 +485,34 @@ for well in unique_well_list:
 
         correlated_df = SOURCE_wbins.corr()
         final_data = correlated_df[key_features].drop(key_features)
-
-        correlation_tracker[well] = {dbins.index(dbin): final_data}
         # pos = [list(final_data.index).index(val) for val in list(filtered_features)]
 
-        # hmap_col = list(unique_well_list).index(well)
-        # hmap_row = dbins.index(dbin)
-        # hmap = sns.heatmap(final_data, annot=False, ax=ax[hmap_col][hmap_row], center=0.0,
-        #                    cbar=False, cmap=diverging_palette_Global
-        #                    ) if well != unique_well_list[-1] else sns.heatmap(final_data,
-        #                                                                       annot=False,
-        #                                                                       ax=ax[hmap_col][hmap_row],
-        #                                                                       cmap=diverging_palette_Global,
-        #                                                                       center=0.0)
+        hmap_col = list(unique_well_list).index(well)
+        hmap_row = dbins.index(dbin)
+        hmap = sns.heatmap(final_data, annot=False, ax=ax[hmap_col][hmap_row], center=0.0,
+                           cbar=False, cmap=diverging_palette_Global
+                           ) if well != unique_well_list[-1] else sns.heatmap(final_data,
+                                                                              annot=False,
+                                                                              ax=ax[hmap_col][hmap_row],
+                                                                              cmap=diverging_palette_Global,
+                                                                              center=0.0)
 
-        # hmap.set_title(well + ': ' + str(first_date) + ' > ' + str(last_date))
-        # plt.tight_layout()
+        hmap.set_title(well + ': ' + str(first_date) + ' > ' + str(last_date))
+        plt.tight_layout()
 
-    # total_well = correlation_tracker[well] = {dbins.index(dbin): final_data}
+        correlation_tracker[well] = {dbins.index(dbin): final_data}
+
+fine_correlation_tracker = correlation_tracker.copy()
 
 well = list(correlation_tracker.keys())[0]
 for well in correlation_tracker.keys():
     totaled = pd.concat(list(correlation_tracker[well].values()))
     correlation_tracker[well] = totaled
 
-# hmap.get_figure().savefig('CrossCorrelation/WELL-{WELL}_TARGET-{TARGET}_TIMED-{TIME}.png'.format(
-    # WELL = 'ALL_PRODUCTION',
-    # TARGET = 'UNSPECIFIED',
-    # TIME = 'True'), bbox_inches='tight')
+hmap.get_figure().savefig('CrossCorrelation/WELL-{WELL}_TARGET-{TARGET}_TIMED-{TIME}.png'.format(
+    WELL='ALL_PRODUCTION',
+    TARGET='UNSPECIFIED',
+    TIME='True'), bbox_inches='tight')
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -508,6 +529,7 @@ MACRO_GROUPS = {'Bin Temps': ['Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5']}
 G = nx.Graph()
 macro_correlation_tracker = {}
 macro_version = {}
+pad_well_assoc = dict(FINALE[['Well', 'Pad']].values)
 for well in unique_well_list:
     local_df = correlation_tracker[well]
     for m_group in MACRO_GROUPS.values():
@@ -533,7 +555,6 @@ plt.hist(weights_all, bins=50)
 # sorted(weights_all, reverse=True)
 cutoff = np.percentile([c for c in weights_all if c > 0], percentile)
 # cutoff = min(weights_all)
-cutoff = 0.3
 print('STATUS: Cuttoff is: ' + str(cutoff) + ' @ {} percentile'.format(percentile))
 G_dupl = nx.Graph([(u, v, d) for u, v, d in G.edges(data=True) if d['value'] > cutoff])
 
@@ -569,9 +590,9 @@ G_node_inj = [n for n in G_dupl.nodes if 'I' in n]
 adj_matrix = FINALE_FILTERED_wbins[G_node_inj].corr()
 _ = correlation_matrix(FINALE_FILTERED_wbins[G_node_inj], 'CrossCorrelation/selective_matrix.png',
                        '', abs_arg=False)
-# G_internal = nx.from_pandas_adjacency(adj_matrix, create_using=nx.Graph)
-# inj_internal_edges = [(to, fr, val['weight']) for to, fr, val in list(G_internal.edges(data=True))]
-# G_dupl.add_weighted_edges_from(ebunch_to_add=inj_internal_edges, weight='value')
+G_internal = nx.from_pandas_adjacency(adj_matrix, create_using=nx.Graph)
+inj_internal_edges = [(to, fr, val['weight']) for to, fr, val in list(G_internal.edges(data=True))]
+G_dupl.add_weighted_edges_from(ebunch_to_add=inj_internal_edges, weight='value')
 
 # Remove duplicate edges
 G_dupl = remove_dupl_edges(G_dupl)
@@ -647,8 +668,8 @@ for line_num, ins_text in list(insertions.items()):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # ANIMATIONS
 #
-data_temp = FINALE_FILTERED_wbins[FINALE_FILTERED_wbins['Well'] == 'AP3']
-# data_temp = data_temp[(data_temp['Date'] >= first_date) & (data_temp['Date'] <= last_date)]
-
-all_data, dt = generate_depn_animation(data_temp.reset_index(drop=True),
-                                       'Well', 'Date', period=7, moving=True, dpi=350, fps=2, moving_jump=1)
+# data_temp = FINALE_FILTERED_wbins[FINALE_FILTERED_wbins['Well'] == 'AP3']
+# # data_temp = data_temp[(data_temp['Date'] >= first_date) & (data_temp['Date'] <= last_date)]
+#
+# all_data = generate_depn_animation(data_temp.reset_index(drop=True),
+#                                    'Well', 'Date', period=14, moving=True, dpi=350)
