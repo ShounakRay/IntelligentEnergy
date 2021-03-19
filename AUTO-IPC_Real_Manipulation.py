@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: AUTO-IPC_Real_Manipulation.py
 # @Last modified by:   Ray
-# @Last modified time: 18-Mar-2021 20:03:46:468  GMT-0600
+# @Last modified time: 19-Mar-2021 08:03:00:007  GMT-0600
 # @License: [Private IP]
 
 
@@ -310,11 +310,12 @@ def generate_depn_animation(df, groupby, time_feature, fig_size=(12.5, 9), resol
 
         print('ANIMATION >> ' + w + ': Determining Frames...')
         all_dates = filtered_df['Date'].values
+
         last_date = all_dates[-1]
         focus_dates = np.array(filtered_df[time_feature].index)
         good_indices = np.array(filtered_df[time_feature].index)[::period]
         focus_dates = [all_dates[i] for i in good_indices]
-        # print(focus_dates)
+        print(len(all_dates))
         print('ANIMATION >> ' + str(len(focus_dates)) + ': Condsed Frame COUNT')
         if not moving:
             for d_i in range(len(focus_dates) - 1):
@@ -331,10 +332,10 @@ def generate_depn_animation(df, groupby, time_feature, fig_size=(12.5, 9), resol
             for d_i in range(len(all_dates) - moving_jump):
                 # print(d_i)
                 frame_start_ind = all_dates[d_i * moving_jump]
-                if(d_i + moving_jump > len(all_dates)):
+                if(d_i * moving_jump + period >= len(all_dates) - moving_jump - 1):
                     break
                 else:
-                    frame_end_ind = all_dates[d_i * moving_jump]
+                    frame_end_ind = all_dates[d_i * moving_jump + period]
                 traversed_dates.append((frame_start_ind, frame_end_ind))
                 data_frame = filtered_df[(filtered_df[time_feature] > frame_start_ind) &
                                          (filtered_df[time_feature] < frame_end_ind)
@@ -651,4 +652,4 @@ data_temp = FINALE_FILTERED_wbins[FINALE_FILTERED_wbins['Well'] == 'AP3']
 # data_temp = data_temp[(data_temp['Date'] >= first_date) & (data_temp['Date'] <= last_date)]
 
 all_data, dt = generate_depn_animation(data_temp.reset_index(drop=True),
-                                       'Well', 'Date', period=7, moving=True, dpi=350, fps=2, moving_jump=1)
+                                       'Well', 'Date', period=14, moving=True, dpi=350, fps=2, moving_jump=7)
