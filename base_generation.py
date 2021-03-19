@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 19-Mar-2021 11:03:56:560  GMT-0600
+# @Last modified time: 19-Mar-2021 14:03:25:259  GMT-0600
 # @License: [Private IP]
 
 
@@ -18,7 +18,7 @@ fiber_dir = 'Data/DTS/'
 injectors = pd.read_excel(data_dir + "OLT injection data.xlsx")
 producers = pd.read_excel(data_dir + "OLT production data (rev 1).xlsx")
 well_test = pd.read_excel(data_dir + "OLT well test data.xlsx")
-​
+
 # well_test.columns
 well_test = well_test[['Start Date/Time (yyyy/mm/dd HH:mm)', 'Pad', 'Well', '24 Hour Oil (m3)', '24 Hour Water (m3)',
                        'Pump Speed (SPM)', 'Pump Size in', 'Pump Efficiency (%)', 'Operator Approved',
@@ -28,7 +28,6 @@ well_test.columns = ['date', 'pad', 'producer_well', 'test_oil',
                      'pump_size', 'pump_efficiency', 'op_approved',
                      'eng_approved']
 well_test['date'] = well_test['date'].astype(str).str.split(" ").str[0]
-​
 
 
 def combine_data(producer):
@@ -69,20 +68,20 @@ def get_fiber_data(producer, bins=5):
 
 
 producer_wells = [p for p in os.listdir(fiber_dir) if p[0] != '.']
-​
+
 aggregated_fiber = []
 for producer in producer_wells[1:]:
     condensed = get_fiber_data(producer)
     condensed['producer_well'] = producer
     aggregated_fiber.append(condensed)
-​
+
 aggregated_fiber = pd.concat(aggregated_fiber)
 aggregated_fiber = aggregated_fiber.dropna(how='all', axis=1)
-​
+
 injectors.columns = ['date', 'pad', 'injector_well', 'uwi', 'hours_on_inj', 'alloc_steam', 'steam',
                      'inj_bhp', 'inj_tubing_pressure', 'Reason', 'Comment']
 inj_cols = ['date', 'injector_well', 'steam', 'inj_bhp', 'inj_tubing_pressure']
-​
+
 producers.columns = ['date', 'pad', 'producer_well', 'uwi', 'hours_on_prod',
                      'Downtime Reason Code', 'oil', 'water',
                      'gas', 'Allocated Injector Steam (m3)',
@@ -91,25 +90,22 @@ producers.columns = ['date', 'pad', 'producer_well', 'uwi', 'hours_on_prod',
                      'prod_casing_pressure', 'prod_bhp_heel', 'prod_bhp_toe',
                      'subcool_heel', 'subcool_toe', 'last_test_date',
                      'Reason Code', 'Comment']
-​
+
 prod_cols = ['date', 'uwi', 'producer_well', 'spm', 'hours_on_prod',
              'prod_casing_pressure', 'prod_bhp_heel', 'prod_bhp_toe', 'oil', 'water']
-​
-​
+
+
 injector_table = pd.pivot_table(injectors, values='steam', index='date', columns='injector_well').reset_index()
 injector_table['date'] = pd.to_datetime(injector_table['date']).astype(str)
-​
+
 producers['date'] = pd.to_datetime(producers['date']).astype(str)
-​
+
 aggregated_fiber = aggregated_fiber.reset_index()
 aggregated_fiber['date'] = pd.to_datetime(aggregated_fiber['date']).astype(str)
-​
-​
+
 df = pd.merge(producers[prod_cols], aggregated_fiber, how='outer', on=['date', 'producer_well'])
 df = pd.merge(df, injector_table, how='outer', on=['date'])
 df = pd.merge(df, well_test, how='left', on=['date', 'producer_well'])
-​
-df.drop(['op_approved', 'eng_approved', 'uwi'], 1, inplace=True)
 
-df.to_csv('combined_ipc.csv', index=False)
+df.to_csv('Data/combined_ipc.csv', index=False)
 list(df.columns)
