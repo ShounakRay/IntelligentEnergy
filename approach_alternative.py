@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 19-Mar-2021 10:03:13:132  GMT-0600
+# @Last modified time: 19-Mar-2021 10:03:84:849  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -122,5 +122,9 @@ fig, ax = plt.subplots(nrows=len(unique_inj_pads), figsize=(15, 80))
 for pad in unique_inj_pads:
     subp = ax[unique_inj_pads.index(pad)]
     temp = FINALE_agg[FINALE_agg['Pad'] == pad].sort_values('Date').reset_index(drop=True)
-    subp.plot(temp['Steam'] / max(temp['Steam']), label=pad)
+    d_1 = list(temp['Date'])[0]
+    d_n = list(temp['Date'])[-1]
+    subp.plot(temp['Steam'] / max(temp['Steam']), label='Injector ' + pad + '\n{} > {}'.format(d_1, d_n))
     subp.legend()
+
+plt.savefig('inj_pads_ts.png')

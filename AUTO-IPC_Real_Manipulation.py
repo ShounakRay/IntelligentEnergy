@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: AUTO-IPC_Real_Manipulation.py
 # @Last modified by:   Ray
-# @Last modified time: 19-Mar-2021 08:03:00:007  GMT-0600
+# @Last modified time: 19-Mar-2021 11:03:14:146  GMT-0600
 # @License: [Private IP]
 
 
@@ -332,7 +332,7 @@ def generate_depn_animation(df, groupby, time_feature, fig_size=(12.5, 9), resol
             for d_i in range(len(all_dates) - moving_jump):
                 # print(d_i)
                 frame_start_ind = all_dates[d_i * moving_jump]
-                if(d_i * moving_jump + period >= len(all_dates) - moving_jump - 1):
+                if(d_i + moving_jump + period >= len(all_dates) - moving_jump - 1):
                     break
                 else:
                     frame_end_ind = all_dates[d_i * moving_jump + period]
