@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Mar-2021 14:03:59:597  GMT-0600
+# @Last modified time: 22-Mar-2021 15:03:12:120  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -13,6 +13,10 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
 def filter_negatives(df, columns):
@@ -100,9 +104,12 @@ def intermediates(p1, p2, nb_points=8):
     y_spacing = (p2[1] - p1[1]) / (nb_points + 1)
 
     return [[p1[0] + i * x_spacing, p1[1] + i * y_spacing]
-            for i in range(1, nb_points + 1)]
+            for i in range(0, nb_points + 2)]
 
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # INGESTION
 FINALE = pd.read_csv('Data/combined_ipc.csv').infer_objects()
 DATA_INJECTION_ORIG = pd.read_pickle('Data/Pickles/DATA_INJECTION_ORIG.pkl')
@@ -129,7 +136,9 @@ INJ_PAD_KEYS = dict(zip(DATA_INJECTION_ORIG['Well'], DATA_INJECTION_ORIG['Pad'])
 FINALE['PRO_Pad'] = FINALE['PRO_Well'].apply(lambda x: PRO_PAD_KEYS.get(x))
 FINALE = FINALE.dropna(subset=['PRO_Well']).reset_index(drop=True)
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # PAD-LEVEL SENSOR DATA # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 unique_pro_pads = list(FINALE['PRO_Pad'].unique())
 all_pro_data = ['PRO_Well',
@@ -191,8 +200,9 @@ for pad in unique_pro_pads:
 
 plt.savefig('pro_pads_cols_ts.png')
 
-
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # INJECTOR PAD-LEVEL STEAM ALLOCATION # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 FINALE_inj = FINALE[FINALE['PRO_Well'] == 'AP3'].reset_index(drop=True).drop('PRO_Well', 1)
 all_injs = [c for c in FINALE_inj.columns if 'I' in c and '_' not in c]
@@ -217,27 +227,33 @@ for pad in unique_inj_pads:
 plt.savefig('inj_pads_ts.png')
 
 
-# # # # # # # # # # # # # # # # INJECTOR ASSOCIATIONS # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # INJECTOR ASSOCIATIONS # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # Injector wells and injector pad relationships
 INJ_well_to_pad = dict(zip(FINALE_melted_inj['Injector'], FINALE_melted_inj['INJ_Pad']))
-# Injector wells to producer well overlaps (only those spanning different producer pads)
-INJ_well_to_pad_overlaps = {'I16': ['AP3', 'BP1'],
-                            'I21': ['AP3', 'BP1'],
-                            'I27': ['AP3', 'BP1'],
-                            'I37': ['FP1', 'BP6'],
-                            'I72': ['FP1', 'BP6'],
-                            'I47': ['CP2', 'EP2'],
-                            'I44': ['CP3', 'EP2'],
-                            'I42': ['CP6', 'EP2'],
-                            'CI7': ['CP7', 'EP2'],
-                            'CI8': ['CP8', 'EP2']}
-PRO_injpad_to_well = {'E3': ['EP2', 'EP3', 'EP4', 'EP5', 'EP6', 'EP7'],
-                      'E2': ['EP2', 'EP3', 'EP4', 'EP5', 'EP6', 'EP7'],
-                      'E1': ['EP2', 'EP3', 'EP4', 'EP5', 'EP6', 'EP7'],
-                      'A': ['AP4', 'AP5', 'AP6', 'AP7', 'A8'],
-                      '15-05': ['AP4', 'AP6', 'AP7'],
-                      '16-05': ['AP2', 'AP3', 'AP4', 'AP5', 'AP6', 'AP7']}
+# # Injector wells to producer well overlaps (only those spanning different producer pads)
+# INJ_well_to_pad_overlaps = {'I16': ['AP3', 'BP1'],
+#                             'I21': ['AP3', 'BP1'],
+#                             'I27': ['AP3', 'BP1'],
+#                             'I37': ['FP1', 'BP6'],
+#                             'I72': ['FP1', 'BP6'],
+#                             'I47': ['CP2', 'EP2'],
+#                             'I44': ['CP3', 'EP2'],
+#                             'I42': ['CP6', 'EP2'],
+#                             'CI7': ['CP7', 'EP2'],
+#                             'CI8': ['CP8', 'EP2']}
+# PRO_injpad_to_well = {'E3': ['EP2', 'EP3', 'EP4', 'EP5', 'EP6', 'EP7'],
+#                       'E2': ['EP2', 'EP3', 'EP4', 'EP5', 'EP6', 'EP7'],
+#                       'E1': ['EP2', 'EP3', 'EP4', 'EP5', 'EP6', 'EP7'],
+#                       'A': ['AP4', 'AP5', 'AP6', 'AP7', 'A8'],
+#                       '15-05': ['AP4', 'AP6', 'AP7'],
+#                       '16-05': ['AP2', 'AP3', 'AP4', 'AP5', 'AP6', 'AP7']}
+
+# Display hyperparams
+impact_radius = 20000
+focal_period = 50
 
 # Scaling, window constants
 POS_TL = (478, 71)
@@ -247,14 +263,15 @@ POS_BR = (1439, 1008)
 x_delta = POS_TL[0] | POS_BL[0]
 y_delta = POS_TR[0] | POS_BR[0]
 
+
 # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # #
 # INJECTOR COORDINATE TRANSFORMATIONS
 INJ_relcoords = {}
 INJ_relcoords = {'I02': '(757, 534)',
                  'I03': '(709, 519)',
-                 'I04': '(701, 492)',
-                 'I05': '(708, 492)',
+                 'I04': '(760, 488)',
+                 'I05': '(708, 443)',
                  'I06': '(825, 537)',
                  'I07': '(823, 461)',
                  'I08': '(997, 571)',
@@ -282,15 +299,15 @@ INJ_relcoords = {'I02': '(757, 534)',
                  'I30': '(825, 763)',
                  'I31': '(759, 736)',
                  'I32': '(871, 716)',
-                 'I33': '(943, 739)',
+                 'I33': '(939, 739)',
                  'I34': '(873, 801)',
-                 'I35': '(1022, 729)',
-                 'I36': '(993, 739)',
+                 'I35': '(1023, 727)',
+                 'I36': '(996, 789)',
                  'I37': '(1061, 782)',
                  'I38': '(982, 529)'}
-for inj in [k for k in INJ_PAD_KEYS.keys() if INJ_PAD_KEYS[k] in ['A', '15-05', '16-05', '11-05', '10-05',
-                                                                  '09-05', '06-05', '08-05']]:
-    INJ_relcoords[inj] = input(prompt='Please enter coordinates for injector {}'.format(inj))
+# for inj in [k for k in INJ_PAD_KEYS.keys() if INJ_PAD_KEYS[k] in ['A', '15-05', '16-05', '11-05', '10-05',
+#                                                                   '09-05', '06-05', '08-05']]:
+#     INJ_relcoords[inj] = input(prompt='Please enter coordinates for injector {}'.format(inj))
 for k, v in INJ_relcoords.items():
     # String to tuple
     INJ_relcoords[k] = eval(v)
@@ -298,26 +315,28 @@ for k, v in INJ_relcoords.items():
     # Re-scaling
     INJ_relcoords[k] = (v[0] - x_delta, y_delta - v[1])
 
+
 # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # #
 # PRODUCER COORDINATE TRANSFORMATIONS
+
 PRO_relcoords = {}
-PRO_relcoords = {'AP2': '(696, 554) <> (995, 551)',
-                 'AP3': '(700, 582) <> (995, 582)',
-                 'AP4': '(691, 526) <> (1052, 523)',
-                 'AP5': '(684, 498) <> (759, 507) <> (1058, 501)',
-                 'AP6': '(695, 478) <> (827, 472) <> (910, 472)',
-                 'AP7': '(693, 454) <> (846, 452) <> (992, 450)',
-                 'AP8': '(690, 429) <> (910, 427)',
-                 'BP1': '(684, 633) <> (992, 635) <> (1015, 620)',
-                 'BP2': '(708, 668) <> (1014, 668)',
-                 'BP3': '(703, 702) <> (1016, 697)',
-                 'BP4': '(663, 752) <> (908, 750)',
-                 'BP5': '(676, 783) <> (838, 786) <> (1010, 745)',
-                 'BP6': '(690, 821) <> (1026, 817)'}
+PRO_relcoords = {'AP2': '(616, 512) <> (683, 557) <> (995, 551)',
+                 'AP3': '(601, 522) <> (690, 582) <> (995, 582)',
+                 'AP4': '(621, 504) <> (691, 526) <> (1052, 523)',
+                 'AP5': '(616, 483) <> (688, 505) <> (759, 507) <> (1058, 501)',
+                 'AP6': '(606, 470) <> (685, 478) <> (827, 472) <> (910, 472)',
+                 'AP7': '(602, 461) <> (674, 456) <> (846, 452) <> (992, 450)',
+                 'AP8': '(593, 456) <> (674, 429) <> (910, 427)',
+                 'BP1': '(541, 733) <> (609, 654) <> (674, 633) <> (916, 636) <> (992, 635) <> (1015, 629)',
+                 'BP2': '(541, 747) <> (630, 670) <> (1014, 668)',
+                 'BP3': '(541, 760) <> (647, 704) <> (1016, 697)',
+                 'BP4': '(555, 772) <> (691, 752) <> (908, 750)',
+                 'BP5': '(555, 784) <> (838, 786) <> (1010, 748)',
+                 'BP6': '(555, 803) <> (690, 821) <> (1026, 817)'}
 # Get relative position inputs
-for well in [pw for pw in PRO_PAD_KEYS.keys() if 'A' in pw or 'B' in pw]:
-    PRO_relcoords[well] = input(prompt='Please enter coordinates for producer {}'.format(well))
+# for well in [pw for pw in PRO_PAD_KEYS.keys() if 'A' in pw or 'B' in pw]:
+#     PRO_relcoords[well] = input(prompt='Please enter coordinates for producer {}'.format(well))
 # Re-format relative positions
 for k, v in PRO_relcoords.items():
     # Parsing
@@ -332,7 +351,6 @@ for k, v in PRO_relcoords.items():
     PRO_relcoords[k] = transformed
 # Find n points connecting the points
 connections = {}
-arbitrary_length = 30
 for k, v in PRO_relcoords.items():
     discrete_links = []
     for coordinate_i in range(len(PRO_relcoords[k]) - 1):
@@ -342,31 +360,36 @@ for k, v in PRO_relcoords.items():
         x2 = c2[0]
         y1 = c1[1]
         y2 = c2[1]
-        num_points = int(math.hypot(x2 - x1, y2 - y1) / arbitrary_length)
+        num_points = int(math.hypot(x2 - x1, y2 - y1) / focal_period)
         discrete_ind = intermediates(c1, c2, nb_points=num_points)
         discrete_links.append(discrete_ind)
     connections[k] = list(chain.from_iterable(discrete_links))
 
+
 # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # #
 # CONFIRM TRANSFORMATIONS
+
 # Producer connections
-fig, ax = plt.subplots(figsize=(40, 20))
+aratio = (POS_TR[0] - POS_TL[0]) / (POS_BR[1] - POS_TR[1])
+fig, ax = plt.subplots(figsize=(20 * aratio, 20))
 colors = cm.rainbow(np.linspace(0, 1, len(connections.keys())))
 for k, v in connections.items():
     all_x = [c[0] for c in v]
     all_y = [c[1] for c in v]
     plt.scatter(all_x, all_y, linestyle='solid', color=colors[list(connections.keys()).index(k)])
     plt.plot(all_x, all_y, color=colors[list(connections.keys()).index(k)])
+    plt.scatter(all_x, all_y, color=list((*colors[list(connections.keys()).index(k)][:3], *[0.2])), s=impact_radius)
 # Injector connections
 all_x = [t[0] for t in INJ_relcoords.values()]
 all_y = [t[1] for t in INJ_relcoords.values()]
 ax.scatter(all_x, all_y)
 for i, txt in enumerate(INJ_relcoords.keys()):
     ax.annotate(txt, (all_x[i] + 2, all_y[i] + 2))
+plt.title('Producer Well and Injector Space, Overlaps')
+plt.tight_layout()
+plt.savefig('Producer-Injector Overlap.png')
 
-# color=colors[list(PRO_relcoords.keys()).index(k)]
-list(chain.from_iterable(discrete_links))
 # EOF
 
 # EOF
