@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Mar-2021 10:03:72:726  GMT-0600
+# @Last modified time: 23-Mar-2021 11:03:10:105  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -13,10 +13,27 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+plot_eda = False
+plot_geo = True
+
+# Display hyperparams
+relative_radius = 50
+dimless_radius = relative_radius * 200
+focal_period = 20
+
+# Scaling, window constants
+POS_TL = (478, 71)
+POS_TR = (1439, 71)
+POS_BL = (478, 1008)
+POS_BR = (1439, 1008)
+x_delta = POS_TL[0] | POS_BL[0]
+y_delta = POS_TR[0] | POS_BR[0]
 
 
 def filter_negatives(df, columns):
@@ -115,21 +132,38 @@ def euclidean_2d_distance(c1, c2):
     return math.hypot(x2 - x1, y2 - y1)
 
 
-plot_eda = False
-plot_geo = True
+def injector_candidates(production_pad, pro_well_pad_relationship, injector_coordinates, production_coordinates,
+                        relative_radius=relative_radius):
+    pad = production_pad
+    inclusion = pd.DataFrame([], columns=injector_coordinates.keys(), index=PRO_finalcoords.keys())
+    for iwell, iwell_point in injector_coordinates.items():
+        x_test = iwell_point[0]
+        y_test = iwell_point[1]
+        inj_allpro_tracker = []
+        for pwell, pwell_points in PRO_finalcoords.items():
+            inj_pro_level_tracker = []
+            for pwell_point in pwell_points:
+                center_x = pwell_point[0]
+                center_y = pwell_point[1]
+                inclusion_condition = (x_test - center_x)**2 + (y_test - center_y)**2 < relative_radius**2
+                inj_pro_level_tracker.append(inclusion_condition)
+            state = any(inj_pro_level_tracker)
+            inj_allpro_tracker.append(state)
+        inclusion[iwell] = inj_allpro_tracker
 
-# Display hyperparams
-relative_radius = 2
-dimless_radius = relative_radius * 400
-focal_period = 2
+    inclusion = inclusion.rename_axis('PRO_Well').reset_index()
+    inclusion['PRO_Pad'] = [pro_well_pad_relationship.get(pwell) for pwell in inclusion['PRO_Well']]
 
-# Scaling, window constants
-POS_TL = (478, 71)
-POS_TR = (1439, 71)
-POS_BL = (478, 1008)
-POS_BR = (1439, 1008)
-x_delta = POS_TL[0] | POS_BL[0]
-y_delta = POS_TR[0] | POS_BR[0]
+    inclusion.to_html('just_foref.html')
+
+    pad_filtered_inclusion = inclusion[inclusion['PRO_Pad'] == pad].reset_index(drop=True)
+    all_possible_candidates = pad_filtered_inclusion.select_dtypes(bool).columns
+    candidate_injectors_full = dict([(candidate, any(pad_filtered_inclusion[candidate]))
+                                     for candidate in all_possible_candidates])
+    candidate_injectors = [k for k, v in candidate_injectors_full.items() if v is True]
+
+    return candidate_injectors, candidate_injectors_full
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -146,105 +180,10 @@ INJ_PAD_KEYS = dict(zip(DATA_INJECTION_ORIG['Well'], DATA_INJECTION_ORIG['Pad'])
 FINALE['PRO_Pad'] = FINALE['PRO_Well'].apply(lambda x: PRO_PAD_KEYS.get(x))
 FINALE = FINALE.dropna(subset=['PRO_Well']).reset_index(drop=True)
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # PAD-LEVEL SENSOR DATA # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-unique_pro_pads = list(FINALE['PRO_Pad'].unique())
-all_pro_data = ['PRO_Well',
-                'PRO_Pump_Speed',
-                'PRO_Time_On',
-                'PRO_Casing_Pressure',
-                'PRO_Heel_Pressure',
-                'PRO_Toe_Pressure',
-                'PRO_Heel_Temp',
-                'PRO_Toe_Temp',
-                'PRO_Pad',
-                'PRO_Duration',
-                'PRO_Oil',
-                'PRO_Water',
-                'PRO_Gas',
-                'PRO_Fluid',
-                'PRO_Chlorides']
-FINALE_pro = FINALE[all_pro_data + ['Date']]
-
-FINALE_pro, dropped_cols = drop_singles(FINALE_pro)
-
-# FINALE_agg = FINALE_pro.groupby(by=['Date', 'Pad'], axis=0, sort=False, as_index=False).sum()
-FINALE_melted_pro = pd.melt(FINALE, id_vars=['Date'], value_vars=all_pro_data, var_name='metric', value_name='PRO_Pad')
-FINALE_melted_pro['PRO_Pad'] = FINALE_melted_pro['PRO_Pad'].apply(lambda x: PRO_PAD_KEYS.get(x))
-
-FINALE_agg_pro = FINALE_pro.groupby(by=['Date', 'PRO_Pad'], axis=0,
-                                    sort=False, as_index=False).agg({'PRO_Pump_Speed': 'sum',
-                                                                     'PRO_Time_On': 'mean',
-                                                                     'PRO_Casing_Pressure': 'mean',
-                                                                     'PRO_Heel_Pressure': 'mean',
-                                                                     'PRO_Duration': 'mean',
-                                                                     'PRO_Toe_Pressure': 'mean',
-                                                                     'PRO_Oil': 'sum',
-                                                                     'PRO_Water': 'sum',
-                                                                     'PRO_Gas': 'sum',
-                                                                     'PRO_Fluid': 'sum',
-                                                                     'PRO_Chlorides': 'sum'})
-
-if(plot_eda):
-    # FIGURE PLOTTING (PRODUCTION PAD-LEVEL STATISTICS)
-    master_rows = len(unique_pro_pads)
-    master_cols = len(FINALE_agg_pro.select_dtypes(float).columns)
-    fig, ax = plt.subplots(nrows=master_rows, ncols=master_cols, figsize=(200, 50))
-    for pad in unique_pro_pads:
-        temp_pad = FINALE_agg_pro[FINALE_agg_pro['PRO_Pad'] == pad].sort_values('Date').reset_index(drop=True)
-        d_1 = list(temp_pad['Date'])[0]
-        d_n = list(temp_pad['Date'])[-1]
-        numcols = FINALE_agg_pro.select_dtypes(float).columns
-        for col in numcols:
-            temp = temp_pad[[col]]
-            temp = temp.interpolate('linear')
-            # if all(temp.isna()):
-            #     temp = temp.fillna(0)
-            subp = ax[unique_pro_pads.index(pad)][list(numcols).index(col)]
-            subp.plot(temp[col], label='Producer ' + pad + ', Metric ' +
-                      col + '\n{} > {}'.format(d_1, d_n))
-            subp.legend()
-            plt.tight_layout()
-        plt.tight_layout()
-
-    plt.savefig('pro_pads_cols_ts.png')
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # INJECTOR PAD-LEVEL STEAM ALLOCATION # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-FINALE_inj = FINALE[FINALE['PRO_Well'] == 'AP3'].reset_index(drop=True).drop('PRO_Well', 1)
-all_injs = [c for c in FINALE_inj.columns if 'I' in c and '_' not in c]
-FINALE_melted_inj = pd.melt(FINALE_inj, id_vars=['Date'], value_vars=all_injs,
-                            var_name='Injector', value_name='Steam')
-FINALE_melted_inj['INJ_Pad'] = FINALE_melted_inj['Injector'].apply(lambda x: INJ_PAD_KEYS.get(x))
-FINALE_melted_inj = FINALE_melted_inj[~FINALE_melted_inj['INJ_Pad'].isna()].reset_index(drop=True)
-FINALE_agg_inj = FINALE_melted_inj.groupby(by=['Date', 'INJ_Pad'], axis=0, sort=False, as_index=False).sum()
-
-if(plot_eda):
-    # FIGURE PLOTTING (INJECTION PAD-LEVEL STATISTICS)
-    unique_inj_pads = list(FINALE_agg_inj['INJ_Pad'].unique())
-    fig, ax = plt.subplots(nrows=len(unique_inj_pads), figsize=(15, 80))
-    for pad in unique_inj_pads:
-        subp = ax[unique_inj_pads.index(pad)]
-        temp = FINALE_agg_inj[FINALE_agg_inj['INJ_Pad'] == pad].sort_values('Date').reset_index(drop=True)
-        d_1 = list(temp['Date'])[0]
-        d_n = list(temp['Date'])[-1]
-        subp.plot(temp['Steam'], label='Injector ' + pad + '\n{} > {}'.format(d_1, d_n))
-        subp.legend()
-        plt.tight_layout()
-
-    plt.savefig('inj_pads_ts.png')
-
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # INJECTOR/PRODUCER TRANSLATIONS  # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# Injector wells and injector pad relationships
-INJ_well_to_pad = dict(zip(FINALE_melted_inj['Injector'], FINALE_melted_inj['INJ_Pad']))
 # # Injector wells to producer well overlaps (only those spanning different producer pads)
 # INJ_well_to_pad_overlaps = {'I16': ['AP3', 'BP1'],
 #                             'I21': ['AP3', 'BP1'],
@@ -367,6 +306,100 @@ for k, v in PRO_relcoords.items():
         discrete_links.append(discrete_ind)
     PRO_finalcoords[k] = list(chain.from_iterable(discrete_links))
 
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # PAD-LEVEL SENSOR DATA # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+unique_pro_pads = list(FINALE['PRO_Pad'].unique())
+all_pro_data = ['PRO_Well',
+                'PRO_Pump_Speed',
+                'PRO_Time_On',
+                'PRO_Casing_Pressure',
+                'PRO_Heel_Pressure',
+                'PRO_Toe_Pressure',
+                'PRO_Heel_Temp',
+                'PRO_Toe_Temp',
+                'PRO_Pad',
+                'PRO_Duration',
+                'PRO_Oil',
+                'PRO_Water',
+                'PRO_Gas',
+                'PRO_Fluid',
+                'PRO_Chlorides']
+FINALE_pro = FINALE[all_pro_data + ['Date']]
+
+FINALE_pro, dropped_cols = drop_singles(FINALE_pro)
+
+# FINALE_agg = FINALE_pro.groupby(by=['Date', 'Pad'], axis=0, sort=False, as_index=False).sum()
+FINALE_melted_pro = pd.melt(FINALE, id_vars=['Date'], value_vars=all_pro_data, var_name='metric', value_name='PRO_Pad')
+FINALE_melted_pro['PRO_Pad'] = FINALE_melted_pro['PRO_Pad'].apply(lambda x: PRO_PAD_KEYS.get(x))
+
+FINALE_agg_pro = FINALE_pro.groupby(by=['Date', 'PRO_Pad'], axis=0,
+                                    sort=False, as_index=False).agg({'PRO_Pump_Speed': 'sum',
+                                                                     'PRO_Time_On': 'mean',
+                                                                     'PRO_Casing_Pressure': 'mean',
+                                                                     'PRO_Heel_Pressure': 'mean',
+                                                                     'PRO_Duration': 'mean',
+                                                                     'PRO_Toe_Pressure': 'mean',
+                                                                     'PRO_Oil': 'sum',
+                                                                     'PRO_Water': 'sum',
+                                                                     'PRO_Gas': 'sum',
+                                                                     'PRO_Fluid': 'sum',
+                                                                     'PRO_Chlorides': 'sum'})
+
+if(plot_eda):
+    # FIGURE PLOTTING (PRODUCTION PAD-LEVEL STATISTICS)
+    master_rows = len(unique_pro_pads)
+    master_cols = len(FINALE_agg_pro.select_dtypes(float).columns)
+    fig, ax = plt.subplots(nrows=master_rows, ncols=master_cols, figsize=(200, 50))
+    for pad in unique_pro_pads:
+        temp_pad = FINALE_agg_pro[FINALE_agg_pro['PRO_Pad'] == pad].sort_values('Date').reset_index(drop=True)
+        d_1 = list(temp_pad['Date'])[0]
+        d_n = list(temp_pad['Date'])[-1]
+        numcols = FINALE_agg_pro.select_dtypes(float).columns
+        for col in numcols:
+            temp = temp_pad[[col]]
+            temp = temp.interpolate('linear')
+            # if all(temp.isna()):
+            #     temp = temp.fillna(0)
+            subp = ax[unique_pro_pads.index(pad)][list(numcols).index(col)]
+            subp.plot(temp[col], label='Producer ' + pad + ', Metric ' +
+                      col + '\n{} > {}'.format(d_1, d_n))
+            subp.legend()
+            plt.tight_layout()
+        plt.tight_layout()
+
+    plt.savefig('pro_pads_cols_ts.png')
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # INJECTOR PAD-LEVEL STEAM ALLOCATION # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+FINALE_inj = FINALE[FINALE['PRO_Well'] == 'AP3'].reset_index(drop=True).drop('PRO_Well', 1)
+all_injs = [c for c in FINALE_inj.columns if 'I' in c and '_' not in c]
+FINALE_melted_inj = pd.melt(FINALE_inj, id_vars=['Date'], value_vars=all_injs,
+                            var_name='Injector', value_name='Steam')
+FINALE_melted_inj['INJ_Pad'] = FINALE_melted_inj['Injector'].apply(lambda x: INJ_PAD_KEYS.get(x))
+FINALE_melted_inj = FINALE_melted_inj[~FINALE_melted_inj['INJ_Pad'].isna()].reset_index(drop=True)
+FINALE_agg_inj = FINALE_melted_inj.groupby(by=['Date', 'INJ_Pad'], axis=0, sort=False, as_index=False).sum()
+
+if(plot_eda):
+    # FIGURE PLOTTING (INJECTION PAD-LEVEL STATISTICS)
+    unique_inj_pads = list(FINALE_agg_inj['INJ_Pad'].unique())
+    fig, ax = plt.subplots(nrows=len(unique_inj_pads), figsize=(15, 80))
+    for pad in unique_inj_pads:
+        subp = ax[unique_inj_pads.index(pad)]
+        temp = FINALE_agg_inj[FINALE_agg_inj['INJ_Pad'] == pad].sort_values('Date').reset_index(drop=True)
+        d_1 = list(temp['Date'])[0]
+        d_n = list(temp['Date'])[-1]
+        subp.plot(temp['Steam'], label='Injector ' + pad + '\n{} > {}'.format(d_1, d_n))
+        subp.legend()
+        plt.tight_layout()
+
+    plt.savefig('inj_pads_ts.png')
+
+
 # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # #
 # CONFIRM TRANSFORMATIONS
@@ -399,14 +432,19 @@ if(plot_geo):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 pro_inj_distance = pd.DataFrame([], columns=INJ_relcoords.keys(), index=PRO_finalcoords.keys())
 pro_inj_distance = pro_inj_distance.rename_axis('PRO_Well').reset_index()
-for injector in [c for c in pro_inj_distance.columns if c not in ['PRO_Well']]:
+operat = 'mean'
+for injector in INJ_relcoords.keys():
     iwell_coord = INJ_relcoords.get(injector)
     PRO_Well_uniques = pro_inj_distance['PRO_Well']
     inj_specific_distances = []
     for pwell in PRO_Well_uniques:
         pwell_coords = PRO_finalcoords.get(pwell)
-        inj_specific_distances.append()
+        point_distances = [euclidean_2d_distance(pwell_coord, iwell_coord) for pwell_coord in pwell_coords]
+        dist_store = np.mean(point_distances) if operat == 'mean' else min(point_distances)
+        inj_specific_distances.append(dist_store)
+    pro_inj_distance[injector] = inj_specific_distances
 
+# sns.heatmap(pro_inj_distance.select_dtypes(float))
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # INJECTOR-INJECTOR DIST. MATRIX # # # # # # # # # # # # # # # #
@@ -414,8 +452,50 @@ for injector in [c for c in pro_inj_distance.columns if c not in ['PRO_Well']]:
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # NAIVE INJECTOR SELECTION ALGO # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+candidates, report = injector_candidates('A', PRO_PAD_KEYS, INJ_relcoords, PRO_finalcoords,
+                                         relative_radius=50)
+
+if(plot_geo):
+    # Producer connections
+    aratio = (POS_TR[0] - POS_TL[0]) / (POS_BR[1] - POS_TR[1])
+    fig, ax = plt.subplots(figsize=(20 * aratio, 20))
+    colors = cm.rainbow(np.linspace(0, 1, len(PRO_finalcoords.keys())))
+    for k, v in PRO_finalcoords.items():
+        all_x = [c[0] for c in v]
+        all_y = [c[1] for c in v]
+        plt.scatter(all_x, all_y, linestyle='solid', color=colors[list(PRO_finalcoords.keys()).index(k)])
+        plt.plot(all_x, all_y, color=colors[list(PRO_finalcoords.keys()).index(k)])
+        plt.scatter(all_x, all_y, color=list(
+            (*colors[list(PRO_finalcoords.keys()).index(k)][:3], *[0.1])), s=dimless_radius)
+    # Injector connections
+    all_x = [t[0] for t in INJ_relcoords.values()]
+    all_y = [t[1] for t in INJ_relcoords.values()]
+    ax.scatter(all_x, all_y)
+    for i, txt in enumerate(INJ_relcoords.keys()):
+        if(txt in candidates):
+            ax.scatter(all_x[i], all_y[i], color='green', s=200)
+        else:
+            ax.scatter(all_x[i], all_y[i], color='red', s=200)
+        ax.annotate(txt, (all_x[i] + 2, all_y[i] + 2))
+    plt.title('Producer Well and Injector Space, Overlaps')
+    plt.tight_layout()
+    plt.savefig('Producer-Injector Overlap.png')
+
+
+# sns.heatmap(inclusion.astype(int))
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # INJECTOR-INJECTOR DIST. MATRIX # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # NAIVE AND ADVANCED MODELING # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 
 # EOF
 

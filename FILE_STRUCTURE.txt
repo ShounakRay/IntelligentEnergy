@@ -6,8 +6,135 @@ IntelligentEnergy/
 ├── __init__.py
 ├── __pycache__/
 │   └── util_traversal.cpython-38.pyc
+├── approach_alternative.py
 ├── AUTO-IPC_Real_Manipulation.py
+├── base_generation.py
+├── CrossCorrelation/
+│   ├── .DS_Store
+│   ├── Injector Cross Correlation.png
+│   ├── selective_matrix.pdf
+│   ├── selective_matrix.png
+│   ├── test copy.mp4
+│   ├── test.mp4
+│   ├── WELL-ALL_PRODUCTION_TARGET-UNSPECIFIED.png
+│   └── WELL-ALL_PRODUCTION_TARGET-UNSPECIFIED_TIMED-True.png
 ├── Data/
+│   ├── .DS_Store
+│   ├── aggregate_fiber.csv
+│   ├── combined_ipc.csv
+│   ├── DTS/
+│   │   ├── .DS_Store
+│   │   ├── AP2/
+│   │   │   └── AP2THERM.xlsx
+│   │   ├── AP3/
+│   │   │   ├── AP31DTS.csv
+│   │   │   ├── AP32DTS.csv
+│   │   │   ├── AP33DTS.csv
+│   │   │   ├── AP34DTS.csv
+│   │   │   ├── AP35DTS.csv
+│   │   │   ├── AP36DTS.csv
+│   │   │   ├── AP37DTS.csv
+│   │   │   └── AP3DTS.csv
+│   │   ├── AP4/
+│   │   │   ├── AP41DTS.csv
+│   │   │   ├── AP42DTS.csv
+│   │   │   ├── AP43DTS.csv
+│   │   │   ├── AP44DTS.csv
+│   │   │   ├── AP45DTS.csv
+│   │   │   ├── AP46DTS.csv
+│   │   │   ├── AP47DTS.csv
+│   │   │   └── AP4DTS.csv
+│   │   ├── AP5/
+│   │   │   ├── AP51DTS.csv
+│   │   │   ├── AP52DTS.csv
+│   │   │   ├── AP53DTS.csv
+│   │   │   ├── AP54DTS.csv
+│   │   │   ├── AP55DTS.csv
+│   │   │   ├── AP56DTS.csv
+│   │   │   ├── AP57DTS.csv
+│   │   │   ├── AP58DTS.csv
+│   │   │   └── AP5DTS.csv
+│   │   ├── AP6/
+│   │   │   ├── AP61DTS.csv
+│   │   │   ├── AP62DTS.csv
+│   │   │   ├── AP63DTS.csv
+│   │   │   ├── AP64DTS.csv
+│   │   │   ├── AP65DTS.csv
+│   │   │   ├── AP66DTS.csv
+│   │   │   ├── AP67DTS.csv
+│   │   │   ├── AP68DTS.csv
+│   │   │   └── AP6DTS.csv
+│   │   ├── AP7/
+│   │   │   ├── AP71DTS.csv
+│   │   │   ├── AP72DTS.csv
+│   │   │   ├── AP73DTS.csv
+│   │   │   ├── AP74DTS.csv
+│   │   │   ├── AP75DTS.csv
+│   │   │   ├── AP76DTS.csv
+│   │   │   ├── AP77DTS.csv
+│   │   │   ├── AP78DTS.csv
+│   │   │   └── AP7DTS.csv
+│   │   ├── AP8/
+│   │   │   ├── AP81DTS.csv
+│   │   │   ├── AP82DTS.csv
+│   │   │   ├── AP83DTS.csv
+│   │   │   ├── AP84DTS.csv
+│   │   │   ├── AP85DTS.csv
+│   │   │   ├── AP86DTS.csv
+│   │   │   ├── AP87DTS.csv
+│   │   │   └── AP8DTS.csv
+│   │   ├── BP1/
+│   │   │   ├── BP11DTS.csv
+│   │   │   ├── BP12DTS.csv
+│   │   │   ├── BP13DTS.csv
+│   │   │   ├── BP14DTS.csv
+│   │   │   ├── BP15DTS.csv
+│   │   │   ├── BP16DTS.csv
+│   │   │   ├── BP17DTS.csv
+│   │   │   └── BP1DTS.csv
+│   │   ├── BP2/
+│   │   │   ├── BP21DTS.csv
+│   │   │   ├── BP22DTS.csv
+│   │   │   ├── BP23DTS.csv
+│   │   │   ├── BP24DTS.csv
+│   │   │   ├── BP25DTS.csv
+│   │   │   └── BP2DTS.csv
+│   │   ├── BP3/
+│   │   │   ├── BP31DTS.csv
+│   │   │   ├── BP32DTS.csv
+│   │   │   ├── BP33DTS.csv
+│   │   │   ├── BP34DTS.csv
+│   │   │   ├── BP35DTS.csv
+│   │   │   ├── BP36DTS.csv
+│   │   │   ├── BP37DTS.csv
+│   │   │   └── BP3DTS.csv
+│   │   ├── BP4/
+│   │   │   ├── BP41DTS.csv
+│   │   │   ├── BP42DTS.csv
+│   │   │   ├── BP43DTS.csv
+│   │   │   ├── BP44DTS.csv
+│   │   │   ├── BP45DTS.csv
+│   │   │   ├── BP46DTS.csv
+│   │   │   └── BP4DTS.csv
+│   │   ├── BP5/
+│   │   │   ├── BP51DTS.csv
+│   │   │   ├── BP52DTS.csv
+│   │   │   ├── BP53DTS.csv
+│   │   │   ├── BP54DTS.csv
+│   │   │   ├── BP55DTS.csv
+│   │   │   ├── BP56DTS.csv
+│   │   │   ├── BP57DTS.csv
+│   │   │   └── BP5DTS.csv
+│   │   └── BP6/
+│   │       ├── BP61DTS.csv
+│   │       ├── BP62DTS.csv
+│   │       ├── BP63DTS.csv
+│   │       ├── BP64DTS.csv
+│   │       ├── BP65DTS.csv
+│   │       ├── BP66DTS.csv
+│   │       ├── BP67DTS.csv
+│   │       └── BP6DTS.csv
+│   ├── DTS.zip
 │   ├── FINALE.csv
 │   ├── FINALE_INTERP.csv
 │   ├── Isolated/
@@ -15,6 +142,7 @@ IntelligentEnergy/
 │   │   ├── OLT production data (rev 1).xlsx
 │   │   ├── OLT production data.xlsx
 │   │   └── OLT well test data.xlsx
+│   ├── Isolated.zip
 │   └── Pickles/
 │       ├── DATA_INJECTION_ORIG.pkl
 │       ├── DATA_INJECTION_PRESS.pkl
@@ -37,20 +165,19 @@ IntelligentEnergy/
 │   ├── report_PRODUCTION_WELL_INTER.html
 │   └── report_PRODUCTION_WELL_WSENSOR.html
 ├── Exploratory Data Analysis.zip
-├── extracontent.py
 ├── FILE_STRUCTURE.txt
 ├── H2O Testing/
 │   ├── .ipynb_checkpoints/
 │   │   └── automl_regression_powerplant_output-checkpoint.ipynb
 │   ├── automl_regression_powerplant_output.ipynb
 │   └── automl_regression_powerplant_output.py
-├── IntelligentEnergy.png
-├── IntelligentEnergy.svg
-├── IntelligentEnergy_IPC_Real_Modeling.svg
+├── heatmap_anitest.py
+├── inj_pads_ts.png
 ├── IPC_Modeling.py
 ├── IPC_Real_Manipulation.py
 ├── IPC_Real_Modeling.py
 ├── LICENSE
+├── MAIN_COPY.py
 ├── Manipulation Reference Files/
 │   ├── .DS_Store
 │   ├── JUPYTER-IPC_Real_Modeling.ipynb
@@ -121,7 +248,10 @@ IntelligentEnergy/
 │   │   ├── oilproxy_variable_importance_BP6.pdf
 │   │   └── Variable Importance Distributions.pdf
 │   └── PredictProxy/
-├── pool_error_log.txt
+├── nx_visjs.html
+├── nx_visjs_TAILOR.html
+├── pro_pads_cols_ts.png
+├── Producer-Injector Overlap.png
 ├── R&D References/
 │   ├── Adaptive TS SVM.pdf
 │   ├── Anomaly Detection.pdf
@@ -134,6 +264,19 @@ IntelligentEnergy/
 │   ├── TS Phase Space Theoretical.pdf
 │   └── TS Phase Space.pdf
 ├── README.md
-├── run_remote.py
-└── util_traversal.py
-
+├── Statis Code/
+│   ├── extracontent.py
+│   ├── mds_example.py
+│   ├── pool_error_log.txt
+│   └── run_remote.py
+├── util_traversal.py
+└── vis/
+    ├── .babelrc
+    ├── .codeclimate.yml
+    ├── .csslintrc
+    ├── .DS_Store
+    ├── .eslintrc
+    ├── .github/
+    │   ├── ISSUE_TEMPLATE.md
+    │   └── PULL_REQUEST_TEMPLATE.md
+    

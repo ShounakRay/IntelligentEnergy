@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 13-Mar-2021 10:03:02:026  GMT-0700
+# @Last modified time: 23-Mar-2021 10:03:51:519  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -63,7 +63,7 @@ MAX_EXP_RUNTIME: Final = int(0.25 * 60)                       # The longest that
 RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments
 EVAL_METRIC: Final = 'auto'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'auto'                                   # Leaderboard ranking metric after all trainings
-DATA_PATH: Final = 'Data/FINALE_INTERP.csv'                   # Where the client-specific data is located
+DATA_PATH: Final = 'Data/combined_ipc.csv'                    # Where the client-specific data is located
 
 # Feature Engineering Constants
 FIRST_WELL_STM: Final = 'CI06'                                # Used to splice column list to segregate responders
