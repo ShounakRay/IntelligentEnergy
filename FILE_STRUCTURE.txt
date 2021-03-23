@@ -6,8 +6,11 @@ IntelligentEnergy/
 ├── __init__.py
 ├── __pycache__/
 │   └── util_traversal.cpython-38.pyc
+├── Approach 1/
+│   ├── AUTO-IPC_Real_Manipulation.py
+│   ├── heatmap_anitest.py
+│   └── MAIN_COPY.py
 ├── approach_alternative.py
-├── AUTO-IPC_Real_Manipulation.py
 ├── base_generation.py
 ├── CrossCorrelation/
 │   ├── .DS_Store
@@ -164,20 +167,14 @@ IntelligentEnergy/
 │   ├── report_FINALE.html
 │   ├── report_PRODUCTION_WELL_INTER.html
 │   └── report_PRODUCTION_WELL_WSENSOR.html
-├── Exploratory Data Analysis.zip
 ├── FILE_STRUCTURE.txt
-├── H2O Testing/
-│   ├── .ipynb_checkpoints/
-│   │   └── automl_regression_powerplant_output-checkpoint.ipynb
-│   ├── automl_regression_powerplant_output.ipynb
-│   └── automl_regression_powerplant_output.py
-├── heatmap_anitest.py
-├── inj_pads_ts.png
+├── HTML/
+│   ├── nx_visjs.html
+│   └── nx_visjs_TAILOR.html
 ├── IPC_Modeling.py
 ├── IPC_Real_Manipulation.py
 ├── IPC_Real_Modeling.py
 ├── LICENSE
-├── MAIN_COPY.py
 ├── Manipulation Reference Files/
 │   ├── .DS_Store
 │   ├── JUPYTER-IPC_Real_Modeling.ipynb
@@ -219,6 +216,7 @@ IntelligentEnergy/
 │   └── model_novarimps.pkl
 ├── Modeling Reference Files/
 │   ├── .DS_Store
+│   ├── inj_pads_ts.png
 │   ├── Oil Proxy/
 │   ├── OilProxy_NoFiber/
 │   │   ├── Averaged Variable Importance Distributions.pdf
@@ -247,11 +245,8 @@ IntelligentEnergy/
 │   │   ├── oilproxy_variable_importance_BP5.pdf
 │   │   ├── oilproxy_variable_importance_BP6.pdf
 │   │   └── Variable Importance Distributions.pdf
-│   └── PredictProxy/
-├── nx_visjs.html
-├── nx_visjs_TAILOR.html
-├── pro_pads_cols_ts.png
-├── Producer-Injector Overlap.png
+│   ├── PredictProxy/
+│   └── Producer-Injector Overlap.png
 ├── R&D References/
 │   ├── Adaptive TS SVM.pdf
 │   ├── Anomaly Detection.pdf
@@ -269,7 +264,6 @@ IntelligentEnergy/
 │   ├── mds_example.py
 │   ├── pool_error_log.txt
 │   └── run_remote.py
-├── util_traversal.py
 └── vis/
     ├── .babelrc
     ├── .codeclimate.yml

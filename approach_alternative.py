@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Mar-2021 11:03:10:105  GMT-0600
+# @Last modified time: 23-Mar-2021 12:03:79:790  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -306,6 +306,65 @@ for k, v in PRO_relcoords.items():
         discrete_links.append(discrete_ind)
     PRO_finalcoords[k] = list(chain.from_iterable(discrete_links))
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # NAIVE INJECTOR SELECTION ALGO # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+candidates, report = injector_candidates('A', PRO_PAD_KEYS, INJ_relcoords, PRO_finalcoords,
+                                         relative_radius=50)
+
+if(plot_geo):
+    # Producer connections
+    aratio = (POS_TR[0] - POS_TL[0]) / (POS_BR[1] - POS_TR[1])
+    fig, ax = plt.subplots(figsize=(20 * aratio, 20))
+    colors = cm.rainbow(np.linspace(0, 1, len(PRO_finalcoords.keys())))
+    for k, v in PRO_finalcoords.items():
+        all_x = [c[0] for c in v]
+        all_y = [c[1] for c in v]
+        plt.scatter(all_x, all_y, linestyle='solid', color=colors[list(PRO_finalcoords.keys()).index(k)])
+        plt.plot(all_x, all_y, color=colors[list(PRO_finalcoords.keys()).index(k)])
+        plt.scatter(all_x, all_y, color=list(
+            (*colors[list(PRO_finalcoords.keys()).index(k)][:3], *[0.1])), s=dimless_radius)
+    # Injector connections
+    all_x = [t[0] for t in INJ_relcoords.values()]
+    all_y = [t[1] for t in INJ_relcoords.values()]
+    ax.scatter(all_x, all_y)
+    for i, txt in enumerate(INJ_relcoords.keys()):
+        if(txt in candidates):
+            ax.scatter(all_x[i], all_y[i], color='green', s=200)
+        else:
+            ax.scatter(all_x[i], all_y[i], color='red', s=200)
+        ax.annotate(txt, (all_x[i] + 2, all_y[i] + 2))
+    plt.title('Producer Well and Injector Space, Overlaps')
+    plt.tight_layout()
+    plt.savefig('Producer-Injector Overlap.png')
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # INJECTOR-INJECTOR DIST. MATRIX # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # INJECTOR-INJECTOR DIST. MATRIX # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # NAIVE AND ADVANCED MODELING # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # PRODUCER-INJECTOR DIST. MATRIX # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+pro_inj_distance = pd.DataFrame([], columns=INJ_relcoords.keys(), index=PRO_finalcoords.keys())
+pro_inj_distance = pro_inj_distance.rename_axis('PRO_Well').reset_index()
+operat = 'mean'
+for injector in INJ_relcoords.keys():
+    iwell_coord = INJ_relcoords.get(injector)
+    PRO_Well_uniques = pro_inj_distance['PRO_Well']
+    inj_specific_distances = []
+    for pwell in PRO_Well_uniques:
+        pwell_coords = PRO_finalcoords.get(pwell)
+        point_distances = [euclidean_2d_distance(pwell_coord, iwell_coord) for pwell_coord in pwell_coords]
+        dist_store = np.mean(point_distances) if operat == 'mean' else min(point_distances)
+        inj_specific_distances.append(dist_store)
+    pro_inj_distance[injector] = inj_specific_distances
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # PAD-LEVEL SENSOR DATA # # # # # # # # # # # # # # # # # # # # # # #
@@ -398,103 +457,6 @@ if(plot_eda):
         plt.tight_layout()
 
     plt.savefig('inj_pads_ts.png')
-
-
-# # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # #
-# CONFIRM TRANSFORMATIONS
-
-if(plot_geo):
-    # Producer connections
-    aratio = (POS_TR[0] - POS_TL[0]) / (POS_BR[1] - POS_TR[1])
-    fig, ax = plt.subplots(figsize=(20 * aratio, 20))
-    colors = cm.rainbow(np.linspace(0, 1, len(PRO_finalcoords.keys())))
-    for k, v in PRO_finalcoords.items():
-        all_x = [c[0] for c in v]
-        all_y = [c[1] for c in v]
-        plt.scatter(all_x, all_y, linestyle='solid', color=colors[list(PRO_finalcoords.keys()).index(k)])
-        plt.plot(all_x, all_y, color=colors[list(PRO_finalcoords.keys()).index(k)])
-        plt.scatter(all_x, all_y, color=list(
-            (*colors[list(PRO_finalcoords.keys()).index(k)][:3], *[0.1])), s=dimless_radius)
-    # Injector connections
-    all_x = [t[0] for t in INJ_relcoords.values()]
-    all_y = [t[1] for t in INJ_relcoords.values()]
-    ax.scatter(all_x, all_y)
-    for i, txt in enumerate(INJ_relcoords.keys()):
-        ax.annotate(txt, (all_x[i] + 2, all_y[i] + 2))
-    plt.title('Producer Well and Injector Space, Overlaps')
-    plt.tight_layout()
-    plt.savefig('Producer-Injector Overlap.png')
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # PRODUCER-INJECTOR DIST. MATRIX # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-pro_inj_distance = pd.DataFrame([], columns=INJ_relcoords.keys(), index=PRO_finalcoords.keys())
-pro_inj_distance = pro_inj_distance.rename_axis('PRO_Well').reset_index()
-operat = 'mean'
-for injector in INJ_relcoords.keys():
-    iwell_coord = INJ_relcoords.get(injector)
-    PRO_Well_uniques = pro_inj_distance['PRO_Well']
-    inj_specific_distances = []
-    for pwell in PRO_Well_uniques:
-        pwell_coords = PRO_finalcoords.get(pwell)
-        point_distances = [euclidean_2d_distance(pwell_coord, iwell_coord) for pwell_coord in pwell_coords]
-        dist_store = np.mean(point_distances) if operat == 'mean' else min(point_distances)
-        inj_specific_distances.append(dist_store)
-    pro_inj_distance[injector] = inj_specific_distances
-
-# sns.heatmap(pro_inj_distance.select_dtypes(float))
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # INJECTOR-INJECTOR DIST. MATRIX # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # NAIVE INJECTOR SELECTION ALGO # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-candidates, report = injector_candidates('A', PRO_PAD_KEYS, INJ_relcoords, PRO_finalcoords,
-                                         relative_radius=50)
-
-if(plot_geo):
-    # Producer connections
-    aratio = (POS_TR[0] - POS_TL[0]) / (POS_BR[1] - POS_TR[1])
-    fig, ax = plt.subplots(figsize=(20 * aratio, 20))
-    colors = cm.rainbow(np.linspace(0, 1, len(PRO_finalcoords.keys())))
-    for k, v in PRO_finalcoords.items():
-        all_x = [c[0] for c in v]
-        all_y = [c[1] for c in v]
-        plt.scatter(all_x, all_y, linestyle='solid', color=colors[list(PRO_finalcoords.keys()).index(k)])
-        plt.plot(all_x, all_y, color=colors[list(PRO_finalcoords.keys()).index(k)])
-        plt.scatter(all_x, all_y, color=list(
-            (*colors[list(PRO_finalcoords.keys()).index(k)][:3], *[0.1])), s=dimless_radius)
-    # Injector connections
-    all_x = [t[0] for t in INJ_relcoords.values()]
-    all_y = [t[1] for t in INJ_relcoords.values()]
-    ax.scatter(all_x, all_y)
-    for i, txt in enumerate(INJ_relcoords.keys()):
-        if(txt in candidates):
-            ax.scatter(all_x[i], all_y[i], color='green', s=200)
-        else:
-            ax.scatter(all_x[i], all_y[i], color='red', s=200)
-        ax.annotate(txt, (all_x[i] + 2, all_y[i] + 2))
-    plt.title('Producer Well and Injector Space, Overlaps')
-    plt.tight_layout()
-    plt.savefig('Producer-Injector Overlap.png')
-
-
-# sns.heatmap(inclusion.astype(int))
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # INJECTOR-INJECTOR DIST. MATRIX # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # NAIVE AND ADVANCED MODELING # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
 # EOF
