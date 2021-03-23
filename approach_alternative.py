@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Mar-2021 12:03:79:790  GMT-0600
+# @Last modified time: 23-Mar-2021 13:03:01:017  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -24,7 +24,7 @@ plot_geo = True
 
 # Display hyperparams
 relative_radius = 50
-dimless_radius = relative_radius * 200
+dimless_radius = relative_radius * 950
 focal_period = 20
 
 # Scaling, window constants
@@ -34,6 +34,7 @@ POS_BL = (478, 1008)
 POS_BR = (1439, 1008)
 x_delta = POS_TL[0] | POS_BL[0]
 y_delta = POS_TR[0] | POS_BR[0]
+available_pads_transformed = ['A', 'B']
 
 
 def filter_negatives(df, columns):
@@ -134,7 +135,6 @@ def euclidean_2d_distance(c1, c2):
 
 def injector_candidates(production_pad, pro_well_pad_relationship, injector_coordinates, production_coordinates,
                         relative_radius=relative_radius):
-    pad = production_pad
     inclusion = pd.DataFrame([], columns=injector_coordinates.keys(), index=PRO_finalcoords.keys())
     for iwell, iwell_point in injector_coordinates.items():
         x_test = iwell_point[0]
@@ -156,7 +156,7 @@ def injector_candidates(production_pad, pro_well_pad_relationship, injector_coor
 
     inclusion.to_html('just_foref.html')
 
-    pad_filtered_inclusion = inclusion[inclusion['PRO_Pad'] == pad].reset_index(drop=True)
+    pad_filtered_inclusion = inclusion[inclusion['PRO_Pad'] == production_pad].reset_index(drop=True)
     all_possible_candidates = pad_filtered_inclusion.select_dtypes(bool).columns
     candidate_injectors_full = dict([(candidate, any(pad_filtered_inclusion[candidate]))
                                      for candidate in all_possible_candidates])
@@ -310,8 +310,13 @@ for k, v in PRO_relcoords.items():
 # # # # # # # # # # # # # # # # # NAIVE INJECTOR SELECTION ALGO # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-candidates, report = injector_candidates('A', PRO_PAD_KEYS, INJ_relcoords, PRO_finalcoords,
-                                         relative_radius=50)
+candidates_by_prodpad = {}
+reports_by_prodpad = {}
+for pad in available_pads_transformed:
+    candidates, report = injector_candidates(pad, PRO_PAD_KEYS, INJ_relcoords, PRO_finalcoords,
+                                             relative_radius=50)
+    candidates_by_prodpad[pad] = candidates
+    reports_by_prodpad[pad] = report
 
 if(plot_geo):
     # Producer connections
@@ -338,16 +343,6 @@ if(plot_geo):
     plt.title('Producer Well and Injector Space, Overlaps')
     plt.tight_layout()
     plt.savefig('Producer-Injector Overlap.png')
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # INJECTOR-INJECTOR DIST. MATRIX # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # INJECTOR-INJECTOR DIST. MATRIX # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # NAIVE AND ADVANCED MODELING # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # PRODUCER-INJECTOR DIST. MATRIX # # # # # # # # # # # # # # #
@@ -434,14 +429,30 @@ if(plot_eda):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # INJECTOR PAD-LEVEL STEAM ALLOCATION # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
+# This is just to delete the implicit duplicates found in the data (each production well has the same injection data)
 FINALE_inj = FINALE[FINALE['PRO_Well'] == 'AP3'].reset_index(drop=True).drop('PRO_Well', 1)
 all_injs = [c for c in FINALE_inj.columns if 'I' in c and '_' not in c]
-FINALE_melted_inj = pd.melt(FINALE_inj, id_vars=['Date'], value_vars=all_injs,
-                            var_name='Injector', value_name='Steam')
-FINALE_melted_inj['INJ_Pad'] = FINALE_melted_inj['Injector'].apply(lambda x: INJ_PAD_KEYS.get(x))
-FINALE_melted_inj = FINALE_melted_inj[~FINALE_melted_inj['INJ_Pad'].isna()].reset_index(drop=True)
-FINALE_agg_inj = FINALE_melted_inj.groupby(by=['Date', 'INJ_Pad'], axis=0, sort=False, as_index=False).sum()
+INJECTOR_AGGREGATES = {}
+# propad, pad_candidates = list(candidates_by_prodpad.items())[0]
+for propad, pad_candidates in candidates_by_prodpad.items():
+    # Select candidates (not all the wells)
+    local_candidates = pad_candidates.copy()
+    absence = []
+    for cand in local_candidates:
+        if cand not in all_injs:
+            print('> STATUS: Candidate {} removed, unavailable in initial data'.format(cand))
+            absence.append(cand)
+    local_candidates = [el for el in local_candidates if el not in absence]
+
+    FINALE_melted_inj = pd.melt(FINALE_inj, id_vars=['Date'], value_vars=local_candidates,
+                                var_name='Injector', value_name='Steam')
+    FINALE_melted_inj['INJ_Pad'] = FINALE_melted_inj['Injector'].apply(lambda x: INJ_PAD_KEYS.get(x))
+    FINALE_melted_inj = FINALE_melted_inj[~FINALE_melted_inj['INJ_Pad'].isna()].reset_index(drop=True)
+    # To groupby injector pads, by=['Date', 'INJ_Pad']
+    FINALE_agg_inj = FINALE_melted_inj.groupby(by=['Date'], axis=0, sort=False, as_index=False).sum()
+    FINALE_agg_inj['PRO_Pad'] = propad
+    INJECTOR_AGGREGATES[propad] = FINALE_agg_inj
+INJECTOR_AGGREGATES = pd.concat(INJECTOR_AGGREGATES.values()).reset_index(drop=True)
 
 if(plot_eda):
     # FIGURE PLOTTING (INJECTION PAD-LEVEL STATISTICS)
@@ -458,7 +469,13 @@ if(plot_eda):
 
     plt.savefig('inj_pads_ts.png')
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # #  COMBINE INJECTOR AND PRODUCER AGGREGATIONS # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+PRODUCER_AGGREGATES = FINALE_agg_pro[FINALE_agg_pro['PRO_Pad'].isin(available_pads_transformed)]
+COMBINED_AGGREGATES = pd.merge(FINALE_agg_pro, INJECTOR_AGGREGATES, how='inner', on=['Date', 'PRO_Pad'])
 
+COMBINED_AGGREGATES.to_csv('Data/combined_ipc_aggregates.csv')
 # EOF
 
 # EOF
