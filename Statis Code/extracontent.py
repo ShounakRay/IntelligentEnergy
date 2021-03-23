@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 18-Mar-2021 01:03:97:971  GMT-0600
+# @Last modified time: 22-Mar-2021 15:03:56:569  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -349,3 +349,16 @@
 #                                         'Toe_Temp', 'Bin_1', 'Bin_2', 'Heel_Pressure',
 #                                         'Bin_3', 'Bin_4', 'Bin_5']]
 # ].replace(0.0, 0.0000001)
+
+# [OPTIONAL] FINALE PRE-PROCESSING
+# finale_replace = {'date': 'Date',
+#                   'producer_well': 'Well',
+#                   'prod_casing_pressure': 'Casing_pressure',
+#                   'pad': 'Pad',
+#                   'prod_bhp_heel': 'Heel_Pressure',
+#                   'prod_bhp_toe': 'Toe_Pressure',
+#                   'hours_on_prod': 'Time_On'}
+# _ = [finale_replace.update({'bin_{}'.format(i): 'Bin_{}'.format(i)}) for i in range(1, 6)]
+# _ = [finale_replace.update({col: col}) for col in FINALE.columns if col not in finale_replace.keys()]
+# FINALE.drop(['op_approved', 'eng_approved', 'uwi'], 1, inplace=True)
+# FINALE.columns = FINALE.columns.to_series().map(finale_replace)
