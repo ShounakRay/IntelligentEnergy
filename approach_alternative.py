@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Mar-2021 13:03:01:017  GMT-0600
+# @Last modified time: 23-Mar-2021 16:03:75:750  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -344,6 +344,15 @@ if(plot_geo):
     plt.tight_layout()
     plt.savefig('Producer-Injector Overlap.png')
 
+
+#
+#
+#
+#
+#
+#
+
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # PRODUCER-INJECTOR DIST. MATRIX # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -376,31 +385,39 @@ all_pro_data = ['PRO_Well',
                 'PRO_Toe_Temp',
                 'PRO_Pad',
                 'PRO_Duration',
-                'PRO_Oil',
-                'PRO_Water',
-                'PRO_Gas',
-                'PRO_Fluid',
-                'PRO_Chlorides']
-FINALE_pro = FINALE[all_pro_data + ['Date']]
+                'PRO_Alloc_Oil',
+                'PRO_Alloc_Water',
+                'Bin_1',
+                'Bin_2',
+                'Bin_3',
+                'Bin_4',
+                'Bin_5']
 
+FINALE_pro = FINALE[all_pro_data + ['Date']]
 FINALE_pro, dropped_cols = drop_singles(FINALE_pro)
 
-# FINALE_agg = FINALE_pro.groupby(by=['Date', 'Pad'], axis=0, sort=False, as_index=False).sum()
-FINALE_melted_pro = pd.melt(FINALE, id_vars=['Date'], value_vars=all_pro_data, var_name='metric', value_name='PRO_Pad')
-FINALE_melted_pro['PRO_Pad'] = FINALE_melted_pro['PRO_Pad'].apply(lambda x: PRO_PAD_KEYS.get(x))
+# Smoothen out the Oil Data
+unique_pro_wells = list(FINALE_pro['PRO_Well'].unique())
 
 FINALE_agg_pro = FINALE_pro.groupby(by=['Date', 'PRO_Pad'], axis=0,
                                     sort=False, as_index=False).agg({'PRO_Pump_Speed': 'sum',
                                                                      'PRO_Time_On': 'mean',
                                                                      'PRO_Casing_Pressure': 'mean',
                                                                      'PRO_Heel_Pressure': 'mean',
-                                                                     'PRO_Duration': 'mean',
                                                                      'PRO_Toe_Pressure': 'mean',
-                                                                     'PRO_Oil': 'sum',
-                                                                     'PRO_Water': 'sum',
-                                                                     'PRO_Gas': 'sum',
-                                                                     'PRO_Fluid': 'sum',
-                                                                     'PRO_Chlorides': 'sum'})
+                                                                     'PRO_Heel_Temp': 'mean',
+                                                                     'PRO_Toe_Temp': 'mean',
+                                                                     # 'PRO_Duration': 'mean',
+                                                                     'PRO_Alloc_Oil': 'sum',
+                                                                     'PRO_Alloc_Water': 'sum',
+                                                                     'Bin_1': 'mean',
+                                                                     'Bin_2': 'mean',
+                                                                     'Bin_3': 'mean',
+                                                                     'Bin_4': 'mean',
+                                                                     'Bin_5': 'mean'})
+# plt.figure(figsize=(10, 20))
+# sns.heatmap(FINALE_agg_pro[FINALE_agg_pro['PRO_Pad'] == 'A'].select_dtypes(float))
+# print(FINALE_agg_pro.isna().sum())
 
 if(plot_eda):
     # FIGURE PLOTTING (PRODUCTION PAD-LEVEL STATISTICS)
@@ -432,6 +449,7 @@ if(plot_eda):
 # This is just to delete the implicit duplicates found in the data (each production well has the same injection data)
 FINALE_inj = FINALE[FINALE['PRO_Well'] == 'AP3'].reset_index(drop=True).drop('PRO_Well', 1)
 all_injs = [c for c in FINALE_inj.columns if 'I' in c and '_' not in c]
+
 INJECTOR_AGGREGATES = {}
 # propad, pad_candidates = list(candidates_by_prodpad.items())[0]
 for propad, pad_candidates in candidates_by_prodpad.items():
@@ -473,9 +491,32 @@ if(plot_eda):
 # # # # # # # # # # # # # #  COMBINE INJECTOR AND PRODUCER AGGREGATIONS # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 PRODUCER_AGGREGATES = FINALE_agg_pro[FINALE_agg_pro['PRO_Pad'].isin(available_pads_transformed)]
-COMBINED_AGGREGATES = pd.merge(FINALE_agg_pro, INJECTOR_AGGREGATES, how='inner', on=['Date', 'PRO_Pad'])
+COMBINED_AGGREGATES = pd.merge(PRODUCER_AGGREGATES, INJECTOR_AGGREGATES, how='inner', on=['Date', 'PRO_Pad'])
+COMBINED_AGGREGATES.drop('Date', axis=1, inplace=True)
+
+COMBINED_AGGREGATES, dropped = drop_singles(COMBINED_AGGREGATES)
+
+# COMBINED_AGGREGATES_temp = COMBINED_AGGREGATES.rolling(window=7).mean()
+# COMBINED_AGGREGATES_temp['PRO_Pad'] = COMBINED_AGGREGATES['PRO_Pad']
+#
+# plt.figure(figsize=(24, 16))
+# # COMBINED_AGGREGATES['PRO_Oil'].plot()
+# COMBINED_AGGREGATES[(COMBINED_AGGREGATES['PRO_Pad'] == 'A') & (COMBINED_AGGREGATES['PRO_Oil'] > 0)]['PRO_Oil'].plot()
+# COMBINED_AGGREGATES[(COMBINED_AGGREGATES['PRO_Pad'] == 'B') & (COMBINED_AGGREGATES['PRO_Oil'] > 0)]['PRO_Oil'].plot()
+
+# plt.figure(figsize=(24, 16))
+# # COMBINED_AGGREGATES_temp['PRO_Oil'].plot()
+# COMBINED_AGGREGATES_temp[(COMBINED_AGGREGATES_temp['PRO_Pad'] == 'A') &
+#                          (COMBINED_AGGREGATES_temp['PRO_Oil'] > 0)]['PRO_Oil'].plot()
+# COMBINED_AGGREGATES_temp[(COMBINED_AGGREGATES_temp['PRO_Pad'] == 'B') &
+#                          (COMBINED_AGGREGATES_temp['PRO_Oil'] > 0)]['PRO_Oil'].plot()
+
 
 COMBINED_AGGREGATES.to_csv('Data/combined_ipc_aggregates.csv')
+
+# plt.figure(figsize=(10, 100))
+# sns.heatmap(COMBINED_AGGREGATES.sort_values(['PRO_Pad']).select_dtypes(float))
+# COMBINED_AGGREGATES.isna().sum()
 # EOF
 
 # EOF

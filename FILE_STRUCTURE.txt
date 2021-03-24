@@ -26,6 +26,7 @@ IntelligentEnergy/
 │   ├── .DS_Store
 │   ├── aggregate_fiber.csv
 │   ├── combined_ipc.csv
+│   ├── combined_ipc_aggregates.csv
 │   ├── DTS/
 │   │   ├── .DS_Store
 │   │   ├── AP2/
@@ -175,6 +176,7 @@ IntelligentEnergy/
 ├── IPC_Modeling.py
 ├── IPC_Real_Manipulation.py
 ├── IPC_Real_Modeling.py
+├── just_foref.html
 ├── LICENSE
 ├── Manipulation Reference Files/
 │   ├── .DS_Store
@@ -218,6 +220,8 @@ IntelligentEnergy/
 ├── Modeling Reference Files/
 │   ├── .DS_Store
 │   ├── inj_pads_ts.png
+│   ├── macropad_varimps.pdf
+│   ├── model_performance.pdf
 │   ├── Oil Proxy/
 │   ├── OilProxy_NoFiber/
 │   │   ├── Averaged Variable Importance Distributions.pdf
@@ -247,7 +251,9 @@ IntelligentEnergy/
 │   │   ├── oilproxy_variable_importance_BP6.pdf
 │   │   └── Variable Importance Distributions.pdf
 │   ├── PredictProxy/
-│   └── Producer-Injector Overlap.png
+│   ├── Producer-Injector Overlap.png
+│   └── select_var_corrs.pdf
+├── Producer-Injector Overlap.png
 ├── R&D References/
 │   ├── Adaptive TS SVM.pdf
 │   ├── Anomaly Detection.pdf

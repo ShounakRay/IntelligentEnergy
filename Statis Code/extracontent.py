@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Mar-2021 15:03:56:569  GMT-0600
+# @Last modified time: 23-Mar-2021 16:03:00:003  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -362,3 +362,19 @@
 # _ = [finale_replace.update({col: col}) for col in FINALE.columns if col not in finale_replace.keys()]
 # FINALE.drop(['op_approved', 'eng_approved', 'uwi'], 1, inplace=True)
 # FINALE.columns = FINALE.columns.to_series().map(finale_replace)
+
+# prowell = unique_pro_wells[0]
+
+# figure, ax = plt.subplots(nrows=len(unique_pro_wells), figsize=(10, 60))
+# for prowell in unique_pro_wells:
+#     # FINALE_pro.loc[FINALE_pro['PRO_Well'] == prowell,
+#     #                'PRO_Oil'] = FINALE_pro[FINALE_pro['PRO_Well'] == prowell]['PRO_Oil'].interpolate()
+#     ax[unique_pro_wells.index(prowell)].plot(FINALE[FINALE['PRO_Well'] == prowell]['PRO_Oil'])
+#     # plt.tight_layout()
+
+# plt.plot(FINALE_pro.loc[FINALE_pro['PRO_Well'] == prowell, 'PRO_Oil'])
+# plt.plot(FINALE_pro['PRO_Oil'])
+
+# FINALE_agg = FINALE_pro.groupby(by=['Date', 'Pad'], axis=0, sort=False, as_index=False).sum()
+# FINALE_melted_pro = pd.melt(FINALE, id_vars=['Date'], value_vars=all_pro_data, var_name='metric', value_name='PRO_Pad')
+# FINALE_melted_pro['PRO_Pad'] = FINALE_melted_pro['PRO_Pad'].apply(lambda x: PRO_PAD_KEYS.get(x))

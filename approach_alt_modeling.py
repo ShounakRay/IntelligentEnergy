@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Mar-2021 13:03:09:094  GMT-0600
+# @Last modified time: 23-Mar-2021 21:03:31:319  GMT-0600
 # @License: [Private IP]
 
 # @Author: Shounak Ray <Ray>
@@ -11,7 +11,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Mar-2021 13:03:09:094  GMT-0600
+# @Last modified time: 23-Mar-2021 21:03:31:319  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -67,11 +67,11 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = int(0.25 * 60)                       # The longest that the experiment will run (seconds)
+MAX_EXP_RUNTIME: Final = 600                                  # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments
 EVAL_METRIC: Final = 'auto'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'auto'                                   # Leaderboard ranking metric after all trainings
-DATA_PATH: Final = 'Data/combined_ipc.csv'                    # Where the client-specific data is located
+DATA_PATH: Final = 'Data/combined_ipc_aggregates.csv'         # Where the client-specific data is located
 
 # Feature Engineering Constants
 FIRST_WELL_STM: Final = 'CI06'                                # Used to splice column list to segregate responders
@@ -198,7 +198,7 @@ def exp_cumulative_varimps(aml_obj, tag=None, tag_name=None):
 
     print('> STATUS: Determined variable importances of all models in {} experiment.'.format(aml_obj.project_name))
 
-    return pd.concat(cumulative_varimps).reset_index(drop=True), model_novarimps
+    return pd.concat(cumulative_varimps).reset_index(drop=True)  # , model_novarimps
 
 
 # Diverging: sns.diverging_palette(240, 10, n=9, as_cmap=True)
@@ -294,58 +294,49 @@ _ = """
 #########################################   MODEL TRAINING AND DEVELOPMENT   ##########################################
 #######################################################################################################################
 """
-# TODO: Determine best proxy-predictive model for EACH production well
+# Table diagnostics
+data = data.drop(['C1', 'PRO_Alloc_Water'], axis=1)
+PRODUCTION_PADS = data.as_data_frame()['PRO_Pad'].unique()
 
-# Each of the features individually predicted
-# NOTE: The model predictors a should only use the target encoded versions, and not the older versions
-PREDICTORS = [col for col in data.columns
-              if col not in [FOLD_COLUMN] + [col.replace('_te', '') for col in data.columns if '_te' in col]]
-
+# Categorical Encoding Warning
 categorical_names = list(data.as_data_frame().select_dtypes(object).columns)
 if(len(categorical_names) > 0):
-    print('WARNING: {encoded} will be encoded by H2O model.'.format(encoded=categorical_names))
+    print('WARNING: {encoded} will be encoded by H2O model unless processed out.'.format(encoded=categorical_names))
 
-# Each of the responders the features with the highest correlations to PRODUCTION_TARGET
-# NOTE: The reason this is automated and not hard-coded is for a general solution, when the lack of domain-specific
-#       engineering knowledge is unavailable
-RESPONDERS = SENSOR_RANKING[:3].keys()
-# For every predictor feature, run an experiment
+RESPONDER = 'PRO_Alloc_Oil'
+
+# NOTE: The model predictors a should only use the target encoded versions, and not the older versions
+PREDICTORS = [col for col in data.columns
+              if col not in [FOLD_COLUMN] + [RESPONDER] + [col.replace('_te', '')
+                                                           for col in data.columns if '_te' in col]]
 cumulative_varimps = {}
-model_novarimps = []
-for responder in RESPONDERS:
-    print('\n{block}{block}STATUS: Responder {RESP}'.format(block=OUT_BLOCK,
-                                                            RESP=responder))
-    cumulative_varimps[responder] = {}
-    for prod_well in PRODUCTION_WELLS:
-        # Configure experiment
-        aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,     # How long should the experiment run for?
-                            stopping_metric=EVAL_METRIC,          # The evaluation metric to discontinue model training
-                            sort_metric=RANK_METRIC,              # Leaderboard ranking metric after all trainings
-                            seed=RANDOM_SEED,
-                            project_name="IPC_MacroModeling_{RESP}_{PWELL}".format(RESP=responder,
-                                                                                   PWELL=prod_well))
+for propad in PRODUCTION_PADS:
+    print('>>>> STATUS: Production Pad {}'.format(propad))
+    aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,     # How long should the experiment run for?
+                        stopping_metric=EVAL_METRIC,          # The evaluation metric to discontinue model training
+                        sort_metric=RANK_METRIC,              # Leaderboard ranking metric after all trainings
+                        seed=RANDOM_SEED,
+                        project_name="IPC_MacroPadModeling_{RESP}_{PPAD}".format(RESP=RESPONDER,
+                                                                                 PPAD=propad))
 
-        TEST_DATA = data[data['Well'] == prod_well]
-        # Run the experiment (for the specified responder)
-        # NOTE: Fold column specified for cross validation to mitigate leakage (absent if no encoding was performed)
-        # https://docs.h2o.ai/h2o/latest-stable/h2o-py/docs/_modules/h2o/automl/autoh2o.html
-        aml_obj.train(x=PREDICTORS,                               # All the depedent variables in each model
-                      y=responder,                                # A single responder
-                      # fold_column=FOLD_COLUMN,                  # Fold column name, as specified from encoding
-                      training_frame=TEST_DATA)                   # All the data is used for training, cross-validation
+    MODEL_DATA = data[data['PRO_Pad'] == propad]
+    MODEL_DATA = MODEL_DATA.drop('PRO_Pad', axis=1)
+    aml_obj.train(y=RESPONDER,                                # A single responder
+                  training_frame=MODEL_DATA)                  # All the data is used for training, cross-validation
 
-        # Calculate variable importance for these specific responders
-        varimps = exp_cumulative_varimps(aml_obj,
-                                         tag=[prod_well, responder],
-                                         tag_name=['production_well', 'responder'])
-        cumulative_varimps[responder][prod_well] = varimps
+    varimps = exp_cumulative_varimps(aml_obj,
+                                     tag=[propad, RESPONDER],
+                                     tag_name=['production_pad', 'responder'])
+    cumulative_varimps[propad] = varimps
+
+
 # Concatenate all the individual model variable importances into one dataframe
-final_cumulative_varimps = pd.concat([list(pair.values())[0] for pair in list(cumulative_varimps.values())
-                                      ]).reset_index(drop=True)
+final_cumulative_varimps = pd.concat(cumulative_varimps.values()).reset_index(drop=True)
 # Exclude any features encoded by default (H2O puts a `.` in the column name of these features)
-final_cumulative_varimps = final_cumulative_varimps.loc[:, ~final_cumulative_varimps.columns.str.contains('.',
-                                                                                                          regex=False)]
-final_cumulative_varimps.index = final_cumulative_varimps['model_name'] + '___' + final_cumulative_varimps['responder']
+# final_cumulative_varimps = final_cumulative_varimps.loc[:, ~final_cumulative_varimps.columns.str.contains('.',
+#                                                                                                           regex=False)]
+final_cumulative_varimps.index = final_cumulative_varimps['model_name'] + \
+    '___' + final_cumulative_varimps['production_pad']
 
 print('STATUS: Completed experiments for all responders (oil proxies) and detecting variable importances.')
 
@@ -357,23 +348,54 @@ print('STATUS: Completed experiments for all responders (oil proxies) and detect
 
 # NOTE: FOR REFERENCE
 # Filtering of the variable importance summary
-FILT_final_cumulative_varimps = final_cumulative_varimps[~final_cumulative_varimps['model_name'
-                                                                                   ].str.contains('XGBoost')
-                                                         ].reset_index(drop=True).select_dtypes(float)
+# FILT_final_cumulative_varimps = final_cumulative_varimps[~final_cumulative_varimps['model_name'
+#                                                                                    ].str.contains('XGBoost')
+#                                                          ].reset_index(drop=True).select_dtypes(float)
 FILT_final_cumulative_varimps = final_cumulative_varimps[(final_cumulative_varimps.mean(axis=1) > 0.2) &
-                                                         (final_cumulative_varimps.mean(axis=1) < 0.8)
+                                                         (final_cumulative_varimps.mean(axis=1) < 1.0)
                                                          ].select_dtypes(float)
 
 # Plot heatmap of variable importances across all model combinations
-fig, ax = plt.subplots(figsize=(64, 4))
-predictor_rank = FILT_final_cumulative_varimps.select_dtypes(float).mean(axis=0).sort_values(ascending=False)
-sns_fig = sns.heatmap(FILT_final_cumulative_varimps.select_dtypes(float)[predictor_rank.keys()], annot=False)
-sns_fig.get_figure().savefig('Modeling Reference Files/PredictProxy/predictproxy_variable_importance.pdf',
+fig, ax = plt.subplots(figsize=(10, 20))
+predictor_rank = FILT_final_cumulative_varimps.mean(axis=0).sort_values(ascending=False)
+sns_fig = sns.heatmap(FILT_final_cumulative_varimps[predictor_rank.keys()], annot=True, annot_kws={"size": 4})
+sns_fig.get_figure().savefig('Modeling Reference Files/macropad_varimps_{}.pdf'.format('core_features'),
                              bbox_inches='tight')
 
 plt.clf()
 
 correlation_matrix(FILT_final_cumulative_varimps, EXP_NAME='Aggregated Experiment Results',
-                   FPATH='Modeling Reference Files/PredictProxy/predictproxy_correlation.pdf')
+                   FPATH='Modeling Reference Files/select_var_corrs.pdf')
 
 print('STATUS: Determined correlations and variable importance')
+
+_ = """
+#######################################################################################################################
+#########################################   EVALUATE MODEL PERFORMANCE   ##############################################
+#######################################################################################################################
+"""
+
+perf_data = {}
+for model_name, model_obj in zip(final_cumulative_varimps.index, final_cumulative_varimps['model_object']):
+    perf_data[model_name] = {}
+    perf_data[model_name]['r2'] = model_obj.r2()
+    perf_data[model_name]['r'] = model_obj.r2() ** 0.5
+    perf_data[model_name]['mse'] = model_obj.mse()
+    perf_data[model_name]['rmse'] = model_obj.rmse()
+    perf_data[model_name]['rmlse'] = model_obj.rmsle()
+
+perf_data = pd.DataFrame(perf_data).T.infer_objects()
+
+for col in perf_data.columns:
+    perf_data[col] = perf_data[col].astype(float)
+
+fig, ax = plt.subplots(figsize=(10, 30), ncols=len(perf_data.columns), sharey=True)
+for col in perf_data.columns:
+    sns_fig = sns.heatmap(perf_data[[col]], ax=ax[list(perf_data.columns).index(col)],
+                          annot=True, annot_kws={"size": 4})
+    sns.set(font_scale=0.6)
+
+sns_fig.get_figure().savefig('Modeling Reference Files/model_performance.pdf',
+                             bbox_inches='tight')
+
+shutdown_confirm(h2o.cluster())

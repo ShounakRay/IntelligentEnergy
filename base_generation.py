@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Mar-2021 10:03:48:485  GMT-0600
+# @Last modified time: 23-Mar-2021 15:03:85:857  GMT-0600
 # @License: [Private IP]
 
 
@@ -157,6 +157,14 @@ for df in [producers, aggregated_fiber, injector_table, well_test]:
 df = pd.merge(producers[prod_cols], aggregated_fiber, how='outer', on=['Date', 'PRO_Well'])
 df = pd.merge(df, injector_table, how='outer', on=['Date'])
 df = pd.merge(df, well_test, how='left', on=['Date', 'PRO_Well'])
+
+df[df['PRO_Well'] == 'AP3'].sort_values('Date')['PRO_Alloc_Oil'].plot()
+df[df['PRO_Well'] == 'AP3'].sort_values('Date')['PRO_Alloc_Water'].plot()
+df[df['PRO_Well'] == 'AP3'].sort_values('Date')['PRO_Pump_Speed'].plot()
+
+df[df['PRO_Well'] == 'AP3'].sort_values('Date')[]
+
+list(df.columns)
 
 df = df.infer_objects()
 
