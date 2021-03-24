@@ -171,16 +171,16 @@ IntelligentEnergy/
 │   └── report_PRODUCTION_WELL_WSENSOR.html
 ├── FILE_STRUCTURE.txt
 ├── HTML/
+│   ├── just_foref.html
 │   ├── nx_visjs.html
 │   └── nx_visjs_TAILOR.html
-├── IPC_Modeling.py
 ├── IPC_Real_Manipulation.py
 ├── IPC_Real_Modeling.py
-├── just_foref.html
 ├── LICENSE
 ├── Manipulation Reference Files/
 │   ├── .DS_Store
 │   ├── JUPYTER-IPC_Real_Modeling.ipynb
+│   ├── Producer-Injector Overlap.png
 │   ├── Schematic 1/
 │   │   ├── .DS_Store
 │   │   ├── File_IO_Error_log.png
@@ -220,8 +220,6 @@ IntelligentEnergy/
 ├── Modeling Reference Files/
 │   ├── .DS_Store
 │   ├── inj_pads_ts.png
-│   ├── macropad_varimps.pdf
-│   ├── model_performance.pdf
 │   ├── Oil Proxy/
 │   ├── OilProxy_NoFiber/
 │   │   ├── Averaged Variable Importance Distributions.pdf
@@ -252,8 +250,15 @@ IntelligentEnergy/
 │   │   └── Variable Importance Distributions.pdf
 │   ├── PredictProxy/
 │   ├── Producer-Injector Overlap.png
-│   └── select_var_corrs.pdf
-├── Producer-Injector Overlap.png
+│   ├── Round 1/
+│   │   ├── macropad_varimps.pdf
+│   │   ├── model_performance.pdf
+│   │   └── select_var_corrs.pdf
+│   ├── Round 8235/
+│   └── Round 920/
+│       ├── macropad_varimps_920.pdf
+│       ├── model_performance_920.pdf
+│       └── select_var_corrs.920.pdf
 ├── R&D References/
 │   ├── Adaptive TS SVM.pdf
 │   ├── Anomaly Detection.pdf

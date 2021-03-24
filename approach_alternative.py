@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Mar-2021 16:03:75:750  GMT-0600
+# @Last modified time: 24-Mar-2021 09:03:94:944  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -179,6 +179,7 @@ INJ_PAD_KEYS = dict(zip(DATA_INJECTION_ORIG['Well'], DATA_INJECTION_ORIG['Pad'])
 
 FINALE['PRO_Pad'] = FINALE['PRO_Well'].apply(lambda x: PRO_PAD_KEYS.get(x))
 FINALE = FINALE.dropna(subset=['PRO_Well']).reset_index(drop=True)
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # INJECTOR/PRODUCER TRANSLATIONS  # # # # # # # # # # # # # # # # # #
@@ -492,7 +493,7 @@ if(plot_eda):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 PRODUCER_AGGREGATES = FINALE_agg_pro[FINALE_agg_pro['PRO_Pad'].isin(available_pads_transformed)]
 COMBINED_AGGREGATES = pd.merge(PRODUCER_AGGREGATES, INJECTOR_AGGREGATES, how='inner', on=['Date', 'PRO_Pad'])
-COMBINED_AGGREGATES.drop('Date', axis=1, inplace=True)
+COMBINED_AGGREGATES.drop(['Date', 'PRO_Alloc_Water'], axis=1, inplace=True)
 
 COMBINED_AGGREGATES, dropped = drop_singles(COMBINED_AGGREGATES)
 

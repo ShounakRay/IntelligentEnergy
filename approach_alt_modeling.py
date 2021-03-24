@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Mar-2021 21:03:31:319  GMT-0600
+# @Last modified time: 24-Mar-2021 11:03:57:570  GMT-0600
 # @License: [Private IP]
 
 # @Author: Shounak Ray <Ray>
@@ -11,7 +11,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Mar-2021 21:03:31:319  GMT-0600
+# @Last modified time: 24-Mar-2021 11:03:57:570  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -19,6 +19,7 @@
 
 import os
 import pickle
+import random
 import subprocess
 from collections import Counter
 from itertools import chain
@@ -67,7 +68,7 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 600                                  # The longest that the experiment will run (seconds)
+MAX_EXP_RUNTIME: Final = 60                                   # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments
 EVAL_METRIC: Final = 'auto'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'auto'                                   # Leaderboard ranking metric after all trainings
@@ -77,8 +78,22 @@ DATA_PATH: Final = 'Data/combined_ipc_aggregates.csv'         # Where the client
 FIRST_WELL_STM: Final = 'CI06'                                # Used to splice column list to segregate responders
 FOLD_COLUMN: Final = "kfold_column"                           # Aesthetic: name for specified CV fold assignment column
 
+RUN_TAG: Final = random.randint(0, 10000)
+while os.path.isdir('Modeling Reference Files/Round {}'.format(RUN_TAG)):
+    RUN_TAG: Final = random.randint(0, 10000)
+os.makedirs('Modeling Reference Files/Round {}'.format(RUN_TAG))
+
 # Print file structure for reference every time this program is run
 util_traversal.print_tree_to_txt()
+
+
+def conditional_drop(data_frame, tbd_list):
+    for tb_dropped in tbd_list:
+        if(tb_dropped in data_frame.columns):
+            data_frame = data_frame.drop(tb_dropped, axis=1)
+        else:
+            print('> STATUS: {} not in frame, skipping.'.format(tb_dropped))
+    return data_frame
 
 
 def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict:
@@ -287,31 +302,51 @@ if not (os.path.isfile(DATA_PATH)):
 # Import the data from the file and exclude any obvious features
 data = h2o.import_file(DATA_PATH)
 
-print('STATUS: Server initialized and data imported.')
+print('STATUS: Server initialized and data imported.\n\n')
+
+_ = """
+#######################################################################################################################
+##########################################   MINOR DATA MANIPULATION/PREP   ###########################################
+#######################################################################################################################
+"""
+# Table diagnostics
+data = conditional_drop(data, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed'])
+
+PRODUCTION_PADS = data.as_data_frame()['PRO_Pad'].unique()
+
+# Categorical Encoding Warning
+categorical_names = list(data.as_data_frame().select_dtypes(object).columns)
+if(len(categorical_names) > 0):
+    print('> WARNING: {encoded} will be encoded by H2O model unless processed out.'.format(encoded=categorical_names))
+
+RESPONDER = 'PRO_Alloc_Oil'
+
+# NOTE: The model predictors a should only use the target encoded versions, and not the older versions
+# PREDICTORS = [col for col in data.columns
+#               if col not in [FOLD_COLUMN] + [RESPONDER] + [col.replace('_te', '')
+#                                                            for col in data.columns if '_te' in col]]
+
+print('STATUS: Experiment hyperparameters and data configured.\n\n')
 
 _ = """
 #######################################################################################################################
 #########################################   MODEL TRAINING AND DEVELOPMENT   ##########################################
 #######################################################################################################################
 """
-# Table diagnostics
-data = data.drop(['C1', 'PRO_Alloc_Water'], axis=1)
-PRODUCTION_PADS = data.as_data_frame()['PRO_Pad'].unique()
 
-# Categorical Encoding Warning
-categorical_names = list(data.as_data_frame().select_dtypes(object).columns)
-if(len(categorical_names) > 0):
-    print('WARNING: {encoded} will be encoded by H2O model unless processed out.'.format(encoded=categorical_names))
+print('STATUS: Hyperparameter Overview:')
+print('\t* max_runtime_secs\t-> ', MAX_EXP_RUNTIME,
+      '\tThe maximum runtime in seconds that you want to allot in order to complete the model.')
+print('\t* stopping_metric\t-> ', EVAL_METRIC,
+      '\tThis option specifies the metric to consider when early stopping is specified')
+print('\t* sort_metric\t\t-> ', RANK_METRIC,
+      '\tThis option specifies the metric used to sort the Leaderboard by at the end of an AutoML run.')
+print('\t* seed\t\t\t-> ', RANDOM_SEED,
+      '\tRandom seed for reproducibility. There are caveats.\n')
 
-RESPONDER = 'PRO_Alloc_Oil'
-
-# NOTE: The model predictors a should only use the target encoded versions, and not the older versions
-PREDICTORS = [col for col in data.columns
-              if col not in [FOLD_COLUMN] + [RESPONDER] + [col.replace('_te', '')
-                                                           for col in data.columns if '_te' in col]]
 cumulative_varimps = {}
 for propad in PRODUCTION_PADS:
-    print('>>>> STATUS: Production Pad {}'.format(propad))
+    print('STATUS: Experiment -> Production Pad {}\n'.format(propad))
     aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,     # How long should the experiment run for?
                         stopping_metric=EVAL_METRIC,          # The evaluation metric to discontinue model training
                         sort_metric=RANK_METRIC,              # Leaderboard ranking metric after all trainings
@@ -329,6 +364,7 @@ for propad in PRODUCTION_PADS:
                                      tag_name=['production_pad', 'responder'])
     cumulative_varimps[propad] = varimps
 
+print('STATUS: Completed experiments\n\n')
 
 # Concatenate all the individual model variable importances into one dataframe
 final_cumulative_varimps = pd.concat(cumulative_varimps.values()).reset_index(drop=True)
@@ -338,7 +374,7 @@ final_cumulative_varimps = pd.concat(cumulative_varimps.values()).reset_index(dr
 final_cumulative_varimps.index = final_cumulative_varimps['model_name'] + \
     '___' + final_cumulative_varimps['production_pad']
 
-print('STATUS: Completed experiments for all responders (oil proxies) and detecting variable importances.')
+print('STATUS: Completed detecting variable importances.\n\n')
 
 # NOTE: Save outputs for reference (so you don't have to wait an hour every time)
 # with open('Modeling Pickles/model_novarimps.pkl', 'wb') as f:
@@ -351,7 +387,7 @@ print('STATUS: Completed experiments for all responders (oil proxies) and detect
 # FILT_final_cumulative_varimps = final_cumulative_varimps[~final_cumulative_varimps['model_name'
 #                                                                                    ].str.contains('XGBoost')
 #                                                          ].reset_index(drop=True).select_dtypes(float)
-FILT_final_cumulative_varimps = final_cumulative_varimps[(final_cumulative_varimps.mean(axis=1) > 0.2) &
+FILT_final_cumulative_varimps = final_cumulative_varimps[(final_cumulative_varimps.mean(axis=1) > 0.0) &
                                                          (final_cumulative_varimps.mean(axis=1) < 1.0)
                                                          ].select_dtypes(float)
 
@@ -359,15 +395,15 @@ FILT_final_cumulative_varimps = final_cumulative_varimps[(final_cumulative_varim
 fig, ax = plt.subplots(figsize=(10, 20))
 predictor_rank = FILT_final_cumulative_varimps.mean(axis=0).sort_values(ascending=False)
 sns_fig = sns.heatmap(FILT_final_cumulative_varimps[predictor_rank.keys()], annot=True, annot_kws={"size": 4})
-sns_fig.get_figure().savefig('Modeling Reference Files/macropad_varimps_{}.pdf'.format('core_features'),
+sns_fig.get_figure().savefig('Modeling Reference Files/Round {tag}/macropad_varimps_{tag}.pdf'.format(tag=RUN_TAG),
                              bbox_inches='tight')
 
 plt.clf()
 
 correlation_matrix(FILT_final_cumulative_varimps, EXP_NAME='Aggregated Experiment Results',
-                   FPATH='Modeling Reference Files/select_var_corrs.pdf')
+                   FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_{tag}.pdf'.format(tag=RUN_TAG))
 
-print('STATUS: Determined correlations and variable importance')
+print('STATUS: Saved variable importance configurations.')
 
 _ = """
 #######################################################################################################################
@@ -378,24 +414,56 @@ _ = """
 perf_data = {}
 for model_name, model_obj in zip(final_cumulative_varimps.index, final_cumulative_varimps['model_object']):
     perf_data[model_name] = {}
-    perf_data[model_name]['r2'] = model_obj.r2()
-    perf_data[model_name]['r'] = model_obj.r2() ** 0.5
-    perf_data[model_name]['mse'] = model_obj.mse()
-    perf_data[model_name]['rmse'] = model_obj.rmse()
-    perf_data[model_name]['rmlse'] = model_obj.rmsle()
+    perf_data[model_name]['R^2'] = model_obj.r2()
+    # perf_data[model_name]['R'] = model_obj.r2() ** 0.5
+    perf_data[model_name]['MSE'] = model_obj.mse()
+    perf_data[model_name]['RMSE'] = model_obj.rmse()
+    perf_data[model_name]['RMSLE'] = model_obj.rmsle()
+    perf_data[model_name]['MAE'] = model_obj.mae()
 
-perf_data = pd.DataFrame(perf_data).T.infer_objects()
+mcmaps = {'R^2': sns.color_palette('rocket_r', as_cmap=True),
+          # 'R': sns.color_palette('rocket_r'),
+          'MSE': sns.color_palette("coolwarm", as_cmap=True),
+          'RMSE': sns.color_palette("coolwarm", as_cmap=True),
+          'RMSLE': sns.color_palette("coolwarm", as_cmap=True),
+          'MAE': sns.color_palette("coolwarm", as_cmap=True)}
+centers = {'R^2': None,
+           'MSE': 25,
+           'RMSE': 5,
+           'RMSLE': None,
+           'MAE': None}
 
+# Structure model output and order
+perf_data = pd.DataFrame(perf_data).T.sort_values('RMSE', ascending=False).infer_objects()
+# Ensure correct data type
 for col in perf_data.columns:
     perf_data[col] = perf_data[col].astype(float)
 
 fig, ax = plt.subplots(figsize=(10, 30), ncols=len(perf_data.columns), sharey=True)
 for col in perf_data.columns:
+    cmap_local = mcmaps.get(col)
+    center_local = centers.get(col)
+    vmax_local = np.percentile(perf_data[col], 95)
     sns_fig = sns.heatmap(perf_data[[col]], ax=ax[list(perf_data.columns).index(col)],
-                          annot=True, annot_kws={"size": 4})
+                          annot=True, annot_kws={"size": 4}, cbar=False,
+                          center=center_local, cmap=cmap_local, vmax=vmax_local)
     sns.set(font_scale=0.6)
 
-sns_fig.get_figure().savefig('Modeling Reference Files/model_performance.pdf',
+sns_fig.get_figure().savefig('Modeling Reference Files/Round {tag}/model_performance_{tag}.pdf'.format(tag=RUN_TAG),
                              bbox_inches='tight')
 
-shutdown_confirm(h2o.cluster())
+
+_ = """
+#######################################################################################################################
+########################################   SHUTDOWN THE SESSION/CLUSTER   #############################################
+#######################################################################################################################
+"""
+if(input('Shutdown Cluster? (Y/N)') == 'Y'):
+    shutdown_confirm(h2o.cluster())
+
+
+# EOF
+
+# EOF
+
+# EOF
