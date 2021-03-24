@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 24-Mar-2021 11:03:57:570  GMT-0600
+# @Last modified time: 24-Mar-2021 12:03:17:174  GMT-0600
 # @License: [Private IP]
 
 # @Author: Shounak Ray <Ray>
@@ -11,7 +11,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 24-Mar-2021 11:03:57:570  GMT-0600
+# @Last modified time: 24-Mar-2021 12:03:17:174  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -32,8 +32,11 @@ import numpy as np
 import pandas as pd  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp()
 import seaborn as sns
 import util_traversal
+from colorama import Fore, Style, init
 from h2o.automl import H2OAutoML
 from h2o.estimators import H2OTargetEncoderEstimator
+
+init(convert=True)
 
 _ = """
 #######################################################################################################################
@@ -51,7 +54,7 @@ if not (java_major_version >= 8 and java_major_version <= 14):
     raise ValueError('STATUS: Java Version is not between 8 and 14 (inclusive).\n  \
                       h2o cluster will not be initialized.')
 
-print('STATUS: Dependency versions checked and confirmed.')
+print("\x1b[32m" + f'STATUS: Dependency versions checked and confirmed.{Style.RESET_ALL}')
 
 _ = """
 #######################################################################################################################
@@ -68,7 +71,7 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 60                                   # The longest that the experiment will run (seconds)
+MAX_EXP_RUNTIME: Final = 1200                                 # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments
 EVAL_METRIC: Final = 'auto'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'auto'                                   # Leaderboard ranking metric after all trainings
@@ -83,6 +86,8 @@ while os.path.isdir('Modeling Reference Files/Round {}'.format(RUN_TAG)):
     RUN_TAG: Final = random.randint(0, 10000)
 os.makedirs('Modeling Reference Files/Round {}'.format(RUN_TAG))
 
+print(Fore.GREEN + 'STATUS: Directory created for Round {}'.format(RUN_TAG) + Style.RESET_ALL)
+
 # Print file structure for reference every time this program is run
 util_traversal.print_tree_to_txt()
 
@@ -92,7 +97,7 @@ def conditional_drop(data_frame, tbd_list):
         if(tb_dropped in data_frame.columns):
             data_frame = data_frame.drop(tb_dropped, axis=1)
         else:
-            print('> STATUS: {} not in frame, skipping.'.format(tb_dropped))
+            print(Fore.GREEN + '> STATUS: {} not in frame, skipping.'.format(tb_dropped) + Style.RESET_ALL)
     return data_frame
 
 
@@ -189,9 +194,6 @@ def exp_cumulative_varimps(aml_obj, tag=None, tag_name=None):
     exp_models = [h2o.get_model(exp_leaderboard[m_num, "model_id"]) for m_num in range(exp_leaderboard.shape[0])]
     for model in exp_models:
         model_name = model.params['model_id']['actual']['name']
-        # print('\n{block}> STATUS: Model {MDL}'.format(block=OUT_BLOCK,
-        #                                               MDL=model_name))
-        # Determine and store variable importances (for specific responder-model combination)
         variable_importance = model.varimp(use_pandas=True)
 
         # Only conduct variable importance dataset manipulation if ranking data is available (eg. unavailable, stacked)
@@ -211,7 +213,9 @@ def exp_cumulative_varimps(aml_obj, tag=None, tag_name=None):
             # print('> WARNING: Variable importances unavailable for {MDL}'.format(MDL=model_name))
             model_novarimps.append((model_name, model))
 
-    print('> STATUS: Determined variable importances of all models in {} experiment.'.format(aml_obj.project_name))
+    print(Fore.GREEN +
+          '> STATUS: Determined variable importances of all models in {} experiment.'.format(aml_obj.project_name) +
+          Style.RESET_ALL)
 
     return pd.concat(cumulative_varimps).reset_index(drop=True)  # , model_novarimps
 
@@ -278,7 +282,7 @@ def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False
     return input_data
 
 
-print('STATUS: Hyperparameters assigned and functions defined.')
+print(Fore.GREEN + 'STATUS: Hyperparameters assigned and functions defined.' + Style.RESET_ALL)
 
 _ = """
 #######################################################################################################################
@@ -302,7 +306,7 @@ if not (os.path.isfile(DATA_PATH)):
 # Import the data from the file and exclude any obvious features
 data = h2o.import_file(DATA_PATH)
 
-print('STATUS: Server initialized and data imported.\n\n')
+print(Fore.GREEN + 'STATUS: Server initialized and data imported.\n\n' + Style.RESET_ALL)
 
 _ = """
 #######################################################################################################################
@@ -310,23 +314,28 @@ _ = """
 #######################################################################################################################
 """
 # Table diagnostics
-data = conditional_drop(data, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed'])
+# data = conditional_drop(data, ['C1', 'PRO_Alloc_Water'])
+# data = conditional_drop(data, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed'])
+data = conditional_drop(data, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed', 'Bin_1', 'Bin_5'])
+
 
 PRODUCTION_PADS = data.as_data_frame()['PRO_Pad'].unique()
 
 # Categorical Encoding Warning
 categorical_names = list(data.as_data_frame().select_dtypes(object).columns)
 if(len(categorical_names) > 0):
-    print('> WARNING: {encoded} will be encoded by H2O model unless processed out.'.format(encoded=categorical_names))
+    print(Fore.LIGHTRED_EX +
+          '> WARNING: {encoded} will be encoded by H2O model unless processed out.'.format(encoded=categorical_names)
+          + Style.RESET_ALL)
 
 RESPONDER = 'PRO_Alloc_Oil'
 
 # NOTE: The model predictors a should only use the target encoded versions, and not the older versions
-# PREDICTORS = [col for col in data.columns
-#               if col not in [FOLD_COLUMN] + [RESPONDER] + [col.replace('_te', '')
-#                                                            for col in data.columns if '_te' in col]]
+PREDICTORS = [col for col in data.columns
+              if col not in [FOLD_COLUMN] + [RESPONDER] + [col.replace('_te', '')
+                                                           for col in data.columns if '_te' in col]]
 
-print('STATUS: Experiment hyperparameters and data configured.\n\n')
+print(Fore.GREEN + 'STATUS: Experiment hyperparameters and data configured.\n\n' + Style.RESET_ALL)
 
 _ = """
 #######################################################################################################################
@@ -334,19 +343,27 @@ _ = """
 #######################################################################################################################
 """
 
-print('STATUS: Hyperparameter Overview:')
-print('\t* max_runtime_secs\t-> ', MAX_EXP_RUNTIME,
-      '\tThe maximum runtime in seconds that you want to allot in order to complete the model.')
-print('\t* stopping_metric\t-> ', EVAL_METRIC,
-      '\tThis option specifies the metric to consider when early stopping is specified')
-print('\t* sort_metric\t\t-> ', RANK_METRIC,
-      '\tThis option specifies the metric used to sort the Leaderboard by at the end of an AutoML run.')
-print('\t* seed\t\t\t-> ', RANDOM_SEED,
-      '\tRandom seed for reproducibility. There are caveats.\n')
+print(Fore.GREEN + 'STATUS: Hyperparameter Overview:')
+print(Fore.GREEN + '\t* max_runtime_secs\t-> ', MAX_EXP_RUNTIME,
+      Fore.GREEN + '\t\tThe maximum runtime in seconds that you want to allot in order to complete the model.')
+print(Fore.GREEN + '\t* stopping_metric\t-> ', EVAL_METRIC,
+      Fore.GREEN + '\t\tThis option specifies the metric to consider when early stopping is specified')
+print(Fore.GREEN + '\t* sort_metric\t\t-> ', RANK_METRIC,
+      Fore.GREEN + '\t\tThis option specifies the metric used to sort the Leaderboard by at the end of an AutoML run.')
+print(Fore.GREEN + '\t* seed\t\t\t-> ', RANDOM_SEED,
+      Fore.GREEN + '\t\tRandom seed for reproducibility. There are caveats.')
+print(Fore.GREEN + '\t* Predictors\t\t-> ', PREDICTORS,
+      Fore.GREEN + '\t\tThese are the variables which will be used to predict the responder.')
+print(Fore.GREEN + '\t* Responder\t\t-> ', RESPONDER,
+      Fore.GREEN + '\tThis is what is being predicted.\n' + Style.RESET_ALL)
+if(input('Proceed with given hyperparameters? (Y/N)') == 'Y'):
+    pass
+else:
+    raise RuntimeError('\n\nSession forcefully terminated by user during review of hyperparamaters.')
 
 cumulative_varimps = {}
 for propad in PRODUCTION_PADS:
-    print('STATUS: Experiment -> Production Pad {}\n'.format(propad))
+    print(Fore.GREEN + 'STATUS: Experiment -> Production Pad {}\n'.format(propad) + Style.RESET_ALL)
     aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,     # How long should the experiment run for?
                         stopping_metric=EVAL_METRIC,          # The evaluation metric to discontinue model training
                         sort_metric=RANK_METRIC,              # Leaderboard ranking metric after all trainings
@@ -364,7 +381,7 @@ for propad in PRODUCTION_PADS:
                                      tag_name=['production_pad', 'responder'])
     cumulative_varimps[propad] = varimps
 
-print('STATUS: Completed experiments\n\n')
+print(Fore.GREEN + 'STATUS: Completed experiments\n\n' + Style.RESET_ALL)
 
 # Concatenate all the individual model variable importances into one dataframe
 final_cumulative_varimps = pd.concat(cumulative_varimps.values()).reset_index(drop=True)
@@ -374,7 +391,7 @@ final_cumulative_varimps = pd.concat(cumulative_varimps.values()).reset_index(dr
 final_cumulative_varimps.index = final_cumulative_varimps['model_name'] + \
     '___' + final_cumulative_varimps['production_pad']
 
-print('STATUS: Completed detecting variable importances.\n\n')
+print(Fore.GREEN + 'STATUS: Completed detecting variable importances.\n\n' + Style.RESET_ALL)
 
 # NOTE: Save outputs for reference (so you don't have to wait an hour every time)
 # with open('Modeling Pickles/model_novarimps.pkl', 'wb') as f:
@@ -403,7 +420,7 @@ plt.clf()
 correlation_matrix(FILT_final_cumulative_varimps, EXP_NAME='Aggregated Experiment Results',
                    FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_{tag}.pdf'.format(tag=RUN_TAG))
 
-print('STATUS: Saved variable importance configurations.')
+print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
 
 _ = """
 #######################################################################################################################
@@ -452,6 +469,7 @@ for col in perf_data.columns:
 sns_fig.get_figure().savefig('Modeling Reference Files/Round {tag}/model_performance_{tag}.pdf'.format(tag=RUN_TAG),
                              bbox_inches='tight')
 
+print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
 
 _ = """
 #######################################################################################################################
