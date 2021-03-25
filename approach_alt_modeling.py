@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 25-Mar-2021 01:03:90:906  GMT-0600
+# @Last modified time: 25-Mar-2021 17:03:88:881  GMT-0600
 # @License: [Private IP]
 
 # @Author: Shounak Ray <Ray>
@@ -11,7 +11,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 25-Mar-2021 01:03:90:906  GMT-0600
+# @Last modified time: 25-Mar-2021 17:03:88:881  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -21,6 +21,7 @@ import os
 # import pickle
 import random
 import subprocess
+import sys
 # from collections import Counter
 # from itertools import chain
 from typing import Final
@@ -73,13 +74,13 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 600                                      # The longest that the experiment will run (seconds)
+MAX_EXP_RUNTIME: Final = 10                                       # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                      # To ensure reproducibility of experiments
 EVAL_METRIC: Final = 'auto'                                       # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'auto'                                       # Leaderboard ranking metric after all trainings
 DATA_PATH_PAD: Final = 'Data/combined_ipc_aggregates.csv'         # Where the client-specific pad data is located
 DATA_PATH_WELL: Final = 'Data/combined_ipc_aggregates_PWELL.csv'  # Where the client-specific well data is located
-
+PREFERRED_TOLERANCE = 0.1
 
 # Feature Engineering Constants
 FIRST_WELL_STM: Final = 'CI06'                                # Used to splice column list to segregate responders
@@ -96,8 +97,51 @@ print(Fore.GREEN + 'STATUS: Directory created for Round {}'.format(RUN_TAG) + St
 # Print file structure for reference every time this program is run
 util_traversal.print_tree_to_txt()
 
+# TODO: Add docblocks and data sanitation to remaining functions
+# TODO: Streamline __main__ code
 
-def typical_manipulation_h20(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN):
+
+def typical_manipulation_h20(data, groupby, dropcols, RESPONDER, FOLD_COLUMN=FOLD_COLUMN):
+    """Return minimally modified H2OFrame, all possible categorical filtering options, and predictor variables.
+
+    Parameters
+    ----------
+    data : h2o.frame.H2OFrame
+        The H20 dataset used for model creation.
+    groupby : str
+        The name of the feature to determine groupings for.
+    dropcols : list (of str)
+        The names of the features of which to drop.
+    RESPONDER : list
+        The name of the dependent variable (which one will be predicted).
+    FOLD_COLUMN : str
+        The fold column used for target encoding (optional)
+
+    Returns
+    -------
+    h2o.frame.H2OFrame, list (of str), list (of str)
+        The H2O frame with a couple dropped columns.
+        The list of filtering options in the upcoming experiment.
+        The list of predictors to be used in the model (only for aesthetics, not inputted to actual experiment).
+
+    """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'data': [h2o.frame.H2OFrame],
+                           'groupby': [str],
+                           'dropcols': [list],
+                           'responder': [str],
+                           'FOLD_COLUMN': [str, type(None)]}
+    _expected_value_args = {'data': [None],
+                            'groupby': [None],
+                            'dropcols': [None],
+                            'responder': ['PRO_Well', 'PRO_Pad'],
+                            'FOLD_COLUMN': [None]}
+    data_type_sanitation(_provided_args, _expected_type_args, name)
+    data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
+
     data = conditional_drop(data, dropcols)
 
     groupby_options = data.as_data_frame()[groupby].unique()
@@ -109,8 +153,6 @@ def typical_manipulation_h20(data, groupby, dropcols, responder, FOLD_COLUMN=FOL
               '> WARNING: {encoded} will be encoded by H2O model unless processed out.'.format(
                   encoded=categorical_names)
               + Style.RESET_ALL)
-
-    RESPONDER = responder
 
     # NOTE: The model predictors a should only use the target encoded versions, and not the older versions
     PREDICTORS = [col for col in data.columns
@@ -125,6 +167,51 @@ def typical_manipulation_h20(data, groupby, dropcols, responder, FOLD_COLUMN=FOL
 def run_experiment(data, groupby_options, RESPONDER,
                    MAX_EXP_RUNTIME=MAX_EXP_RUNTIME, EVAL_METRIC=EVAL_METRIC, RANK_METRIC=RANK_METRIC,
                    RANDOM_SEED=RANDOM_SEED):
+    """Run an H2O Experiment given specific configurations.
+
+    Parameters
+    ----------
+    data : h2o.frame.H2OFrame
+        The data which will be used to train/test the models
+    groupby_options : list
+        The list of filtering options in the upcoming experiment.
+    RESPONDER : str
+        The name of the dependent variable (which one will be predicted).
+    MAX_EXP_RUNTIME : int
+        The maximum runtime in seconds that you want to allot in order to complete the model.
+    EVAL_METRIC : str
+        This option specifies the metric to consider when early stopping is specified.
+    RANK_METRIC : str
+        This option specifies the metric used to sort the Leaderboard by at the end of an AutoML run.
+    RANDOM_SEED : int
+        Random seed for reproducibility. There are caveats.
+
+    Returns
+    -------
+    pandas.core.DataFrame
+        The data with all, aggregated variable importance per model in all groupby_options provided.
+
+    """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'data': [pd.core.frame.DataFrame],
+                           'groupby_options': [str],
+                           'RESPONDER': [dict],
+                           'MAX_EXP_RUNTIME': [dict],
+                           'EVAL_METRIC': [list, type(None)],
+                           'RANK_METRIC': [list, type(None)],
+                           'RANDOM_SEED': [int, float]}
+    _expected_value_args = {'data': [None],
+                            'groupby_options': [None],
+                            'RESPONDER': [None],
+                            'MAX_EXP_RUNTIME': [1, 10000],
+                            'EVAL_METRIC': [None],
+                            'RANK_METRIC': [None],
+                            'RANDOM_SEED': [0, np.inf]}
+    data_type_sanitation(_provided_args, _expected_type_args, name)
+    data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
     tb_dropped = data_well.as_data_frame().select_dtypes(object).columns[0]
     cumulative_varimps = {}
     for group in groupby_options:
@@ -164,6 +251,39 @@ def run_experiment(data, groupby_options, RESPONDER,
 def plot_varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
                         preferred='Steam', preferred_importance=0.7, mean_importance_threshold=0.7,
                         top_color='green', chosen_color='cyan', RUN_TAG=RUN_TAG, FIGSIZE=(10, 55), annot=False):
+    """Short summary.
+
+    Parameters
+    ----------
+    final_cumulative_varimps : type
+        Description of parameter `final_cumulative_varimps`.
+    FPATH : type
+        Description of parameter `FPATH`.
+    highlight : type
+        Description of parameter `highlight`.
+    preferred : type
+        Description of parameter `preferred`.
+    preferred_importance : type
+        Description of parameter `preferred_importance`.
+    mean_importance_threshold : type
+        Description of parameter `mean_importance_threshold`.
+    top_color : type
+        Description of parameter `top_color`.
+    chosen_color : type
+        Description of parameter `chosen_color`.
+    RUN_TAG : type
+        Description of parameter `RUN_TAG`.
+    FIGSIZE : type
+        Description of parameter `FIGSIZE`.
+    annot : type
+        Description of parameter `annot`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
     # Plot heatmap of variable importances across all model combinations
     fig, ax = plt.subplots(figsize=FIGSIZE)
     predictor_rank = final_cumulative_varimps.mean(axis=0).sort_values(ascending=False)
@@ -199,6 +319,19 @@ def plot_varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
 
 
 def model_performance(final_cumulative_varimps):
+    """Short summary.
+
+    Parameters
+    ----------
+    final_cumulative_varimps : type
+        Description of parameter `final_cumulative_varimps`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
     perf_data = {}
     for model_name, model_obj in zip(final_cumulative_varimps.index, final_cumulative_varimps['model_object']):
         perf_data[model_name] = {}
@@ -218,16 +351,179 @@ def model_performance(final_cumulative_varimps):
     return perf_data
 
 
-def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, ranked_steam, outlier_thresh_pnt=95,
-                           RUN_TAG=RUN_TAG, annot=True, highlight=True, FIGSIZE=(10, 50)):
+def data_type_sanitation(val_and_inputs, expected, name):
+    """Short summary.
+
+    Parameters
+    ----------
+    val_and_inputs : type
+        Description of parameter `val_and_inputs`.
+    expected : type
+        Description of parameter `expected`.
+    name : type
+        Description of parameter `name`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    # Data sanitation for this function itself
+    if(len(val_and_inputs) != len(expected)):
+        raise ValueError(f'> Mismatched expected and received dicts during data_type_sanitation for {name}.')
+
+    mismatched = {}
+    try:
+        for k, v in val_and_inputs.items():
+            if type(v) not in expected.get(k):
+                mismatched[k] = {'recieved': type(v), 'expected': expected.get(k)}
+    except Exception:
+        print('>> WARNING: Exception (likely edge case) ignored in data_type_sanitation')
+
+    if(len(mismatched) > 0):
+        raise ValueError(
+            f'> Invalid input for following pairs during data_type_sanitation for {name}.\n{mismatched}')
+
+
+def data_range_sanitation(val_and_inputs, expected, name):
+    """Short summary.
+
+    Parameters
+    ----------
+    val_and_inputs : type
+        Description of parameter `val_and_inputs`.
+    expected : type
+        Description of parameter `expected`.
+    name : type
+        Description of parameter `name`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    # Data sanitation for this function itself
+    if(len(val_and_inputs) != len(expected)):
+        raise ValueError(f'> ERROR: Mismatched expected and received dicts during data_range_sanitation for {name}.')
+
+    mismatched = {}
+
+    try:
+        for k, v in val_and_inputs.items():
+            restriction = expected.get(k)
+            if(type(restriction) == tuple or type(restriction) == list):
+                if(len(restriction) > 2 or len(restriction) == 1):  # Check if input is one of the specified elements
+                    if v not in restriction:
+                        mismatched[k] = {'recieved': v, 'expected (inclusion)': expected.get(k)}
+                elif(len(restriction) == 2):  # Treat it as a range
+                    if(type(restriction[0]) == float or type(restriction[0]) == int):
+                        if not (v >= restriction[0] and v <= restriction[1]):
+                            mismatched[k] = {'recieved': v, 'expected (num. range)': expected.get(k)}
+                    else:
+                        if v not in restriction:
+                            mismatched[k] = {'recieved': v, 'expected (inclusion)': expected.get(k)}
+                else:
+                    raise ValueError(f'Restriction for {k} improperly set in {name} range sanitation')
+            elif(restriction[0] is None):
+                pass
+    except Exception:
+        print('>> WARNING: Exception (likely edge case) ignored in data_range_sanitation')
+
+    if(len(mismatched) > 0):
+        raise ValueError(
+            f'> Invalid input for following pairs during data_range_sanitation for {name}.\n{mismatched}')
+
+
+def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, ranked_steam, outlier_thresh_pnt=5,
+                           RUN_TAG=RUN_TAG, annot=True, annot_size=4, highlight=True, FIGSIZE=(10, 50)):
+    """Short summary.
+
+    Parameters
+    ----------
+    perf_data : type
+        Description of parameter `perf_data`.
+    FPATH : type
+        Description of parameter `FPATH`.
+    mcmaps : type
+        Description of parameter `mcmaps`.
+    centers : type
+        Description of parameter `centers`.
+    ranked_names : type
+        Description of parameter `ranked_names`.
+    ranked_steam : type
+        Description of parameter `ranked_steam`.
+    outlier_thresh_pnt : type
+        Description of parameter `outlier_thresh_pnt`.
+    RUN_TAG : type
+        Description of parameter `RUN_TAG`.
+    annot : type
+        Description of parameter `annot`.
+    annot_size : type
+        Description of parameter `annot_size`.
+    highlight : type
+        Description of parameter `highlight`.
+    FIGSIZE : type
+        Description of parameter `FIGSIZE`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'perf_data': [pd.core.frame.DataFrame],
+                           'FPATH': [str],
+                           'mcmaps': [dict],
+                           'centers': [dict],
+                           'ranked_names': [list, type(None)],
+                           'ranked_steam': [list, type(None)],
+                           'outlier_thresh_pnt': [int, float],
+                           'RUN_TAG': [int],
+                           'annot': [bool],
+                           'annot_size': [int],
+                           'highlight': [bool],
+                           'FIGSIZE': [tuple]}
+    _expected_value_args = {'perf_data': [None],
+                            'FPATH': [None],
+                            'mcmaps': [None],
+                            'centers': [None],
+                            'ranked_names': [None],
+                            'ranked_steam': [None],
+                            'outlier_thresh_pnt': (0, 99),
+                            'RUN_TAG': [None],
+                            'annot': [None],
+                            'annot_size': (0, np.inf),
+                            'highlight': [None],
+                            'FIGSIZE': [None]}
+    data_type_sanitation(_provided_args, _expected_type_args, name)
+    data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
+
+    # CUSTOM DATA SANITATION
+    if not (len(perf_data.select_dtypes(float).columns) <= len(perf_data.columns)):
+        cat_var = list(perf_data.select_dtypes(object).columns)
+        raise ValueError('> ERROR: Inputted data has categorical variables. {}'.format(cat_var))
+
     fig, ax = plt.subplots(figsize=FIGSIZE, ncols=len(perf_data.columns), sharey=True)
     for col in perf_data.columns:
         cmap_local = mcmaps.get(col)
         center_local = centers.get(col)
-        vmax_local = np.percentile(perf_data[col], outlier_thresh_pnt)
+        vmax_local = np.percentile(perf_data[col], 100 - outlier_thresh_pnt)
+        vmin_local = np.percentile(perf_data[col], outlier_thresh_pnt)
+
+        if not (vmin_local < vmax_local):
+            raise ValueError('> ERROR: Heatmap min, center, max have incompatible values {}-{}-{}'.format(vmin_local,
+                                                                                                          center_local,
+                                                                                                          vmax_local))
+
         sns_fig = sns.heatmap(perf_data[[col]], ax=ax[list(perf_data.columns).index(col)],
-                              annot=annot, annot_kws={"size": 4}, cbar=False,
-                              center=center_local, cmap=cmap_local, vmax=vmax_local)
+                              annot=annot, annot_kws={"size": annot_size}, cbar=False,
+                              center=center_local, cmap=cmap_local, vmax=vmax_local, vmin=vmin_local)
         if(highlight):
             if(ranked_names is None or ranked_steam is None):
                 raise ValueError('STATUS: Improper ranked rect inputs.')
@@ -241,9 +537,7 @@ def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, rank
                                             edgecolor='cyan', fill=False, lw=4))
         sns.set(font_scale=0.6)
 
-    sns_fig.get_figure().savefig('Modeling Reference Files/Round \
-                                 {tag}/model_performance_{tag}.pdf'.format(tag=RUN_TAG),
-                                 bbox_inches='tight')
+    sns_fig.get_figure().savefig(FPATH, bbox_inches='tight')
 
     print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
 
@@ -256,6 +550,21 @@ def conditional_drop(data_frame, tbd_list):
         else:
             print(Fore.GREEN + '> STATUS: {} not in frame, skipping.'.format(tb_dropped) + Style.RESET_ALL)
     return data_frame
+    """Short summary.
+
+    Parameters
+    ----------
+    data_frame : type
+        Description of parameter `data_frame`.
+    tbd_list : type
+        Description of parameter `tbd_list`.
+
+    Returns
+    -------
+    type
+        Description of returned object.
+
+    """
 
 
 def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict:
@@ -478,7 +787,7 @@ _ = """
 # data_pad = conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed', 'Bin_1', 'Bin_5'])
 RESPONDER = 'PRO_Alloc_Oil'
 
-EXCLUDE = ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5']
+EXCLUDE = ['C1', 'PRO_Alloc_Water', 'Bin_1', 'Bin_5', 'Date']
 # data_pad, groupby_options_pad, PREDICTORS = typical_manipulation_h20(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
 data_well, groupby_options_well, PREDICTORS = typical_manipulation_h20(data_well, 'PRO_Well', EXCLUDE, RESPONDER)
 
@@ -504,7 +813,7 @@ print(Fore.GREEN + '\t* Responder\t\t-> ', RESPONDER,
 if(input('Proceed with given hyperparameters? (Y/N)') == 'Y'):
     pass
 else:
-    raise RuntimeError('\n\nSession forcefully terminated by user during review of hyperparamaters.')
+    raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
 
 
 # final_cumulative_varimps_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER)
@@ -522,7 +831,7 @@ FILT_final_cumulative_varimps_well = final_cumulative_varimps_well[mask_well]
 ranked_names_well, ranked_steam_well = plot_varimp_heatmap(final_cumulative_varimps_well,
                                                            'Modeling Reference Files/Round ' +
                                                            '{tag}/macropad_varimps_PWELL{tag}.pdf'.format(tag=RUN_TAG),
-                                                           FIGSIZE=(10, 80),
+                                                           FIGSIZE=(10, 100),
                                                            highlight=False,
                                                            annot=False)
 
@@ -540,8 +849,14 @@ _ = """
 #######################################################################################################################
 """
 
+data_well_pd = pd.read_csv(DATA_PATH_WELL)
+benchline = data_well_pd[data_well_pd[RESPONDER] > 0].groupby(
+    ['Date', 'PRO_Well'])[RESPONDER].sum().reset_index().groupby('PRO_Well').median()
+grouped_tolerance = (PREFERRED_TOLERANCE * benchline).to_dict()[RESPONDER]
+
 # perf_pad = model_performance(FILT_final_cumulative_varimps_pad)
 perf_well = model_performance(final_cumulative_varimps_well)
+perf_well['group_type'] = [t[1] for t in perf_well.index.str.split('___')]
 
 mcmaps = {'R^2': sns.color_palette('rocket_r', as_cmap=True),
           # 'R': sns.color_palette('rocket_r'),
@@ -550,20 +865,21 @@ mcmaps = {'R^2': sns.color_palette('rocket_r', as_cmap=True),
           'RMSLE': sns.color_palette("coolwarm", as_cmap=True),
           'MAE': sns.color_palette("coolwarm", as_cmap=True)}
 centers = {'R^2': None,
-           'MSE': 25,
-           'RMSE': 5,
+           'MSE': 400,
+           'RMSE': 20,
            'RMSLE': None,
            'MAE': None}
 
 # plot_model_performance(perf_pad,
 #                        'Modeling Reference Files/Round {tag}/model_performance_PWELL{tag}.pdf'.format(tag=RUN_TAG),
 #                        mcmaps, centers, ranked_names_pad, ranked_steam_pad)
-plot_model_performance(perf_well,
+plot_model_performance(perf_well.select_dtypes(float),
                        'Modeling Reference Files/Round {tag}/model_performance_PWELL{tag}.pdf'.format(tag=RUN_TAG),
                        mcmaps, centers, ranked_names_well, ranked_steam_well,
                        highlight=False,
                        annot=True,
-                       FIGSIZE=(10, 80))
+                       annot_size=2,
+                       FIGSIZE=(10, 100))
 
 
 _ = """

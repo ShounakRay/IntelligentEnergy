@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 24-Mar-2021 16:03:55:555  GMT-0600
+# @Last modified time: 25-Mar-2021 13:03:05:056  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -409,6 +409,7 @@ for pwell in available_pwells_transformed:
 if(plot_geo):
     plot_geo_candidates(candidates_by_prodwell, 'BP6', PRO_finalcoords, INJ_relcoords)
 
+plot_geo_candidates(candidates_by_prodpad, 'B', PRO_finalcoords, INJ_relcoords)
 
 #
 #
@@ -581,10 +582,10 @@ PRODUCER_AGGREGATES = FINALE_agg_pro[FINALE_agg_pro['PRO_Pad'].isin(available_pa
 PRODUCER_AGGREGATES_PWELL = FINALE_agg_pro_pwell[FINALE_agg_pro_pwell['PRO_Well'].isin(available_pwells_transformed)]
 
 COMBINED_AGGREGATES = pd.merge(PRODUCER_AGGREGATES, INJECTOR_AGGREGATES,
-                               how='inner', on=['Date', 'PRO_Pad']).drop(['Date', 'PRO_Alloc_Water'], axis=1)
+                               how='inner', on=['Date', 'PRO_Pad']).drop(['PRO_Alloc_Water'], axis=1)
 
 COMBINED_AGGREGATES_PWELL = pd.merge(PRODUCER_AGGREGATES_PWELL, INJECTOR_AGGREGATES_PWELL,
-                                     how='inner', on=['Date', 'PRO_Well']).drop(['Date', 'PRO_Alloc_Water'], axis=1)
+                                     how='inner', on=['Date', 'PRO_Well']).drop(['PRO_Alloc_Water'], axis=1)
 
 COMBINED_AGGREGATES, dropped = drop_singles(COMBINED_AGGREGATES)
 COMBINED_AGGREGATES_PWELL, dropped_pwell = drop_singles(COMBINED_AGGREGATES_PWELL)
@@ -606,6 +607,9 @@ COMBINED_AGGREGATES_PWELL, dropped_pwell = drop_singles(COMBINED_AGGREGATES_PWEL
 
 COMBINED_AGGREGATES_PWELL.to_csv('Data/combined_ipc_aggregates_PWELL.csv')
 COMBINED_AGGREGATES.to_csv('Data/combined_ipc_aggregates.csv')
+
+benchline = COMBINED_AGGREGATES_PWELL[COMBINED_AGGREGATES_PWELL['PRO_Alloc_Oil'] > 0].groupby(
+    ['Date', 'PRO_Well'])['PRO_Alloc_Oil'].sum().reset_index().groupby('PRO_Well').median()
 
 # plt.figure(figsize=(10, 100))
 # sns.heatmap(COMBINED_AGGREGATES.sort_values(['PRO_Pad']).select_dtypes(float))
