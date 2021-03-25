@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Mar-2021 16:03:00:003  GMT-0600
+# @Last modified time: 24-Mar-2021 17:03:51:512  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -378,3 +378,15 @@
 # FINALE_agg = FINALE_pro.groupby(by=['Date', 'Pad'], axis=0, sort=False, as_index=False).sum()
 # FINALE_melted_pro = pd.melt(FINALE, id_vars=['Date'], value_vars=all_pro_data, var_name='metric', value_name='PRO_Pad')
 # FINALE_melted_pro['PRO_Pad'] = FINALE_melted_pro['PRO_Pad'].apply(lambda x: PRO_PAD_KEYS.get(x))
+
+# NOTE: Save outputs for reference (so you don't have to wait an hour every time)
+# with open('Modeling Pickles/model_novarimps.pkl', 'wb') as f:
+#     pickle.dump(model_novarimps, f)
+# final_cumulative_varimps_pad.to_pickle('Modeling Pickles/final_cumulative_varimps.pkl')
+# final_cumulative_varimps_pad.to_html('Modeling Reference Files/final_cumulative_varimps.html')
+
+# NOTE: FOR REFERENCE
+# Filtering of the variable importance summary
+# FILT_final_cumulative_varimps = final_cumulative_varimps[~final_cumulative_varimps['model_name'
+#                                                                                    ].str.contains('XGBoost')
+#                                                          ].reset_index(drop=True).select_dtypes(float)

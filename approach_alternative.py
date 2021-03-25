@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 24-Mar-2021 09:03:94:944  GMT-0600
+# @Last modified time: 24-Mar-2021 16:03:55:555  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -34,7 +34,22 @@ POS_BL = (478, 1008)
 POS_BR = (1439, 1008)
 x_delta = POS_TL[0] | POS_BL[0]
 y_delta = POS_TR[0] | POS_BR[0]
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# INGESTION
+FINALE = pd.read_csv('Data/combined_ipc.csv').infer_objects()
+DATA_INJECTION_ORIG = pd.read_pickle('Data/Pickles/DATA_INJECTION_ORIG.pkl')
+DATA_PRODUCTION_ORIG = pd.read_pickle('Data/Pickles/DATA_PRODUCTION_ORIG.pkl')
+
+PRO_PAD_KEYS = dict(zip(DATA_PRODUCTION_ORIG['Well'], DATA_PRODUCTION_ORIG['Pad']))
+INJ_PAD_KEYS = dict(zip(DATA_INJECTION_ORIG['Well'], DATA_INJECTION_ORIG['Pad']))
+
 available_pads_transformed = ['A', 'B']
+available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in available_pads_transformed]
+
+# DEFINITIONS
 
 
 def filter_negatives(df, columns):
@@ -133,48 +148,103 @@ def euclidean_2d_distance(c1, c2):
     return math.hypot(x2 - x1, y2 - y1)
 
 
-def injector_candidates(production_pad, pro_well_pad_relationship, injector_coordinates, production_coordinates,
+def injector_candidates(production_pad, production_well,
+                        pro_well_pad_relationship, injector_coordinates, production_coordinates,
                         relative_radius=relative_radius):
-    inclusion = pd.DataFrame([], columns=injector_coordinates.keys(), index=PRO_finalcoords.keys())
-    for iwell, iwell_point in injector_coordinates.items():
-        x_test = iwell_point[0]
-        y_test = iwell_point[1]
-        inj_allpro_tracker = []
-        for pwell, pwell_points in PRO_finalcoords.items():
-            inj_pro_level_tracker = []
-            for pwell_point in pwell_points:
-                center_x = pwell_point[0]
-                center_y = pwell_point[1]
-                inclusion_condition = (x_test - center_x)**2 + (y_test - center_y)**2 < relative_radius**2
-                inj_pro_level_tracker.append(inclusion_condition)
-            state = any(inj_pro_level_tracker)
-            inj_allpro_tracker.append(state)
-        inclusion[iwell] = inj_allpro_tracker
 
-    inclusion = inclusion.rename_axis('PRO_Well').reset_index()
-    inclusion['PRO_Pad'] = [pro_well_pad_relationship.get(pwell) for pwell in inclusion['PRO_Well']]
+    if(production_pad is not None or production_well is not None):
+        inclusion = pd.DataFrame([], columns=injector_coordinates.keys(), index=production_coordinates.keys())
+        for iwell, iwell_point in injector_coordinates.items():
+            x_test = iwell_point[0]
+            y_test = iwell_point[1]
+            inj_allpro_tracker = []
+            for pwell, pwell_points in production_coordinates.items():
+                inj_pro_level_tracker = []
+                for pwell_point in pwell_points:
+                    center_x = pwell_point[0]
+                    center_y = pwell_point[1]
+                    inclusion_condition = (x_test - center_x)**2 + (y_test - center_y)**2 < relative_radius**2
+                    inj_pro_level_tracker.append(inclusion_condition)
+                state = any(inj_pro_level_tracker)
+                inj_allpro_tracker.append(state)
+            inclusion[iwell] = inj_allpro_tracker
 
-    inclusion.to_html('just_foref.html')
+        inclusion = inclusion.rename_axis('PRO_Well').reset_index()
+        if(production_pad is not None):
+            inclusion['PRO_Pad'] = [pro_well_pad_relationship.get(pwell) for pwell in inclusion['PRO_Well']]
 
-    pad_filtered_inclusion = inclusion[inclusion['PRO_Pad'] == production_pad].reset_index(drop=True)
-    all_possible_candidates = pad_filtered_inclusion.select_dtypes(bool).columns
-    candidate_injectors_full = dict([(candidate, any(pad_filtered_inclusion[candidate]))
-                                     for candidate in all_possible_candidates])
-    candidate_injectors = [k for k, v in candidate_injectors_full.items() if v is True]
+        if(production_pad is not None):
+            type_filtered_inclusion = inclusion[inclusion['PRO_Pad'] == production_pad].reset_index(drop=True)
+        elif(production_well is not None):
+            type_filtered_inclusion = inclusion[inclusion['PRO_Well'] == production_well].reset_index(drop=True)
 
-    return candidate_injectors, candidate_injectors_full
+        all_possible_candidates = type_filtered_inclusion.select_dtypes(bool).columns
+        candidate_injectors_full = dict([(candidate, any(type_filtered_inclusion[candidate]))
+                                         for candidate in all_possible_candidates])
+        candidate_injectors = [k for k, v in candidate_injectors_full.items() if v is True]
+
+        return candidate_injectors, candidate_injectors_full
+    else:
+        raise ValueError('ERROR: Fatal parameter inputs for `injector_candidates`')
+
+
+def plot_geo_candidates(candidate_dict, group_type, PRO_finalcoords, INJ_relcoords,
+                        POS_TL=POS_TL, POS_BR=POS_BR, POS_TR=POS_TR):
+    # Producer connections
+    aratio = (POS_TR[0] - POS_TL[0]) / (POS_BR[1] - POS_TR[1])
+    fig, ax = plt.subplots(figsize=(20 * aratio, 20))
+    colors = cm.rainbow(np.linspace(0, 1, len(PRO_finalcoords.keys())))
+    for k, v in PRO_finalcoords.items():
+        all_x = [c[0] for c in v]
+        all_y = [c[1] for c in v]
+        plt.scatter(all_x, all_y, linestyle='solid', color=colors[list(PRO_finalcoords.keys()).index(k)])
+        plt.plot(all_x, all_y, color=colors[list(PRO_finalcoords.keys()).index(k)])
+        plt.scatter(all_x, all_y, color=list(
+            (*colors[list(PRO_finalcoords.keys()).index(k)][:3], *[0.1])), s=dimless_radius)
+    # Injector connections
+    all_x = [t[0] for t in INJ_relcoords.values()]
+    all_y = [t[1] for t in INJ_relcoords.values()]
+    ax.scatter(all_x, all_y)
+    for i, txt in enumerate(INJ_relcoords.keys()):
+        if(txt in candidate_dict.get(group_type)):
+            ax.scatter(all_x[i], all_y[i], color='green', s=200)
+        else:
+            ax.scatter(all_x[i], all_y[i], color='red', s=200)
+        ax.annotate(txt, (all_x[i] + 2, all_y[i] + 2))
+    plt.title('Producer Well and Injector Space, Overlaps')
+    plt.tight_layout()
+    plt.savefig('Modeling Reference Files/Producer-Injector Overlap for {}.png'.format(group_type))
+
+
+def produce_injector_aggregates(candidates_by_prodtype, injector_data, group_type):
+    INJECTOR_AGGREGATES = {}
+    for category, cat_candidates in candidates_by_prodtype.items():
+        # Select candidates (not all the wells)
+        local_candidates = cat_candidates.copy()
+        absence = []
+        for cand in local_candidates:
+            if cand not in all_injs:
+                print('> STATUS: Candidate {} removed assessing {}, unavailable in initial data'.format(cand,
+                                                                                                        category))
+                absence.append(cand)
+        local_candidates = [el for el in local_candidates if el not in absence]
+
+        melted_inj = pd.melt(injector_data, id_vars=['Date'], value_vars=local_candidates,
+                             var_name='Injector', value_name='Steam')
+        melted_inj['INJ_Pad'] = melted_inj['Injector'].apply(lambda x: INJ_PAD_KEYS.get(x))
+        melted_inj = melted_inj[~melted_inj['INJ_Pad'].isna()].reset_index(drop=True)
+        # To groupby injector pads, by=['Date', 'INJ_Pad']
+        agg_inj = melted_inj.groupby(by=['Date'], axis=0, sort=False, as_index=False).sum()
+        agg_inj[group_type] = category
+        INJECTOR_AGGREGATES[category] = agg_inj
+    INJECTOR_AGGREGATES = pd.concat(INJECTOR_AGGREGATES.values()).reset_index(drop=True)
+
+    return INJECTOR_AGGREGATES
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# INGESTION
-FINALE = pd.read_csv('Data/combined_ipc.csv').infer_objects()
-DATA_INJECTION_ORIG = pd.read_pickle('Data/Pickles/DATA_INJECTION_ORIG.pkl')
-DATA_PRODUCTION_ORIG = pd.read_pickle('Data/Pickles/DATA_PRODUCTION_ORIG.pkl')
-
-PRO_PAD_KEYS = dict(zip(DATA_PRODUCTION_ORIG['Well'], DATA_PRODUCTION_ORIG['Pad']))
-INJ_PAD_KEYS = dict(zip(DATA_INJECTION_ORIG['Well'], DATA_INJECTION_ORIG['Pad']))
 
 
 FINALE['PRO_Pad'] = FINALE['PRO_Well'].apply(lambda x: PRO_PAD_KEYS.get(x))
@@ -314,36 +384,30 @@ for k, v in PRO_relcoords.items():
 candidates_by_prodpad = {}
 reports_by_prodpad = {}
 for pad in available_pads_transformed:
-    candidates, report = injector_candidates(pad, PRO_PAD_KEYS, INJ_relcoords, PRO_finalcoords,
+    candidates, report = injector_candidates(production_pad=pad,
+                                             production_well=None,
+                                             pro_well_pad_relationship=PRO_PAD_KEYS,
+                                             injector_coordinates=INJ_relcoords,
+                                             production_coordinates=PRO_finalcoords,
                                              relative_radius=50)
     candidates_by_prodpad[pad] = candidates
     reports_by_prodpad[pad] = report
 
+candidates_by_prodwell = {}
+reports_by_prodwell = {}
+for pwell in available_pwells_transformed:
+    candidates, report = injector_candidates(production_pad=None,
+                                             production_well=pwell,
+                                             pro_well_pad_relationship=None,
+                                             injector_coordinates=INJ_relcoords,
+                                             production_coordinates=PRO_finalcoords,
+                                             relative_radius=50)
+    candidates_by_prodwell[pwell] = candidates
+    reports_by_prodwell[pwell] = report
+
+
 if(plot_geo):
-    # Producer connections
-    aratio = (POS_TR[0] - POS_TL[0]) / (POS_BR[1] - POS_TR[1])
-    fig, ax = plt.subplots(figsize=(20 * aratio, 20))
-    colors = cm.rainbow(np.linspace(0, 1, len(PRO_finalcoords.keys())))
-    for k, v in PRO_finalcoords.items():
-        all_x = [c[0] for c in v]
-        all_y = [c[1] for c in v]
-        plt.scatter(all_x, all_y, linestyle='solid', color=colors[list(PRO_finalcoords.keys()).index(k)])
-        plt.plot(all_x, all_y, color=colors[list(PRO_finalcoords.keys()).index(k)])
-        plt.scatter(all_x, all_y, color=list(
-            (*colors[list(PRO_finalcoords.keys()).index(k)][:3], *[0.1])), s=dimless_radius)
-    # Injector connections
-    all_x = [t[0] for t in INJ_relcoords.values()]
-    all_y = [t[1] for t in INJ_relcoords.values()]
-    ax.scatter(all_x, all_y)
-    for i, txt in enumerate(INJ_relcoords.keys()):
-        if(txt in candidates):
-            ax.scatter(all_x[i], all_y[i], color='green', s=200)
-        else:
-            ax.scatter(all_x[i], all_y[i], color='red', s=200)
-        ax.annotate(txt, (all_x[i] + 2, all_y[i] + 2))
-    plt.title('Producer Well and Injector Space, Overlaps')
-    plt.tight_layout()
-    plt.savefig('Producer-Injector Overlap.png')
+    plot_geo_candidates(candidates_by_prodwell, 'BP6', PRO_finalcoords, INJ_relcoords)
 
 
 #
@@ -375,6 +439,9 @@ for injector in INJ_relcoords.keys():
 # # # # # # # # # # # # # # # # # # # # PAD-LEVEL SENSOR DATA # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+# # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # #
+# PRODUCER PAD-LEVEL AGGREGATOIN
 unique_pro_pads = list(FINALE['PRO_Pad'].unique())
 all_pro_data = ['PRO_Well',
                 'PRO_Pump_Speed',
@@ -400,25 +467,24 @@ FINALE_pro, dropped_cols = drop_singles(FINALE_pro)
 # Smoothen out the Oil Data
 unique_pro_wells = list(FINALE_pro['PRO_Well'].unique())
 
+aggregation_dict = {'PRO_Pump_Speed': 'sum',
+                    'PRO_Time_On': 'mean',
+                    'PRO_Casing_Pressure': 'mean',
+                    'PRO_Heel_Pressure': 'mean',
+                    'PRO_Toe_Pressure': 'mean',
+                    'PRO_Heel_Temp': 'mean',
+                    'PRO_Toe_Temp': 'mean',
+                    # 'PRO_Duration': 'mean',
+                    'PRO_Alloc_Oil': 'sum',
+                    'PRO_Alloc_Water': 'sum',
+                    'Bin_1': 'mean',
+                    'Bin_2': 'mean',
+                    'Bin_3': 'mean',
+                    'Bin_4': 'mean',
+                    'Bin_5': 'mean'}
+
 FINALE_agg_pro = FINALE_pro.groupby(by=['Date', 'PRO_Pad'], axis=0,
-                                    sort=False, as_index=False).agg({'PRO_Pump_Speed': 'sum',
-                                                                     'PRO_Time_On': 'mean',
-                                                                     'PRO_Casing_Pressure': 'mean',
-                                                                     'PRO_Heel_Pressure': 'mean',
-                                                                     'PRO_Toe_Pressure': 'mean',
-                                                                     'PRO_Heel_Temp': 'mean',
-                                                                     'PRO_Toe_Temp': 'mean',
-                                                                     # 'PRO_Duration': 'mean',
-                                                                     'PRO_Alloc_Oil': 'sum',
-                                                                     'PRO_Alloc_Water': 'sum',
-                                                                     'Bin_1': 'mean',
-                                                                     'Bin_2': 'mean',
-                                                                     'Bin_3': 'mean',
-                                                                     'Bin_4': 'mean',
-                                                                     'Bin_5': 'mean'})
-# plt.figure(figsize=(10, 20))
-# sns.heatmap(FINALE_agg_pro[FINALE_agg_pro['PRO_Pad'] == 'A'].select_dtypes(float))
-# print(FINALE_agg_pro.isna().sum())
+                                    sort=False, as_index=False).agg(aggregation_dict)
 
 if(plot_eda):
     # FIGURE PLOTTING (PRODUCTION PAD-LEVEL STATISTICS)
@@ -444,34 +510,49 @@ if(plot_eda):
 
     plt.savefig('pro_pads_cols_ts.png')
 
+# # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # #
+# PRODUCER WELL-LEVEL AGGREGATION
+FINALE_agg_pro_pwell = FINALE_pro.groupby(by=['Date', 'PRO_Well'], axis=0,
+                                          sort=False, as_index=False).agg(aggregation_dict)
+
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # INJECTOR PAD-LEVEL STEAM ALLOCATION # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # #
+# INJECTOR BY PRODUCER PAD-LEVEL AGGREGATION
 # This is just to delete the implicit duplicates found in the data (each production well has the same injection data)
 FINALE_inj = FINALE[FINALE['PRO_Well'] == 'AP3'].reset_index(drop=True).drop('PRO_Well', 1)
 all_injs = [c for c in FINALE_inj.columns if 'I' in c and '_' not in c]
 
-INJECTOR_AGGREGATES = {}
-# propad, pad_candidates = list(candidates_by_prodpad.items())[0]
-for propad, pad_candidates in candidates_by_prodpad.items():
-    # Select candidates (not all the wells)
-    local_candidates = pad_candidates.copy()
-    absence = []
-    for cand in local_candidates:
-        if cand not in all_injs:
-            print('> STATUS: Candidate {} removed, unavailable in initial data'.format(cand))
-            absence.append(cand)
-    local_candidates = [el for el in local_candidates if el not in absence]
+# INJECTOR_AGGREGATES = {}
+# for propad, pad_candidates in candidates_by_prodpad.items():
+#     # Select candidates (not all the wells)
+#     local_candidates = pad_candidates.copy()
+#     absence = []
+#     for cand in local_candidates:
+#         if cand not in all_injs:
+#             print('> STATUS: Candidate {} removed, unavailable in initial data'.format(cand))
+#             absence.append(cand)
+#     local_candidates = [el for el in local_candidates if el not in absence]
+#
+#     FINALE_melted_inj = pd.melt(FINALE_inj, id_vars=['Date'], value_vars=local_candidates,
+#                                 var_name='Injector', value_name='Steam')
+#     FINALE_melted_inj['INJ_Pad'] = FINALE_melted_inj['Injector'].apply(lambda x: INJ_PAD_KEYS.get(x))
+#     FINALE_melted_inj = FINALE_melted_inj[~FINALE_melted_inj['INJ_Pad'].isna()].reset_index(drop=True)
+#     # To groupby injector pads, by=['Date', 'INJ_Pad']
+#     FINALE_agg_inj = FINALE_melted_inj.groupby(by=['Date'], axis=0, sort=False, as_index=False).sum()
+#     FINALE_agg_inj['PRO_Pad'] = propad
+#     INJECTOR_AGGREGATES[propad] = FINALE_agg_inj
+# INJECTOR_AGGREGATES = pd.concat(INJECTOR_AGGREGATES.values()).reset_index(drop=True)
 
-    FINALE_melted_inj = pd.melt(FINALE_inj, id_vars=['Date'], value_vars=local_candidates,
-                                var_name='Injector', value_name='Steam')
-    FINALE_melted_inj['INJ_Pad'] = FINALE_melted_inj['Injector'].apply(lambda x: INJ_PAD_KEYS.get(x))
-    FINALE_melted_inj = FINALE_melted_inj[~FINALE_melted_inj['INJ_Pad'].isna()].reset_index(drop=True)
-    # To groupby injector pads, by=['Date', 'INJ_Pad']
-    FINALE_agg_inj = FINALE_melted_inj.groupby(by=['Date'], axis=0, sort=False, as_index=False).sum()
-    FINALE_agg_inj['PRO_Pad'] = propad
-    INJECTOR_AGGREGATES[propad] = FINALE_agg_inj
-INJECTOR_AGGREGATES = pd.concat(INJECTOR_AGGREGATES.values()).reset_index(drop=True)
+
+INJECTOR_AGGREGATES = produce_injector_aggregates(candidates_by_prodpad, FINALE_inj, 'PRO_Pad')
+INJECTOR_AGGREGATES_PWELL = produce_injector_aggregates(candidates_by_prodwell, FINALE_inj, 'PRO_Well')
+
 
 if(plot_eda):
     # FIGURE PLOTTING (INJECTION PAD-LEVEL STATISTICS)
@@ -488,14 +569,25 @@ if(plot_eda):
 
     plt.savefig('inj_pads_ts.png')
 
+# # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # #
+# INJECTOR BY PRODUCER PAD-LEVEL AGGREGATION
+
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # #  COMBINE INJECTOR AND PRODUCER AGGREGATIONS # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 PRODUCER_AGGREGATES = FINALE_agg_pro[FINALE_agg_pro['PRO_Pad'].isin(available_pads_transformed)]
-COMBINED_AGGREGATES = pd.merge(PRODUCER_AGGREGATES, INJECTOR_AGGREGATES, how='inner', on=['Date', 'PRO_Pad'])
-COMBINED_AGGREGATES.drop(['Date', 'PRO_Alloc_Water'], axis=1, inplace=True)
+PRODUCER_AGGREGATES_PWELL = FINALE_agg_pro_pwell[FINALE_agg_pro_pwell['PRO_Well'].isin(available_pwells_transformed)]
+
+COMBINED_AGGREGATES = pd.merge(PRODUCER_AGGREGATES, INJECTOR_AGGREGATES,
+                               how='inner', on=['Date', 'PRO_Pad']).drop(['Date', 'PRO_Alloc_Water'], axis=1)
+
+COMBINED_AGGREGATES_PWELL = pd.merge(PRODUCER_AGGREGATES_PWELL, INJECTOR_AGGREGATES_PWELL,
+                                     how='inner', on=['Date', 'PRO_Well']).drop(['Date', 'PRO_Alloc_Water'], axis=1)
 
 COMBINED_AGGREGATES, dropped = drop_singles(COMBINED_AGGREGATES)
+COMBINED_AGGREGATES_PWELL, dropped_pwell = drop_singles(COMBINED_AGGREGATES_PWELL)
 
 # COMBINED_AGGREGATES_temp = COMBINED_AGGREGATES.rolling(window=7).mean()
 # COMBINED_AGGREGATES_temp['PRO_Pad'] = COMBINED_AGGREGATES['PRO_Pad']
@@ -512,7 +604,7 @@ COMBINED_AGGREGATES, dropped = drop_singles(COMBINED_AGGREGATES)
 # COMBINED_AGGREGATES_temp[(COMBINED_AGGREGATES_temp['PRO_Pad'] == 'B') &
 #                          (COMBINED_AGGREGATES_temp['PRO_Oil'] > 0)]['PRO_Oil'].plot()
 
-
+COMBINED_AGGREGATES_PWELL.to_csv('Data/combined_ipc_aggregates_PWELL.csv')
 COMBINED_AGGREGATES.to_csv('Data/combined_ipc_aggregates.csv')
 
 # plt.figure(figsize=(10, 100))

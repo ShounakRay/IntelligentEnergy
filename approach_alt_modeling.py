@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 24-Mar-2021 12:03:17:174  GMT-0600
+# @Last modified time: 24-Mar-2021 20:03:02:022  GMT-0600
 # @License: [Private IP]
 
 # @Author: Shounak Ray <Ray>
@@ -11,21 +11,21 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 24-Mar-2021 12:03:17:174  GMT-0600
+# @Last modified time: 24-Mar-2021 20:03:02:022  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
 # > https://github.com/h2oai/h2o-3/tree/master/h2o-docs/src/cheatsheets
 
 import os
-import pickle
+# import pickle
 import random
 import subprocess
-from collections import Counter
-from itertools import chain
+# from collections import Counter
+# from itertools import chain
 from typing import Final
 
-import featuretools
+# import featuretools
 import h2o
 import matplotlib.pyplot as plt  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp_plot()
 import numpy as np
@@ -34,7 +34,9 @@ import seaborn as sns
 import util_traversal
 from colorama import Fore, Style, init
 from h2o.automl import H2OAutoML
-from h2o.estimators import H2OTargetEncoderEstimator
+from matplotlib.patches import Rectangle
+
+# from h2o.estimators import H2OTargetEncoderEstimator
 
 init(convert=True)
 
@@ -71,16 +73,19 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 1200                                 # The longest that the experiment will run (seconds)
-RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments
-EVAL_METRIC: Final = 'auto'                                   # The evaluation metric to discontinue model training
-RANK_METRIC: Final = 'auto'                                   # Leaderboard ranking metric after all trainings
-DATA_PATH: Final = 'Data/combined_ipc_aggregates.csv'         # Where the client-specific data is located
+MAX_EXP_RUNTIME: Final = 1200                                     # The longest that the experiment will run (seconds)
+RANDOM_SEED: Final = 2381125                                      # To ensure reproducibility of experiments
+EVAL_METRIC: Final = 'auto'                                       # The evaluation metric to discontinue model training
+RANK_METRIC: Final = 'auto'                                       # Leaderboard ranking metric after all trainings
+DATA_PATH_PAD: Final = 'Data/combined_ipc_aggregates.csv'         # Where the client-specific pad data is located
+DATA_PATH_WELL: Final = 'Data/combined_ipc_aggregates_PWELL.csv'  # Where the client-specific well data is located
+
 
 # Feature Engineering Constants
 FIRST_WELL_STM: Final = 'CI06'                                # Used to splice column list to segregate responders
 FOLD_COLUMN: Final = "kfold_column"                           # Aesthetic: name for specified CV fold assignment column
 
+TOP_MODELS = 15
 RUN_TAG: Final = random.randint(0, 10000)
 while os.path.isdir('Modeling Reference Files/Round {}'.format(RUN_TAG)):
     RUN_TAG: Final = random.randint(0, 10000)
@@ -92,10 +97,158 @@ print(Fore.GREEN + 'STATUS: Directory created for Round {}'.format(RUN_TAG) + St
 util_traversal.print_tree_to_txt()
 
 
+def typical_manipulation_h20(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN):
+    data = conditional_drop(data, dropcols)
+
+    groupby_options = data.as_data_frame()[groupby].unique()
+
+    # Categorical Encoding Warning
+    categorical_names = list(data.as_data_frame().select_dtypes(object).columns)
+    if(len(categorical_names) > 0):
+        print(Fore.LIGHTRED_EX +
+              '> WARNING: {encoded} will be encoded by H2O model unless processed out.'.format(
+                  encoded=categorical_names)
+              + Style.RESET_ALL)
+
+    RESPONDER = responder
+
+    # NOTE: The model predictors a should only use the target encoded versions, and not the older versions
+    PREDICTORS = [col for col in data.columns
+                  if col not in [FOLD_COLUMN] + [RESPONDER] + [col.replace('_te', '')
+                                                               for col in data.columns if '_te' in col]]
+
+    print(Fore.GREEN + 'STATUS: Experiment hyperparameters and data configured.\n\n' + Style.RESET_ALL)
+
+    return data, groupby_options, PREDICTORS
+
+
+def run_experiment(data, groupby_options, RESPONDER,
+                   MAX_EXP_RUNTIME=MAX_EXP_RUNTIME, EVAL_METRIC=EVAL_METRIC, RANK_METRIC=RANK_METRIC,
+                   RANDOM_SEED=RANDOM_SEED):
+    cumulative_varimps = {}
+    for group in groupby_options:
+        print(Fore.GREEN + 'STATUS: Experiment -> Production Pad {}\n'.format(group) + Style.RESET_ALL)
+        aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,     # How long should the experiment run for?
+                            stopping_metric=EVAL_METRIC,          # The evaluation metric to discontinue model training
+                            sort_metric=RANK_METRIC,              # Leaderboard ranking metric after all trainings
+                            seed=RANDOM_SEED,
+                            project_name="IPC_MacroPadModeling_{RESP}_{PPAD}".format(RESP=RESPONDER,
+                                                                                     PPAD=group))
+
+        MODEL_DATA = data[data['PRO_Pad'] == group]
+        MODEL_DATA = MODEL_DATA.drop('PRO_Pad', axis=1)
+        aml_obj.train(y=RESPONDER,                                # A single responder
+                      training_frame=MODEL_DATA)                  # All the data is used for training, cross-validation
+
+        varimps = exp_cumulative_varimps(aml_obj,
+                                         tag=[group, RESPONDER],
+                                         tag_name=['production_pad', 'responder'])
+        cumulative_varimps[group] = varimps
+
+    print(Fore.GREEN + 'STATUS: Completed experiments\n\n' + Style.RESET_ALL)
+
+    # Concatenate all the individual model variable importances into one dataframe
+    final_cumulative_varimps = pd.concat(cumulative_varimps.values()).reset_index(drop=True)
+    # # Exclude any features encoded by default (H2O puts a `.` in the column name of these features)
+    # final_cumulative_varimps = final_cumulative_varimps.loc[
+    #     :, ~final_cumulative_varimps.columns.str.contains('.',regex=False)]
+    final_cumulative_varimps.index = final_cumulative_varimps['model_name'] + \
+        '___' + final_cumulative_varimps['production_pad']
+
+    print(Fore.GREEN + 'STATUS: Completed detecting variable importances.\n\n' + Style.RESET_ALL)
+
+    return final_cumulative_varimps
+
+
+def plot_varimp_heatmap(final_cumulative_varimps, highlight=True,
+                        preferred='Steam', preferred_importance=0.7, mean_importance_threshold=0.7,
+                        top_color='green', chosen_color='cyan', RUN_TAG=RUN_TAG):
+    # Plot heatmap of variable importances across all model combinations
+    fig, ax = plt.subplots(figsize=(10, 25))
+    predictor_rank = final_cumulative_varimps.mean(axis=0).sort_values(ascending=False)
+    sns_fig = sns.heatmap(final_cumulative_varimps[predictor_rank.keys()], annot=True, annot_kws={"size": 4})
+
+    if(highlight):
+        temp = final_cumulative_varimps[predictor_rank.keys()]
+
+        ranked_names = list(temp.index)[-TOP_MODELS:]
+        rect_width = len(predictor_rank)
+        bottom_y_loc: Final = len(temp) - 1
+        # For the top 10 models
+        for y_loc in range(TOP_MODELS + 1):
+            sns_fig.add_patch(Rectangle(xy=(0, bottom_y_loc - y_loc), width=rect_width, height=1,
+                                        edgecolor=top_color, fill=False, lw=3))
+
+        # For the models where steam is selected as the most important
+        ranked_steam = list(temp[(temp[preferred] >= preferred_importance) &
+                                 (temp.mean(axis=1) > mean_importance_threshold)].index)
+        y_locs = [list(range(len(temp))).index(list(temp.index).index(rstm)) for rstm in ranked_steam]
+        stm_loc = list(predictor_rank.index).index(preferred)
+        for y_loc in y_locs:
+            sns_fig.add_patch(Rectangle(xy=(stm_loc,  y_loc), width=1, height=1,
+                                        edgecolor=chosen_color, fill=False, lw=3))
+    else:
+        pass
+
+    sns_fig.get_figure().savefig('Modeling Reference Files/Round {tag}/macropad_varimps_{tag}.pdf'.format(tag=RUN_TAG),
+                                 bbox_inches='tight')
+    plt.clf()
+
+    return ranked_names, ranked_steam
+
+
+def model_performance(final_cumulative_varimps):
+    perf_data = {}
+    for model_name, model_obj in zip(final_cumulative_varimps.index, final_cumulative_varimps['model_object']):
+        perf_data[model_name] = {}
+        perf_data[model_name]['R^2'] = model_obj.r2()
+        # perf_data[model_name]['R'] = model_obj.r2() ** 0.5
+        perf_data[model_name]['MSE'] = model_obj.mse()
+        perf_data[model_name]['RMSE'] = model_obj.rmse()
+        perf_data[model_name]['RMSLE'] = model_obj.rmsle()
+        perf_data[model_name]['MAE'] = model_obj.mae()
+
+    # Structure model output and order
+    perf_data = pd.DataFrame(perf_data).T.sort_values('RMSE', ascending=False).infer_objects()
+    # Ensure correct data type
+    for col in perf_data.columns:
+        perf_data[col] = perf_data[col].astype(float)
+
+    return perf_data
+
+
+def plot_model_performance(perf_data, mcmaps, centers, ranked_names, ranked_steam, outlier_thresh_pnt=95,
+                           RUN_TAG=RUN_TAG):
+    fig, ax = plt.subplots(figsize=(10, 30), ncols=len(perf_data.columns), sharey=True)
+    for col in perf_data.columns:
+        cmap_local = mcmaps.get(col)
+        center_local = centers.get(col)
+        vmax_local = np.percentile(perf_data[col], outlier_thresh_pnt)
+        sns_fig = sns.heatmap(perf_data[[col]], ax=ax[list(perf_data.columns).index(col)],
+                              annot=True, annot_kws={"size": 4}, cbar=False,
+                              center=center_local, cmap=cmap_local, vmax=vmax_local)
+        for rtop in ranked_names:
+            y_loc = list(perf_data.index).index(rtop)
+            sns_fig.add_patch(Rectangle(xy=(0, y_loc), width=1, height=1,
+                                        edgecolor='green', fill=False, lw=3))
+        for rstm in ranked_steam:
+            y_loc = list(perf_data.index).index(rtop)
+            sns_fig.add_patch(Rectangle(xy=(0, y_loc), width=1, height=1,
+                                        edgecolor='cyan', fill=False, lw=4))
+        sns.set(font_scale=0.6)
+
+    sns_fig.get_figure().savefig('Modeling Reference Files/Round \
+                                 {tag}/model_performance_{tag}.pdf'.format(tag=RUN_TAG),
+                                 bbox_inches='tight')
+
+    print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
+
+
 def conditional_drop(data_frame, tbd_list):
     for tb_dropped in tbd_list:
         if(tb_dropped in data_frame.columns):
             data_frame = data_frame.drop(tb_dropped, axis=1)
+            print(Fore.GREEN + '> STATUS: {} dropped.'.format(tb_dropped) + Style.RESET_ALL)
         else:
             print(Fore.GREEN + '> STATUS: {} not in frame, skipping.'.format(tb_dropped) + Style.RESET_ALL)
     return data_frame
@@ -300,11 +453,13 @@ h2o.init(https=SECURED,
 process_log = snapshot(h2o.cluster(), show=False)
 
 # Confirm that the data path leads to an actual file
-if not (os.path.isfile(DATA_PATH)):
-    raise ValueError('ERROR: {data} does not exist in the specificied location.'.format(data=DATA_PATH))
+for path in [DATA_PATH_PAD, DATA_PATH_WELL]:
+    if not (os.path.isfile(path)):
+        raise ValueError('ERROR: {data} does not exist in the specificied location.'.format(data=path))
 
-# Import the data from the file and exclude any obvious features
-data = h2o.import_file(DATA_PATH)
+# Import the data from the file
+data_pad = h2o.import_file(DATA_PATH_PAD)
+data_well = h2o.import_file(DATA_PATH_WELL)
 
 print(Fore.GREEN + 'STATUS: Server initialized and data imported.\n\n' + Style.RESET_ALL)
 
@@ -314,28 +469,15 @@ _ = """
 #######################################################################################################################
 """
 # Table diagnostics
-# data = conditional_drop(data, ['C1', 'PRO_Alloc_Water'])
-# data = conditional_drop(data, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed'])
-data = conditional_drop(data, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed', 'Bin_1', 'Bin_5'])
-
-
-PRODUCTION_PADS = data.as_data_frame()['PRO_Pad'].unique()
-
-# Categorical Encoding Warning
-categorical_names = list(data.as_data_frame().select_dtypes(object).columns)
-if(len(categorical_names) > 0):
-    print(Fore.LIGHTRED_EX +
-          '> WARNING: {encoded} will be encoded by H2O model unless processed out.'.format(encoded=categorical_names)
-          + Style.RESET_ALL)
-
+# data_pad = conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water'])
+# data_pad = conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed'])
+# data_pad = conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed', 'Bin_1', 'Bin_5'])
 RESPONDER = 'PRO_Alloc_Oil'
 
-# NOTE: The model predictors a should only use the target encoded versions, and not the older versions
-PREDICTORS = [col for col in data.columns
-              if col not in [FOLD_COLUMN] + [RESPONDER] + [col.replace('_te', '')
-                                                           for col in data.columns if '_te' in col]]
+EXCLUDE = ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5']
+data_pad, groupby_options_pad, PREDICTORS = typical_manipulation_h20(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
+data_well, groupby_options_well, PREDICTORS = typical_manipulation_h20(data_well, 'PRO_Well', EXCLUDE, RESPONDER)
 
-print(Fore.GREEN + 'STATUS: Experiment hyperparameters and data configured.\n\n' + Style.RESET_ALL)
 
 _ = """
 #######################################################################################################################
@@ -361,66 +503,34 @@ if(input('Proceed with given hyperparameters? (Y/N)') == 'Y'):
 else:
     raise RuntimeError('\n\nSession forcefully terminated by user during review of hyperparamaters.')
 
-cumulative_varimps = {}
-for propad in PRODUCTION_PADS:
-    print(Fore.GREEN + 'STATUS: Experiment -> Production Pad {}\n'.format(propad) + Style.RESET_ALL)
-    aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,     # How long should the experiment run for?
-                        stopping_metric=EVAL_METRIC,          # The evaluation metric to discontinue model training
-                        sort_metric=RANK_METRIC,              # Leaderboard ranking metric after all trainings
-                        seed=RANDOM_SEED,
-                        project_name="IPC_MacroPadModeling_{RESP}_{PPAD}".format(RESP=RESPONDER,
-                                                                                 PPAD=propad))
 
-    MODEL_DATA = data[data['PRO_Pad'] == propad]
-    MODEL_DATA = MODEL_DATA.drop('PRO_Pad', axis=1)
-    aml_obj.train(y=RESPONDER,                                # A single responder
-                  training_frame=MODEL_DATA)                  # All the data is used for training, cross-validation
+final_cumulative_varimps_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER)
+final_cumulative_varimps_well = run_experiment(data_well, groupby_options_well, RESPONDER)
 
-    varimps = exp_cumulative_varimps(aml_obj,
-                                     tag=[propad, RESPONDER],
-                                     tag_name=['production_pad', 'responder'])
-    cumulative_varimps[propad] = varimps
+mask_pad = (final_cumulative_varimps_pad.mean(axis=1) > 0.0) & (final_cumulative_varimps_pad.mean(axis=1) < 1.0)
+FILT_final_cumulative_varimps_pad = final_cumulative_varimps_pad[mask_pad].select_dtypes(float)
 
-print(Fore.GREEN + 'STATUS: Completed experiments\n\n' + Style.RESET_ALL)
+mask_well = (final_cumulative_varimps_well.mean(axis=1) > 0.0) & (final_cumulative_varimps_well.mean(axis=1) < 1.0)
+FILT_final_cumulative_varimps_well = final_cumulative_varimps_well[mask_well].select_dtypes(float)
 
-# Concatenate all the individual model variable importances into one dataframe
-final_cumulative_varimps = pd.concat(cumulative_varimps.values()).reset_index(drop=True)
-# Exclude any features encoded by default (H2O puts a `.` in the column name of these features)
-# final_cumulative_varimps = final_cumulative_varimps.loc[:, ~final_cumulative_varimps.columns.str.contains('.',
-#                                                                                                           regex=False)]
-final_cumulative_varimps.index = final_cumulative_varimps['model_name'] + \
-    '___' + final_cumulative_varimps['production_pad']
 
-print(Fore.GREEN + 'STATUS: Completed detecting variable importances.\n\n' + Style.RESET_ALL)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # PLOTTING # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# NOTE: Save outputs for reference (so you don't have to wait an hour every time)
-# with open('Modeling Pickles/model_novarimps.pkl', 'wb') as f:
-#     pickle.dump(model_novarimps, f)
-# final_cumulative_varimps.to_pickle('Modeling Pickles/final_cumulative_varimps.pkl')
-# final_cumulative_varimps.to_html('Modeling Reference Files/final_cumulative_varimps.html')
 
-# NOTE: FOR REFERENCE
-# Filtering of the variable importance summary
-# FILT_final_cumulative_varimps = final_cumulative_varimps[~final_cumulative_varimps['model_name'
-#                                                                                    ].str.contains('XGBoost')
-#                                                          ].reset_index(drop=True).select_dtypes(float)
-FILT_final_cumulative_varimps = final_cumulative_varimps[(final_cumulative_varimps.mean(axis=1) > 0.0) &
-                                                         (final_cumulative_varimps.mean(axis=1) < 1.0)
-                                                         ].select_dtypes(float)
+ranked_names_pad, ranked_steam_pad = plot_varimp_heatmap(final_cumulative_varimps_pad)
+ranked_names_well, ranked_steam_well = plot_varimp_heatmap(final_cumulative_varimps_well)
 
-# Plot heatmap of variable importances across all model combinations
-fig, ax = plt.subplots(figsize=(10, 20))
-predictor_rank = FILT_final_cumulative_varimps.mean(axis=0).sort_values(ascending=False)
-sns_fig = sns.heatmap(FILT_final_cumulative_varimps[predictor_rank.keys()], annot=True, annot_kws={"size": 4})
-sns_fig.get_figure().savefig('Modeling Reference Files/Round {tag}/macropad_varimps_{tag}.pdf'.format(tag=RUN_TAG),
-                             bbox_inches='tight')
 
-plt.clf()
-
-correlation_matrix(FILT_final_cumulative_varimps, EXP_NAME='Aggregated Experiment Results',
+correlation_matrix(FILT_final_cumulative_varimps_pad, EXP_NAME='Aggregated Experiment Results',
                    FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_{tag}.pdf'.format(tag=RUN_TAG))
 
 print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # PLOTTING # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 _ = """
 #######################################################################################################################
@@ -428,15 +538,14 @@ _ = """
 #######################################################################################################################
 """
 
-perf_data = {}
-for model_name, model_obj in zip(final_cumulative_varimps.index, final_cumulative_varimps['model_object']):
-    perf_data[model_name] = {}
-    perf_data[model_name]['R^2'] = model_obj.r2()
-    # perf_data[model_name]['R'] = model_obj.r2() ** 0.5
-    perf_data[model_name]['MSE'] = model_obj.mse()
-    perf_data[model_name]['RMSE'] = model_obj.rmse()
-    perf_data[model_name]['RMSLE'] = model_obj.rmsle()
-    perf_data[model_name]['MAE'] = model_obj.mae()
+perf_pad = model_performance(FILT_final_cumulative_varimps_pad)
+perf_well = model_performance(FILT_final_cumulative_varimps_well)
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # PLOTTING # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 
 mcmaps = {'R^2': sns.color_palette('rocket_r', as_cmap=True),
           # 'R': sns.color_palette('rocket_r'),
@@ -450,26 +559,15 @@ centers = {'R^2': None,
            'RMSLE': None,
            'MAE': None}
 
-# Structure model output and order
-perf_data = pd.DataFrame(perf_data).T.sort_values('RMSE', ascending=False).infer_objects()
-# Ensure correct data type
-for col in perf_data.columns:
-    perf_data[col] = perf_data[col].astype(float)
 
-fig, ax = plt.subplots(figsize=(10, 30), ncols=len(perf_data.columns), sharey=True)
-for col in perf_data.columns:
-    cmap_local = mcmaps.get(col)
-    center_local = centers.get(col)
-    vmax_local = np.percentile(perf_data[col], 95)
-    sns_fig = sns.heatmap(perf_data[[col]], ax=ax[list(perf_data.columns).index(col)],
-                          annot=True, annot_kws={"size": 4}, cbar=False,
-                          center=center_local, cmap=cmap_local, vmax=vmax_local)
-    sns.set(font_scale=0.6)
+plot_model_performance(perf_well, mcmaps, centers, ranked_names_well, ranked_steam_well)
+plot_model_performance(perf_pad, mcmaps, centers, ranked_names_pad, ranked_steam_pad)
 
-sns_fig.get_figure().savefig('Modeling Reference Files/Round {tag}/model_performance_{tag}.pdf'.format(tag=RUN_TAG),
-                             bbox_inches='tight')
 
-print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # PLOTTING # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 
 _ = """
 #######################################################################################################################

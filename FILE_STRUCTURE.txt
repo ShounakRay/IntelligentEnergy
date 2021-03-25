@@ -27,6 +27,7 @@ IntelligentEnergy/
 │   ├── aggregate_fiber.csv
 │   ├── combined_ipc.csv
 │   ├── combined_ipc_aggregates.csv
+│   ├── combined_ipc_aggregates_PWELL.csv
 │   ├── DTS/
 │   │   ├── .DS_Store
 │   │   ├── AP2/
@@ -176,6 +177,7 @@ IntelligentEnergy/
 │   └── nx_visjs_TAILOR.html
 ├── IPC_Real_Manipulation.py
 ├── IPC_Real_Modeling.py
+├── just_foref.html
 ├── LICENSE
 ├── Manipulation Reference Files/
 │   ├── .DS_Store
@@ -249,21 +251,40 @@ IntelligentEnergy/
 │   │   ├── oilproxy_variable_importance_BP6.pdf
 │   │   └── Variable Importance Distributions.pdf
 │   ├── PredictProxy/
-│   ├── Producer-Injector Overlap.png
-│   ├── Round 1/
+│   ├── Producer-Injector Overlap for AP3.png
+│   ├── Producer-Injector Overlap for AP4.png
+│   ├── Producer-Injector Overlap for AP5.png
+│   ├── Producer-Injector Overlap for AP6.png
+│   ├── Producer-Injector Overlap for AP7.png
+│   ├── Producer-Injector Overlap for AP8.png
+│   ├── Producer-Injector Overlap for BP1.png
+│   ├── Producer-Injector Overlap for BP2.png
+│   ├── Producer-Injector Overlap for BP3.png
+│   ├── Producer-Injector Overlap for BP4.png
+│   ├── Producer-Injector Overlap for BP5.png
+│   ├── Producer-Injector Overlap for BP6.png
+│   ├── Round 2393/
+│   ├── Round 8503/
+│   ├── Round Base, Core Features/
+│   │   ├── macropad_varimps_920.pdf
+│   │   ├── model_performance_920.pdf
+│   │   └── select_var_corrs.920.pdf
+│   ├── Round Base, Spurious/
 │   │   ├── macropad_varimps.pdf
 │   │   ├── model_performance.pdf
 │   │   └── select_var_corrs.pdf
-│   ├── Round 1480/
-│   ├── Round 2449/
+│   ├── Round No SPM, No Bins/
+│   │   ├── macropad_varimps_6575.pdf
+│   │   ├── model_performance_6575.pdf
+│   │   └── select_var_corrs_6575.pdf
+│   ├── Round, No SPM/
 │   │   ├── macropad_varimps_2449.pdf
 │   │   ├── model_performance_2449.pdf
 │   │   └── select_var_corrs_2449.pdf
-│   ├── Round 3662/
-│   └── Round 920/
-│       ├── macropad_varimps_920.pdf
-│       ├── model_performance_920.pdf
-│       └── select_var_corrs.920.pdf
+│   └── Round, No SPM, End-bins/
+│       ├── macropad_varimps_6187.pdf
+│       ├── model_performance_6187.pdf
+│       └── select_var_corrs_6187.pdf
 ├── R&D References/
 │   ├── Adaptive TS SVM.pdf
 │   ├── Anomaly Detection.pdf
