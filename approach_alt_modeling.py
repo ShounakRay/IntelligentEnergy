@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 24-Mar-2021 20:03:02:022  GMT-0600
+# @Last modified time: 25-Mar-2021 01:03:90:906  GMT-0600
 # @License: [Private IP]
 
 # @Author: Shounak Ray <Ray>
@@ -11,7 +11,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 24-Mar-2021 20:03:02:022  GMT-0600
+# @Last modified time: 25-Mar-2021 01:03:90:906  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -73,7 +73,7 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 1200                                     # The longest that the experiment will run (seconds)
+MAX_EXP_RUNTIME: Final = 600                                      # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                      # To ensure reproducibility of experiments
 EVAL_METRIC: Final = 'auto'                                       # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'auto'                                       # Leaderboard ranking metric after all trainings
@@ -125,6 +125,7 @@ def typical_manipulation_h20(data, groupby, dropcols, responder, FOLD_COLUMN=FOL
 def run_experiment(data, groupby_options, RESPONDER,
                    MAX_EXP_RUNTIME=MAX_EXP_RUNTIME, EVAL_METRIC=EVAL_METRIC, RANK_METRIC=RANK_METRIC,
                    RANDOM_SEED=RANDOM_SEED):
+    tb_dropped = data_well.as_data_frame().select_dtypes(object).columns[0]
     cumulative_varimps = {}
     for group in groupby_options:
         print(Fore.GREEN + 'STATUS: Experiment -> Production Pad {}\n'.format(group) + Style.RESET_ALL)
@@ -135,14 +136,14 @@ def run_experiment(data, groupby_options, RESPONDER,
                             project_name="IPC_MacroPadModeling_{RESP}_{PPAD}".format(RESP=RESPONDER,
                                                                                      PPAD=group))
 
-        MODEL_DATA = data[data['PRO_Pad'] == group]
-        MODEL_DATA = MODEL_DATA.drop('PRO_Pad', axis=1)
+        MODEL_DATA = data[data[tb_dropped] == group]
+        MODEL_DATA = MODEL_DATA.drop(tb_dropped, axis=1)
         aml_obj.train(y=RESPONDER,                                # A single responder
                       training_frame=MODEL_DATA)                  # All the data is used for training, cross-validation
 
         varimps = exp_cumulative_varimps(aml_obj,
                                          tag=[group, RESPONDER],
-                                         tag_name=['production_pad', 'responder'])
+                                         tag_name=[tb_dropped, 'responder'])
         cumulative_varimps[group] = varimps
 
     print(Fore.GREEN + 'STATUS: Completed experiments\n\n' + Style.RESET_ALL)
@@ -153,20 +154,20 @@ def run_experiment(data, groupby_options, RESPONDER,
     # final_cumulative_varimps = final_cumulative_varimps.loc[
     #     :, ~final_cumulative_varimps.columns.str.contains('.',regex=False)]
     final_cumulative_varimps.index = final_cumulative_varimps['model_name'] + \
-        '___' + final_cumulative_varimps['production_pad']
+        '___' + final_cumulative_varimps[tb_dropped]
 
     print(Fore.GREEN + 'STATUS: Completed detecting variable importances.\n\n' + Style.RESET_ALL)
 
     return final_cumulative_varimps
 
 
-def plot_varimp_heatmap(final_cumulative_varimps, highlight=True,
+def plot_varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
                         preferred='Steam', preferred_importance=0.7, mean_importance_threshold=0.7,
-                        top_color='green', chosen_color='cyan', RUN_TAG=RUN_TAG):
+                        top_color='green', chosen_color='cyan', RUN_TAG=RUN_TAG, FIGSIZE=(10, 55), annot=False):
     # Plot heatmap of variable importances across all model combinations
-    fig, ax = plt.subplots(figsize=(10, 25))
+    fig, ax = plt.subplots(figsize=FIGSIZE)
     predictor_rank = final_cumulative_varimps.mean(axis=0).sort_values(ascending=False)
-    sns_fig = sns.heatmap(final_cumulative_varimps[predictor_rank.keys()], annot=True, annot_kws={"size": 4})
+    sns_fig = sns.heatmap(final_cumulative_varimps[predictor_rank.keys()], annot=annot, annot_kws={"size": 4})
 
     if(highlight):
         temp = final_cumulative_varimps[predictor_rank.keys()]
@@ -188,9 +189,9 @@ def plot_varimp_heatmap(final_cumulative_varimps, highlight=True,
             sns_fig.add_patch(Rectangle(xy=(stm_loc,  y_loc), width=1, height=1,
                                         edgecolor=chosen_color, fill=False, lw=3))
     else:
-        pass
+        ranked_names = ranked_steam = None
 
-    sns_fig.get_figure().savefig('Modeling Reference Files/Round {tag}/macropad_varimps_{tag}.pdf'.format(tag=RUN_TAG),
+    sns_fig.get_figure().savefig(FPATH,
                                  bbox_inches='tight')
     plt.clf()
 
@@ -217,24 +218,27 @@ def model_performance(final_cumulative_varimps):
     return perf_data
 
 
-def plot_model_performance(perf_data, mcmaps, centers, ranked_names, ranked_steam, outlier_thresh_pnt=95,
-                           RUN_TAG=RUN_TAG):
-    fig, ax = plt.subplots(figsize=(10, 30), ncols=len(perf_data.columns), sharey=True)
+def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, ranked_steam, outlier_thresh_pnt=95,
+                           RUN_TAG=RUN_TAG, annot=True, highlight=True, FIGSIZE=(10, 50)):
+    fig, ax = plt.subplots(figsize=FIGSIZE, ncols=len(perf_data.columns), sharey=True)
     for col in perf_data.columns:
         cmap_local = mcmaps.get(col)
         center_local = centers.get(col)
         vmax_local = np.percentile(perf_data[col], outlier_thresh_pnt)
         sns_fig = sns.heatmap(perf_data[[col]], ax=ax[list(perf_data.columns).index(col)],
-                              annot=True, annot_kws={"size": 4}, cbar=False,
+                              annot=annot, annot_kws={"size": 4}, cbar=False,
                               center=center_local, cmap=cmap_local, vmax=vmax_local)
-        for rtop in ranked_names:
-            y_loc = list(perf_data.index).index(rtop)
-            sns_fig.add_patch(Rectangle(xy=(0, y_loc), width=1, height=1,
-                                        edgecolor='green', fill=False, lw=3))
-        for rstm in ranked_steam:
-            y_loc = list(perf_data.index).index(rtop)
-            sns_fig.add_patch(Rectangle(xy=(0, y_loc), width=1, height=1,
-                                        edgecolor='cyan', fill=False, lw=4))
+        if(highlight):
+            if(ranked_names is None or ranked_steam is None):
+                raise ValueError('STATUS: Improper ranked rect inputs.')
+            for rtop in ranked_names:
+                y_loc = list(perf_data.index).index(rtop)
+                sns_fig.add_patch(Rectangle(xy=(0, y_loc), width=1, height=1,
+                                            edgecolor='green', fill=False, lw=3))
+            for rstm in ranked_steam:
+                y_loc = list(perf_data.index).index(rtop)
+                sns_fig.add_patch(Rectangle(xy=(0, y_loc), width=1, height=1,
+                                            edgecolor='cyan', fill=False, lw=4))
         sns.set(font_scale=0.6)
 
     sns_fig.get_figure().savefig('Modeling Reference Files/Round \
@@ -458,7 +462,7 @@ for path in [DATA_PATH_PAD, DATA_PATH_WELL]:
         raise ValueError('ERROR: {data} does not exist in the specificied location.'.format(data=path))
 
 # Import the data from the file
-data_pad = h2o.import_file(DATA_PATH_PAD)
+# data_pad = h2o.import_file(DATA_PATH_PAD)
 data_well = h2o.import_file(DATA_PATH_WELL)
 
 print(Fore.GREEN + 'STATUS: Server initialized and data imported.\n\n' + Style.RESET_ALL)
@@ -475,9 +479,8 @@ _ = """
 RESPONDER = 'PRO_Alloc_Oil'
 
 EXCLUDE = ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5']
-data_pad, groupby_options_pad, PREDICTORS = typical_manipulation_h20(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
+# data_pad, groupby_options_pad, PREDICTORS = typical_manipulation_h20(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
 data_well, groupby_options_well, PREDICTORS = typical_manipulation_h20(data_well, 'PRO_Well', EXCLUDE, RESPONDER)
-
 
 _ = """
 #######################################################################################################################
@@ -487,7 +490,7 @@ _ = """
 
 print(Fore.GREEN + 'STATUS: Hyperparameter Overview:')
 print(Fore.GREEN + '\t* max_runtime_secs\t-> ', MAX_EXP_RUNTIME,
-      Fore.GREEN + '\t\tThe maximum runtime in seconds that you want to allot in order to complete the model.')
+      Fore.GREEN + '\t\t\tThe maximum runtime in seconds that you want to allot in order to complete the model.')
 print(Fore.GREEN + '\t* stopping_metric\t-> ', EVAL_METRIC,
       Fore.GREEN + '\t\tThis option specifies the metric to consider when early stopping is specified')
 print(Fore.GREEN + '\t* sort_metric\t\t-> ', RANK_METRIC,
@@ -504,33 +507,32 @@ else:
     raise RuntimeError('\n\nSession forcefully terminated by user during review of hyperparamaters.')
 
 
-final_cumulative_varimps_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER)
+# final_cumulative_varimps_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER)
 final_cumulative_varimps_well = run_experiment(data_well, groupby_options_well, RESPONDER)
 
-mask_pad = (final_cumulative_varimps_pad.mean(axis=1) > 0.0) & (final_cumulative_varimps_pad.mean(axis=1) < 1.0)
-FILT_final_cumulative_varimps_pad = final_cumulative_varimps_pad[mask_pad].select_dtypes(float)
-
+# mask_pad = (final_cumulative_varimps_pad.mean(axis=1) > 0.0) & (final_cumulative_varimps_pad.mean(axis=1) < 1.0)
+# FILT_final_cumulative_varimps_pad = final_cumulative_varimps_pad[mask_pad].select_dtypes(float)
 mask_well = (final_cumulative_varimps_well.mean(axis=1) > 0.0) & (final_cumulative_varimps_well.mean(axis=1) < 1.0)
-FILT_final_cumulative_varimps_well = final_cumulative_varimps_well[mask_well].select_dtypes(float)
+FILT_final_cumulative_varimps_well = final_cumulative_varimps_well[mask_well]
 
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # PLOTTING # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# ranked_names_pad, ranked_steam_pad = plot_varimp_heatmap(final_cumulative_varimps_pad,
+#                                                          'Modeling Reference Files/Round {tag}\
+#                                                          /macropad_varimps_PAD{tag}.pdf'.format(tag=RUN_TAG))
+ranked_names_well, ranked_steam_well = plot_varimp_heatmap(final_cumulative_varimps_well,
+                                                           'Modeling Reference Files/Round ' +
+                                                           '{tag}/macropad_varimps_PWELL{tag}.pdf'.format(tag=RUN_TAG),
+                                                           FIGSIZE=(10, 80),
+                                                           highlight=False,
+                                                           annot=False)
 
+# correlation_matrix(FILT_final_cumulative_varimps_pad, EXP_NAME='Aggregated Experiment Results - Pad-Level',
+#                    FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_{tag}.pdf'.format(tag=RUN_TAG))
+correlation_matrix(FILT_final_cumulative_varimps_well, EXP_NAME='Aggregated Experiment Results - Well-Level',
+                   FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_PWELL{tag}.pdf'.format(tag=RUN_TAG))
 
-ranked_names_pad, ranked_steam_pad = plot_varimp_heatmap(final_cumulative_varimps_pad)
-ranked_names_well, ranked_steam_well = plot_varimp_heatmap(final_cumulative_varimps_well)
-
-
-correlation_matrix(FILT_final_cumulative_varimps_pad, EXP_NAME='Aggregated Experiment Results',
-                   FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_{tag}.pdf'.format(tag=RUN_TAG))
 
 print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # PLOTTING # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 _ = """
 #######################################################################################################################
@@ -538,14 +540,8 @@ _ = """
 #######################################################################################################################
 """
 
-perf_pad = model_performance(FILT_final_cumulative_varimps_pad)
-perf_well = model_performance(FILT_final_cumulative_varimps_well)
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # PLOTTING # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
+# perf_pad = model_performance(FILT_final_cumulative_varimps_pad)
+perf_well = model_performance(final_cumulative_varimps_well)
 
 mcmaps = {'R^2': sns.color_palette('rocket_r', as_cmap=True),
           # 'R': sns.color_palette('rocket_r'),
@@ -559,14 +555,15 @@ centers = {'R^2': None,
            'RMSLE': None,
            'MAE': None}
 
-
-plot_model_performance(perf_well, mcmaps, centers, ranked_names_well, ranked_steam_well)
-plot_model_performance(perf_pad, mcmaps, centers, ranked_names_pad, ranked_steam_pad)
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # PLOTTING # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# plot_model_performance(perf_pad,
+#                        'Modeling Reference Files/Round {tag}/model_performance_PWELL{tag}.pdf'.format(tag=RUN_TAG),
+#                        mcmaps, centers, ranked_names_pad, ranked_steam_pad)
+plot_model_performance(perf_well,
+                       'Modeling Reference Files/Round {tag}/model_performance_PWELL{tag}.pdf'.format(tag=RUN_TAG),
+                       mcmaps, centers, ranked_names_well, ranked_steam_well,
+                       highlight=False,
+                       annot=True,
+                       FIGSIZE=(10, 80))
 
 
 _ = """
