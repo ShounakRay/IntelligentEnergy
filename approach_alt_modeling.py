@@ -3,23 +3,20 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Mar-2021 10:03:13:130  GMT-0600
+# @Last modified time: 26-Mar-2021 16:03:33:335  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
 # > https://github.com/h2oai/h2o-3/tree/master/h2o-docs/src/cheatsheets
+# > https://www.h2o.ai/blog/h2o-release-3-30-zahradnik/#AutoML-Improvements
 # > https://seaborn.pydata.org/generated/seaborn.color_palette.html
 
 import os
-# import pickle
 import random
 import subprocess
 import sys
-# from collections import Counter
-# from itertools import chain
 from typing import Final
 
-# import featuretools
 import h2o
 import matplotlib
 import matplotlib.pyplot as plt  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp_plot()
@@ -27,19 +24,20 @@ import numpy as np
 import pandas as pd  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp()
 import seaborn as sns
 import util_traversal
-from colorama import Fore, Style, init
+from colorama import Fore, Style
 from h2o.automl import H2OAutoML
 from matplotlib.patches import Rectangle
 
 # from h2o.estimators import H2OTargetEncoderEstimator
 
-init(convert=True)
 
 _ = """
 #######################################################################################################################
 #########################################   VERIFY VERSIONS OF DEPENDENCIES   #########################################
 #######################################################################################################################
 """
+# Aesthetic Console Output constants
+OUT_BLOCK: Final = '»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»\n'
 
 # Get the major java version in current environment
 java_major_version = int(subprocess.check_output(['java', '-version'],
@@ -48,20 +46,18 @@ java_major_version = int(subprocess.check_output(['java', '-version'],
 # Check if environment's java version complies with H2O requirements
 # http://docs.h2o.ai/h2o/latest-stable/h2o-docs/welcome.html#requirements
 if not (java_major_version >= 8 and java_major_version <= 14):
-    raise ValueError('STATUS: Java Version is not between 8 and 14 (inclusive).\n  \
-                      h2o cluster will not be initialized.')
+    raise ValueError('STATUS: Java Version is not between 8 and 14 (inclusive).\nH2O cluster will not be initialized.')
 
-print("\x1b[32m" + f'STATUS: Dependency versions checked and confirmed.{Style.RESET_ALL}')
+print("\x1b[32m" + 'STATUS: Java dependency versions checked and confirmed.')
+print(OUT_BLOCK)
 
 _ = """
 #######################################################################################################################
 #########################################   DEFINITIONS AND HYPERPARAMTERS   ##########################################
 #######################################################################################################################
 """
-# Aesthetic Console Output constants
-OUT_BLOCK: Final = '»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»\n'
 
-# H2O server constants
+# H2O Server Constans
 IP_LINK: Final = 'localhost'                                  # Initializing the server on the local host (temporary)
 SECURED: Final = True if(IP_LINK != 'localhost') else False   # https protocol doesn't work locally, should be True
 PORT: Final = 54321                                           # Always specify the port that the server should use
@@ -69,33 +65,39 @@ SERVER_FORCE: Final = True                                    # Tries to init ne
 
 # Experiment > Model Training Constants and Hyperparameters
 MAX_EXP_RUNTIME: Final = 10                                       # The longest that the experiment will run (seconds)
-RANDOM_SEED: Final = 2381125                                      # To ensure reproducibility of experiments
+RANDOM_SEED: Final = 2381125                                      # To ensure reproducibility of experiments (caveats*)
 EVAL_METRIC: Final = 'auto'                                       # The evaluation metric to discontinue model training
-RANK_METRIC: Final = 'auto'                                       # Leaderboard ranking metric after all trainings
+RANK_METRIC: Final = 'rmse'                                       # Leaderboard ranking metric after all trainings
+CV_FOLDS: Final = 5
+STOPPING_ROUNDS: Final = 3
+WEIGHTS_COLUMN: Final = None
+EXPLOIT_RATIO: Final = 0
+MODELING_PLAN: Final = None
+
 DATA_PATH_PAD: Final = 'Data/combined_ipc_aggregates.csv'         # Where the client-specific pad data is located
 DATA_PATH_WELL: Final = 'Data/combined_ipc_aggregates_PWELL.csv'  # Where the client-specific well data is located
-PREFERRED_TOLERANCE = 0.1
 
 # Feature Engineering Constants
-FIRST_WELL_STM: Final = 'CI06'                                # Used to splice column list to segregate responders
-FOLD_COLUMN: Final = "kfold_column"                           # Aesthetic: name for specified CV fold assignment column
+FOLD_COLUMN: Final = "kfold_column"                           # Target encoding, must be consistent throughout training
+TOP_MODELS = 15                                               # The top n number of models which should be filtered.
+PREFERRED_TOLERANCE = 0.1                                     # Tolerance applied on RMSE for allowable responders
+TRAINING_VERBOSITY = 'info'                                   # Verbosity of training (None, 'debug', 'info', d'warn')
 
-TOP_MODELS = 15
-RUN_TAG: Final = random.randint(0, 10000)
-while os.path.isdir('Modeling Reference Files/Round {}'.format(RUN_TAG)):
+# Miscellaneous Constants
+RUN_TAG: Final = random.randint(0, 10000)                     # The identifying Key/ID for the specified run/config.
+
+# Ensure overwriting does not occur while making identifying experiment directory.
+while os.path.isdir(f'Modeling Reference Files/Round {RUN_TAG}'):
     RUN_TAG: Final = random.randint(0, 10000)
-os.makedirs('Modeling Reference Files/Round {}'.format(RUN_TAG))
+os.makedirs(f'Modeling Reference Files/Round {RUN_TAG}')
 
 print(Fore.GREEN + 'STATUS: Directory created for Round {}'.format(RUN_TAG) + Style.RESET_ALL)
 
 # Print file structure for reference every time this program is run
-util_traversal.print_tree_to_txt()
-
-# TODO: Add docblocks and data sanitation to remaining functions
-# TODO: Streamline __main__ code
+util_traversal.print_tree_to_txt(skip_git=True)
 
 
-def typical_manipulation_h20(data, groupby, dropcols, RESPONDER, FOLD_COLUMN=FOLD_COLUMN):
+def typical_manipulation_h20(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN):
     """Return minimally modified H2OFrame, all possible categorical filtering options, and predictor variables.
 
     Parameters
@@ -106,7 +108,7 @@ def typical_manipulation_h20(data, groupby, dropcols, RESPONDER, FOLD_COLUMN=FOL
         The name of the feature to determine groupings for.
     dropcols : list (of str)
         The names of the features of which to drop.
-    RESPONDER : list
+    responder : str
         The name of the dependent variable (which one will be predicted).
     FOLD_COLUMN : str
         The fold column used for target encoding (optional)
@@ -116,7 +118,7 @@ def typical_manipulation_h20(data, groupby, dropcols, RESPONDER, FOLD_COLUMN=FOL
     h2o.frame.H2OFrame, list (of str), list (of str)
         `data` -> The H2O frame with a couple dropped columns.
         `groupby_options` -> The list of filtering options in the upcoming experiment.
-        `PREDICTORS` -> The list of predictors to be used in the model
+        `predictors` -> The list of predictors to be used in the model
                         (only for aesthetics, not inputted to actual experiment).
 
     """
@@ -131,17 +133,19 @@ def typical_manipulation_h20(data, groupby, dropcols, RESPONDER, FOLD_COLUMN=FOL
     _expected_value_args = {'data': None,
                             'groupby': None,
                             'dropcols': None,
-                            'responder': ['PRO_Well', 'PRO_Pad'],
+                            'responder': ['PRO_Alloc_Oil'],
                             'FOLD_COLUMN': None}
     data_type_sanitation(_provided_args, _expected_type_args, name)
     data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
 
+    # Drop the specified columns before proceeding with the experiment
     data = conditional_drop(data, dropcols)
 
+    # Determine all possible groups to filter the source data for when conducting the experiment
     groupby_options = data.as_data_frame()[groupby].unique()
 
-    # Categorical Encoding Warning
+    # Warns user that certain categorical features will be auto-encoded by H2O if not dropped
     categorical_names = list(data.as_data_frame().select_dtypes(object).columns)
     if(len(categorical_names) > 0):
         print(Fore.LIGHTRED_EX +
@@ -149,20 +153,23 @@ def typical_manipulation_h20(data, groupby, dropcols, RESPONDER, FOLD_COLUMN=FOL
                   encoded=categorical_names)
               + Style.RESET_ALL)
 
+    # Determines the predictors which will be used in running the experiment. Based on configuration.
     # NOTE: The model predictors a should only use the target encoded versions, and not the older versions
-    PREDICTORS = [col for col in data.columns
-                  if col not in [FOLD_COLUMN] + [RESPONDER] + [col.replace('_te', '')
+    predictors = [col for col in data.columns
+                  if col not in [FOLD_COLUMN] + [responder] + [col.replace('_te', '')
                                                                for col in data.columns if '_te' in col]]
 
     print(Fore.GREEN + 'STATUS: Experiment hyperparameters and data configured.\n\n' + Style.RESET_ALL)
 
-    return data, groupby_options, PREDICTORS
+    return data, groupby_options, predictors
 
 
-def run_experiment(data, groupby_options, RESPONDER,
+def run_experiment(data, groupby_options, responder,
                    MAX_EXP_RUNTIME=MAX_EXP_RUNTIME, EVAL_METRIC=EVAL_METRIC, RANK_METRIC=RANK_METRIC,
-                   RANDOM_SEED=RANDOM_SEED):
+                   RANDOM_SEED=RANDOM_SEED, CV_FOLDS=CV_FOLDS, STOPPING_ROUNDS=STOPPING_ROUNDS,
+                   EXPLOIT_RATIO=EXPLOIT_RATIO, MODELING_PLAN=MODELING_PLAN, TRAINING_VERBOSITY=TRAINING_VERBOSITY):
     """Runs an H2O Experiment given specific configurations.
+
 
     Parameters
     ----------
@@ -170,7 +177,7 @@ def run_experiment(data, groupby_options, RESPONDER,
         The data which will be used to train/test the models
     groupby_options : list
         The list of filtering options in the upcoming experiment.
-    RESPONDER : str
+    responder : str
         The name of the dependent variable (which one will be predicted).
     MAX_EXP_RUNTIME : int
         The maximum runtime in seconds that you want to allot in order to complete the model.
@@ -180,11 +187,25 @@ def run_experiment(data, groupby_options, RESPONDER,
         This option specifies the metric used to sort the Leaderboard by at the end of an AutoML run.
     RANDOM_SEED : int
         Random seed for reproducibility. There are caveats.
+    WEIGHTS_COLUMN : str or None
+        The name of the column in the H2O Frame that has the row-wise weights
+        Note that this is different from an offset column (which is more corrective and bias-introducing)
+    CV_FOLDS : int
+        The number of fold for cross validation in training each model.
+    STOPPING_ROUNDS : int
+        The number of rounds which should pass depends on `EVAL_METRIC` aka `stopping_metric` parameter.
+    EXPLOIT_RATIO : float
+        The "budget ratio" dedicated to exploiting vs. exploring for fine-tuning XGBoost and GBM. **Experimental**
+    MODELING_PLAN : list (of list !!!!!) OR None
+        A specific modeling sequence to follow when running the experiments.
+    TRAINING_VERBOSITY : str OR None
+        The verbosity for which the experiment/model-training process is described.
 
     Returns
     -------
-    pandas.core.DataFrame
+    pandas.core.DataFrame, h2o.automl.autoh2o.H2OAutoML
         `final_cumulative_varimps` -> The data with aggregated variable importances per model in all groups provided.
+        `aml_obj` ->  The H2O object with information for all the experiments
 
     """
     """DATA SANITATION"""
@@ -192,56 +213,68 @@ def run_experiment(data, groupby_options, RESPONDER,
     name = sys._getframe(0).f_code.co_name
     _expected_type_args = {'data': None,
                            'groupby_options': [str],
-                           'RESPONDER': [dict],
+                           'responder': [dict],
                            'MAX_EXP_RUNTIME': [dict],
                            'EVAL_METRIC': [list, type(None)],
                            'RANK_METRIC': [list, type(None)],
-                           'RANDOM_SEED': [int, float]}
+                           'RANDOM_SEED': [int, float],
+                           'CV_FOLDS': [int],
+                           'STOPPING_ROUNDS': [int],
+                           'EXPLOIT_RATIO': [float],
+                           'MODELING_PLAN': [list, type(None)],
+                           'TRAINING_VERBOSITY': [str, type(None)]}
     _expected_value_args = {'data': None,
                             'groupby_options': None,
-                            'RESPONDER': None,
+                            'responder': None,
                             'MAX_EXP_RUNTIME': [1, 10000],
                             'EVAL_METRIC': None,
                             'RANK_METRIC': None,
-                            'RANDOM_SEED': [0, np.inf]}
+                            'RANDOM_SEED': [0, np.inf],
+                            'CV_FOLDS': list(range(1, 10 + 1)),
+                            'STOPPING_ROUNDS': list(range(1, 10 + 1)),
+                            'EXPLOIT_RATIO': [0.0, 1.0],
+                            'MODELING_PLAN': None,
+                            'TRAINING_VERBOSITY': None}
     data_type_sanitation(_provided_args, _expected_type_args, name)
     data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
 
-    tb_dropped = data.as_data_frame().select_dtypes(object).columns[0]
+    # Determined the categorical variable to be dropped (should only be the groupby)
+    tb_dropped = data.as_data_frame().select_dtypes(object).columns
+    if not (len(tb_dropped) == 1):
+        raise RuntimeError('Only and exactly one categorical variable was expected in the provided data. However, ' +
+                           f'{len(tb_dropped)} were provided.')
+    else:
+        tb_dropped = tb_dropped[0]
+
+    # Run all the H2O experiments for all the different groupby_options. Store in unique project name.
     cumulative_varimps = {}
+    initialized_projects = []
     for group in groupby_options:
         print(Fore.GREEN + 'STATUS: Experiment -> Production Pad {}\n'.format(group) + Style.RESET_ALL)
+        # Configure the experiment
+        project_name = "IPC_MacroPadModeling__{RESP}__{PPAD}".format(RESP=responder, PPAD=group)
         aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,     # How long should the experiment run for?
                             stopping_metric=EVAL_METRIC,          # The evaluation metric to discontinue model training
                             sort_metric=RANK_METRIC,              # Leaderboard ranking metric after all trainings
                             seed=RANDOM_SEED,
-                            project_name="IPC_MacroPadModeling_{RESP}_{PPAD}".format(RESP=RESPONDER,
-                                                                                     PPAD=group))
-
+                            nfolds=CV_FOLDS,                      # Number of fold in cross-validation
+                            stopping_rounds=STOPPING_ROUNDS,      # Rounds after which training stops w/o convergence
+                            exploitation_ratio=EXPLOIT_RATIO,     # What budget proportion is set for exploitation?
+                            modeling_plan=MODELING_PLAN,          # What is modeling order/plan to follow?
+                            verbosity=TRAINING_VERBOSITY,         # What is the verbosity of training process?
+                            project_name=project_name)
+        initialized_projects.append(project_name)
+        # Filter the complete, provided source data to only include info for the current group
         MODEL_DATA = data[data[tb_dropped] == group]
         MODEL_DATA = MODEL_DATA.drop(tb_dropped, axis=1)
-        aml_obj.train(y=RESPONDER,                                # A single responder
+        aml_obj.train(y=responder,                                # A single responder
+                      weights_column=WEIGHTS_COLUMN,              # What is the weights column in the H2O frame?
                       training_frame=MODEL_DATA)                  # All the data is used for training, cross-validation
-
-        varimps = exp_cumulative_varimps(aml_obj,
-                                         tag=[group, RESPONDER],
-                                         tag_name=[tb_dropped, 'responder'])
-        cumulative_varimps[group] = varimps
 
     print(Fore.GREEN + 'STATUS: Completed experiments\n\n' + Style.RESET_ALL)
 
-    # Concatenate all the individual model variable importances into one dataframe
-    final_cumulative_varimps = pd.concat(cumulative_varimps.values()).reset_index(drop=True)
-    # # Exclude any features encoded by default (H2O puts a `.` in the column name of these features)
-    # final_cumulative_varimps = final_cumulative_varimps.loc[
-    #     :, ~final_cumulative_varimps.columns.str.contains('.',regex=False)]
-    final_cumulative_varimps.index = final_cumulative_varimps['model_name'] + \
-        '___' + final_cumulative_varimps[tb_dropped]
-
-    print(Fore.GREEN + 'STATUS: Completed detecting variable importances.\n\n' + Style.RESET_ALL)
-
-    return final_cumulative_varimps
+    return initialized_projects
 
 
 def plot_varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
@@ -709,13 +742,13 @@ def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict
             'health': cluster.cloud_healthy}
 
 
-def shutdown_confirm(cluster: h2o.backend.cluster.H2OCluster) -> None:
+def shutdown_confirm(h2o_instance: type(h2o)) -> None:
     """Terminates the provided H2O cluster.
 
     Parameters
     ----------
-    cluster : h2o.backend.cluster.H2OCluster
-        The H2O cluster where the server was initialized.
+    cluster : type(h2o)
+        The H2O instance where the server was initialized.
 
     Returns
     -------
@@ -726,90 +759,102 @@ def shutdown_confirm(cluster: h2o.backend.cluster.H2OCluster) -> None:
     """DATA SANITATION"""
     _provided_args = locals()
     name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'cluster': [h2o.backend.cluster.H2OCluster]}
-    _expected_value_args = {'cluster': None}
+    _expected_type_args = {'h2o_instance': [type(h2o)]}
+    _expected_value_args = {'h2o_instance': None}
     data_type_sanitation(_provided_args, _expected_type_args, name)
     data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
 
     # SHUT DOWN the cluster after you're done working with it
-    cluster.shutdown()
+    h2o_instance.remove_all()
+    h2o_instance.cluster().shutdown()
     # Double checking...
     try:
-        snapshot(cluster)
+        snapshot(h2o_instance.cluster)
         raise ValueError('ERROR: H2O cluster improperly closed!')
     except Exception:
         pass
 
 
-def exp_cumulative_varimps(aml_obj, tag=None, tag_name=None):
+def get_aml_objects(project_names):
+    objs = []
+    for project_name in project_names:
+        objs.append(h2o.automl.get_automl(project_name))
+    return objs
+
+
+def exp_cumulative_varimps(project_names):
     """Determines variable importances for all models in an experiment.
 
     Parameters
     ----------
-    aml_obj : h2o.automl.autoh2o.H2OAutoML
+    project_names : id
         The H2O AutoML experiment configuration.
-    tag: iterable (of str) OR None
-        The value(s) for the desired tag per experiment iteration.
-        Must be in iterable AND len(tag) == len(tag_name).
-    tag_name: iterable (of str) OR None
-        The value(s) for the desired identifier for the specifc tag. Must be in iterable.
-        Must be in iterable AND len(tag) == len(tag_name).
 
     Returns
     -------
     pandas.core.frame.DataFrame, list (of tuples)
         A concatenated DataFrame with all the model's variable importances for all the input features.
-        A list of the models that did not have a variable importance. Format: (name, model object).
+        [Optional] A list of the models that did not have a variable importance. Format: (name, model object).
 
     """
     """DATA SANITATION"""
     _provided_args = locals()
     name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'aml_obj': [h2o.automl.autoh2o.H2OAutoML],
-                           'tag': [list],
-                           'tag_name': [list]}
-    _expected_value_args = {'aml_obj': None,
-                            'tag': None,
-                            'tag_name': None}
+    _expected_type_args = {'aml_obj': [h2o.automl.autoh2o.H2OAutoML]}
+    _expected_value_args = {'aml_obj': None}
     data_type_sanitation(_provided_args, _expected_type_args, name)
     data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
 
-    h2o.backend.cluster.H2OCluster
+    aml_objects = get_aml_objects(project_names)
 
-    cumulative_varimps = []
-    model_novarimps = []
-    exp_leaderboard = aml_obj.leaderboard
-    # Retrieve all the model objects from the given experiment
-    exp_models = [h2o.get_model(exp_leaderboard[m_num, "model_id"]) for m_num in range(exp_leaderboard.shape[0])]
-    for model in exp_models:
-        model_name = model.params['model_id']['actual']['name']
-        variable_importance = model.varimp(use_pandas=True)
+    variable_importances = []
+    for aml_obj in aml_objects:
+        responder, group = project_names[aml_objects.index(aml_obj)].split('__')[-2:]
+        tag = [group, responder]
+        tag_name = ['group', 'responder']
 
-        # Only conduct variable importance dataset manipulation if ranking data is available (eg. unavailable, stacked)
-        if(variable_importance is not None):
-            variable_importance = pd.pivot_table(variable_importance,
-                                                 values='scaled_importance',
-                                                 columns='variable').reset_index(drop=True)
-            variable_importance['model_name'] = model_name
-            variable_importance['model_object'] = model
-            if(tag is not None and tag_name is not None):
-                for i in range(len(tag)):
-                    variable_importance[tag_name[i]] = tag[i]
-            variable_importance.columns.name = None
+        cumulative_varimps = []
+        model_novarimps = []
+        exp_leaderboard = aml_obj.leaderboard
+        # Retrieve all the model objects from the given experiment
+        exp_models = [h2o.get_model(exp_leaderboard[m_num, "model_id"]) for m_num in range(exp_leaderboard.shape[0])]
+        for model in exp_models:
+            model_name = model.params['model_id']['actual']['name']
+            variable_importance = model.varimp(use_pandas=True)
 
-            cumulative_varimps.append(variable_importance)
-        else:
-            # print('> WARNING: Variable importances unavailable for {MDL}'.format(MDL=model_name))
-            model_novarimps.append((model_name, model))
+            # Only conduct variable importance dataset manipulation if ranking data is available
+            # > (eg. unavailable, stacked)
+            if(variable_importance is not None):
+                variable_importance = pd.pivot_table(variable_importance,
+                                                     values='scaled_importance',
+                                                     columns='variable').reset_index(drop=True)
+                variable_importance['model_name'] = model_name
+                variable_importance['model_object'] = model
+                if(tag is not None and tag_name is not None):
+                    for i in range(len(tag)):
+                        variable_importance[tag_name[i]] = tag[i]
+                variable_importance.index = variable_importance['model_name'] + \
+                    '___GROUP-' + variable_importance['group']
+                variable_importance.drop('model_name', axis=1, inplace=True)
+                variable_importance.columns.name = None
+
+                cumulative_varimps.append(variable_importance)
+            else:
+                # print('> WARNING: Variable importances unavailable for {MDL}'.format(MDL=model_name))
+                model_novarimps.append((model_name, model))
+
+        varimp_all_models_in_run = pd.concat(cumulative_varimps).reset_index(drop=True)
+        variable_importances.append(varimp_all_models_in_run)  # , model_novarimps
+
+    requested_varimps = pd.concat(variable_importances)
 
     print(Fore.GREEN +
-          '> STATUS: Determined variable importances of all models in {} experiment.'.format(aml_obj.project_name) +
+          '> STATUS: Determined variable importances of all models in given experiments: {}.'.format(project_names) +
           Style.RESET_ALL)
 
-    return pd.concat(cumulative_varimps).reset_index(drop=True)  # , model_novarimps
-
+    return requested_varimps
 # Diverging: sns.diverging_palette(240, 10, n=9, as_cmap=True)
 
 
@@ -901,6 +946,7 @@ def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False
 
 
 print(Fore.GREEN + 'STATUS: Hyperparameters assigned and functions defined.' + Style.RESET_ALL)
+print(OUT_BLOCK)
 
 _ = """
 #######################################################################################################################
@@ -913,7 +959,7 @@ h2o.init(https=SECURED,
          ip=IP_LINK,
          port=PORT,
          start_h2o=SERVER_FORCE)
-
+# Filter the complete, provided source data to only include info f')
 # Check the status of the cluster, just for reference
 process_log = snapshot(h2o.cluster(), show=False)
 
@@ -926,7 +972,8 @@ for path in [DATA_PATH_PAD, DATA_PATH_WELL]:
 # data_well = h2o.import_file(DATA_PATH_WELL)
 data_pad = h2o.import_file(DATA_PATH_PAD)
 
-print(Fore.GREEN + 'STATUS: Server initialized and data imported.\n\n' + Style.RESET_ALL)
+print(Fore.GREEN + 'STATUS: Server initialized and data imported.' + Style.RESET_ALL)
+print(OUT_BLOCK)
 
 _ = """
 #######################################################################################################################
@@ -942,6 +989,8 @@ RESPONDER = 'PRO_Alloc_Oil'
 EXCLUDE = ['C1', 'PRO_Alloc_Water', 'Bin_1', 'Bin_5', 'Date']
 data_pad, groupby_options_pad, PREDICTORS = typical_manipulation_h20(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
 # data_well, groupby_options_well, PREDICTORS = typical_manipulation_h20(data_well, 'PRO_Well', EXCLUDE, RESPONDER)
+
+print(OUT_BLOCK)
 
 _ = """
 #######################################################################################################################
@@ -967,9 +1016,10 @@ if(input('Proceed with given hyperparameters? (Y/N)') == 'Y'):
 else:
     raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
 
-
-final_cumulative_varimps_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER)
+project_names = run_experiment(data_pad, groupby_options_pad, RESPONDER)
 # final_cumulative_varimps_well = run_experiment(data_well, groupby_options_well, RESPONDER)
+
+exp_cumulative_varimps(project_names)
 
 mask_pad = (final_cumulative_varimps_pad.mean(axis=1) > 0.0) & (final_cumulative_varimps_pad.mean(axis=1) < 1.0)
 FILT_final_cumulative_varimps_pad = final_cumulative_varimps_pad[mask_pad].select_dtypes(float)
@@ -994,7 +1044,7 @@ correlation_matrix(FILT_final_cumulative_varimps_pad, EXP_NAME='Aggregated Exper
 
 
 print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
-
+print(OUT_BLOCK)
 _ = """
 #######################################################################################################################
 #########################################   EVALUATE MODEL PERFORMANCE   ##############################################
@@ -1005,11 +1055,10 @@ _ = """
 # benchline = data_well_pd[data_well_pd[RESPONDER] > 0].groupby(
 #     ['Date', 'PRO_Well'])[RESPONDER].sum().reset_index().groupby('PRO_Well').median()
 # grouped_tolerance = (PREFERRED_TOLERANCE * benchline).to_dict()[RESPONDER]
-
 perf_pad = model_performance(final_cumulative_varimps_pad)
 
 # perf_well = model_performance(final_cumulative_varimps_well)
-# perf_well['group_type'] = [t[1] for t in perf_well.index.str.split('___')]
+# perf_well['group_type'] = [t[1] for t in perf_well.index.str.split('___GROUP')]
 
 mcmaps = {'R^2': sns.color_palette('rocket_r', as_cmap=True),
           # 'R': sns.color_palette('rocket_r'),
@@ -1028,8 +1077,8 @@ plot_model_performance(perf_pad.select_dtypes(float),
                        mcmaps, centers, ranked_names_pad, ranked_steam_pad,
                        highlight=False,
                        annot=True,
-                       annot_size=2,
-                       FIGSIZE=(10, 100))
+                       annot_size=6,
+                       FIGSIZE=(10, 10))
 # plot_model_performance(perf_well.select_dtypes(float),
 #                        'Modeling Reference Files/Round {tag}/model_performance_PWELL{tag}.pdf'.format(tag=RUN_TAG),
 #                        mcmaps, centers, ranked_names_well, ranked_steam_well,
@@ -1046,8 +1095,8 @@ _ = """
 """
 
 if(input('Shutdown Cluster? (Y/N)') == 'Y'):
-    shutdown_confirm(h2o.cluster())
-
+    shutdown_confirm(h2o)
+print(OUT_BLOCK)
 
 # EOF
 

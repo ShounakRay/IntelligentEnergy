@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 24-Mar-2021 17:03:51:512  GMT-0600
+# @Last modified time: 26-Mar-2021 11:03:46:462  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -390,3 +390,7 @@
 # FILT_final_cumulative_varimps = final_cumulative_varimps[~final_cumulative_varimps['model_name'
 #                                                                                    ].str.contains('XGBoost')
 #                                                          ].reset_index(drop=True).select_dtypes(float)
+
+# # Exclude any features encoded by default (H2O puts a `.` in the column name of these features)
+# final_cumulative_varimps = final_cumulative_varimps.loc[
+#     :, ~final_cumulative_varimps.columns.str.contains('.',regex=False)]
