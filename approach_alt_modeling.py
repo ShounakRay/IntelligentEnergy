@@ -3,19 +3,12 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 25-Mar-2021 22:03:94:948  GMT-0600
-# @License: [Private IP]
-
-# @Author: Shounak Ray <Ray>
-# @Date:   09-Mar-2021 11:03:94:947  GMT-0700
-# @Email:  rijshouray@gmail.com
-# @Filename: IPC_Real_Modeling.py
-# @Last modified by:   Ray
-# @Last modified time: 25-Mar-2021 22:03:94:948  GMT-0600
+# @Last modified time: 26-Mar-2021 00:03:94:946  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
 # > https://github.com/h2oai/h2o-3/tree/master/h2o-docs/src/cheatsheets
+# > https://seaborn.pydata.org/generated/seaborn.color_palette.html
 
 import os
 # import pickle
@@ -130,16 +123,16 @@ def typical_manipulation_h20(data, groupby, dropcols, RESPONDER, FOLD_COLUMN=FOL
     """DATA SANITATION"""
     _provided_args = locals()
     name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'data': [h2o.frame.H2OFrame],
+    _expected_type_args = {'data': None,
                            'groupby': [str],
                            'dropcols': [list],
                            'responder': [str],
                            'FOLD_COLUMN': [str, type(None)]}
-    _expected_value_args = {'data': [None],
-                            'groupby': [None],
-                            'dropcols': [None],
+    _expected_value_args = {'data': None,
+                            'groupby': None,
+                            'dropcols': None,
                             'responder': ['PRO_Well', 'PRO_Pad'],
-                            'FOLD_COLUMN': [None]}
+                            'FOLD_COLUMN': None}
     data_type_sanitation(_provided_args, _expected_type_args, name)
     data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
@@ -197,25 +190,25 @@ def run_experiment(data, groupby_options, RESPONDER,
     """DATA SANITATION"""
     _provided_args = locals()
     name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'data': [pd.core.frame.DataFrame],
+    _expected_type_args = {'data': None,
                            'groupby_options': [str],
                            'RESPONDER': [dict],
                            'MAX_EXP_RUNTIME': [dict],
                            'EVAL_METRIC': [list, type(None)],
                            'RANK_METRIC': [list, type(None)],
                            'RANDOM_SEED': [int, float]}
-    _expected_value_args = {'data': [None],
-                            'groupby_options': [None],
-                            'RESPONDER': [None],
+    _expected_value_args = {'data': None,
+                            'groupby_options': None,
+                            'RESPONDER': None,
                             'MAX_EXP_RUNTIME': [1, 10000],
-                            'EVAL_METRIC': [None],
-                            'RANK_METRIC': [None],
+                            'EVAL_METRIC': None,
+                            'RANK_METRIC': None,
                             'RANDOM_SEED': [0, np.inf]}
     data_type_sanitation(_provided_args, _expected_type_args, name)
     data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
 
-    tb_dropped = data_well.as_data_frame().select_dtypes(object).columns[0]
+    tb_dropped = data.as_data_frame().select_dtypes(object).columns[0]
     cumulative_varimps = {}
     for group in groupby_options:
         print(Fore.GREEN + 'STATUS: Experiment -> Production Pad {}\n'.format(group) + Style.RESET_ALL)
@@ -308,7 +301,7 @@ def plot_varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
     _expected_type_args = {'final_cumulative_varimps': [pd.core.frame.DataFrame],
                            'FPATH': [str],
                            'highlight': [bool],
-                           'preferred': [bool],
+                           'preferred': [str],
                            'preferred_importance': [float],
                            'mean_importance_threshold': [float],
                            'top_color': [str],
@@ -317,16 +310,16 @@ def plot_varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
                            'FIGSIZE': [tuple],
                            'annot': [bool],
                            'TOP_MODELS': [int]}
-    _expected_value_args = {'final_cumulative_varimps': [None],
-                            'FPATH': [None],
+    _expected_value_args = {'final_cumulative_varimps': None,
+                            'FPATH': None,
                             'highlight': [True, False],
-                            'preferred': [True, False],
+                            'preferred': None,
                             'preferred_importance': [0.0, 1.0],
                             'mean_importance_threshold': [0.0, 1.0],
-                            'top_color': [None],
-                            'chosen_color': [None],
-                            'RUN_TAG': [None],
-                            'FIGSIZE': [None],
+                            'top_color': None,
+                            'chosen_color': None,
+                            'RUN_TAG': None,
+                            'FIGSIZE': None,
                             'annot': [True, False],
                             'TOP_MODELS': [0, np.inf]}
     data_type_sanitation(_provided_args, _expected_type_args, name)
@@ -396,9 +389,9 @@ def model_performance(tracker_with_modelobj, sort_by='RMSE', modelobj_colname='m
     _expected_type_args = {'tracker_with_modelobj': [pd.core.frame.DataFrame],
                            'sort_by': [str],
                            'modelobj_colname': [str]}
-    _expected_value_args = {'tracker_with_modelobj': [None],
+    _expected_value_args = {'tracker_with_modelobj': None,
                             'sort_by': ['R^2', 'MSE', 'RMSE', 'RMSLE', 'MAE'],
-                            'modelobj_colname': [None]}
+                            'modelobj_colname': None}
     data_type_sanitation(_provided_args, _expected_type_args, name)
     data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
@@ -454,10 +447,12 @@ def data_type_sanitation(val_and_inputs, expected, name):
     try:
         for k, v in val_and_inputs.items():
             if type(v) not in expected.get(k):
-                mismatched[k] = {'recieved': type(v), 'expected': expected.get(k)}
+                if(expected.get(k) is not None):
+                    print(v)
+                    mismatched[k] = {'recieved': type(v), 'expected': expected.get(k)}
     except Exception as e:
         print('>> WARNING: Exception (likely edge case) ignored in data_type_sanitation')
-        print('>>\t' + str(e)[:20] + '...')
+        print('>>\t' + str(e)[:50] + '...')
 
     if(len(mismatched) > 0):
         raise ValueError(
@@ -492,24 +487,24 @@ def data_range_sanitation(val_and_inputs, expected, name):
             f'> One of the data type sanitations was unsucessful due to unexpected base inputs. Guess {str(name)}.')
 
     mismatched = {}
-
+    type(h2o.cluster()) == list
     try:
         for k, v in val_and_inputs.items():
             restriction = expected.get(k)
             if(type(restriction) == tuple or type(restriction) == list):
                 if(len(restriction) > 2 or len(restriction) == 1):  # Check if input is one of the specified elements
                     if v not in restriction:
-                        mismatched[k] = {'recieved': v, 'expected (inclusion)': expected.get(k)}
+                        mismatched[k] = {'recieved': v, 'expected (inclusion I)': expected.get(k)}
                 elif(len(restriction) == 2):  # Treat it as a range
                     if(type(restriction[0]) == float or type(restriction[0]) == int):
                         if not (v >= restriction[0] and v <= restriction[1]):
                             mismatched[k] = {'recieved': v, 'expected (num. range)': expected.get(k)}
                     else:
                         if v not in restriction:
-                            mismatched[k] = {'recieved': v, 'expected (inclusion)': expected.get(k)}
+                            mismatched[k] = {'recieved': v, 'expected (inclusion II)': expected.get(k)}
                 else:
                     raise ValueError(f'Restriction for {k} improperly set in {name} range sanitation')
-            elif(restriction[0] is None):
+            elif(restriction is None):
                 pass
     except Exception:
         print('>> WARNING: Exception (likely edge case) ignored in data_range_sanitation')
@@ -584,18 +579,18 @@ def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, rank
                            'annot_size': [int],
                            'highlight': [bool],
                            'FIGSIZE': [tuple]}
-    _expected_value_args = {'perf_data': [None],
-                            'FPATH': [None],
-                            'mcmaps': [None],
-                            'centers': [None],
-                            'ranked_names': [None],
-                            'ranked_steam': [None],
+    _expected_value_args = {'perf_data': None,
+                            'FPATH': None,
+                            'mcmaps': None,
+                            'centers': None,
+                            'ranked_names': None,
+                            'ranked_steam': None,
                             'extrema_thresh_pct': (0, 99),
-                            'RUN_TAG': [None],
-                            'annot': [None],
+                            'RUN_TAG': None,
+                            'annot': None,
                             'annot_size': (0, np.inf),
-                            'highlight': [None],
-                            'FIGSIZE': [None]}
+                            'highlight': None,
+                            'FIGSIZE': None}
     data_type_sanitation(_provided_args, _expected_type_args, name)
     data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
@@ -657,10 +652,10 @@ def conditional_drop(data_frame, tbd_list):
     """DATA SANITATION"""
     _provided_args = locals()
     name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'data_frame': [h2o.frame.H2OFrame],
+    _expected_type_args = {'data_frame': None,
                            'tbd_list': [list]}
-    _expected_value_args = {'data_frame': [None],
-                            'tbd_list': [None]}
+    _expected_value_args = {'data_frame': None,
+                            'tbd_list': None}
     data_type_sanitation(_provided_args, _expected_type_args, name)
     data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
@@ -695,7 +690,7 @@ def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict
     name = sys._getframe(0).f_code.co_name
     _expected_type_args = {'cluster': [h2o.backend.cluster.H2OCluster],
                            'show': [bool]}
-    _expected_value_args = {'cluster': [None],
+    _expected_value_args = {'cluster': None,
                             'show': [True, False]}
     data_type_sanitation(_provided_args, _expected_type_args, name)
     data_range_sanitation(_provided_args, _expected_value_args, name)
@@ -730,7 +725,7 @@ def shutdown_confirm(cluster: h2o.backend.cluster.H2OCluster) -> None:
     _provided_args = locals()
     name = sys._getframe(0).f_code.co_name
     _expected_type_args = {'cluster': [h2o.backend.cluster.H2OCluster]}
-    _expected_value_args = {'cluster': [None]}
+    _expected_value_args = {'cluster': None}
     data_type_sanitation(_provided_args, _expected_type_args, name)
     data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
@@ -769,12 +764,12 @@ def exp_cumulative_varimps(aml_obj, tag=None, tag_name=None):
     """DATA SANITATION"""
     _provided_args = locals()
     name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'aml_obj': [h2o.backend.cluster.H2OCluster],
-                           'tag': [str, None],
-                           'tag_name': [str, None]}
-    _expected_value_args = {'aml_obj': [None],
-                            'tag': [None],
-                            'tag_name': [None]}
+    _expected_type_args = {'aml_obj': [h2o.automl.autoh2o.H2OAutoML],
+                           'tag': [list],
+                           'tag_name': [list]}
+    _expected_value_args = {'aml_obj': None,
+                            'tag': None,
+                            'tag_name': None}
     data_type_sanitation(_provided_args, _expected_type_args, name)
     data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
@@ -814,7 +809,6 @@ def exp_cumulative_varimps(aml_obj, tag=None, tag_name=None):
     return pd.concat(cumulative_varimps).reset_index(drop=True)  # , model_novarimps
 
 # Diverging: sns.diverging_palette(240, 10, n=9, as_cmap=True)
-# https://seaborn.pydata.org/generated/seaborn.color_palette.html
 
 
 def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False,
@@ -858,6 +852,7 @@ def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False
     name = sys._getframe(0).f_code.co_name
     _expected_type_args = {'df': [pd.core.frame.DataFrame],
                            'FPATH': [str],
+                           'EXP_NAME': [str],
                            'abs_arg': [bool],
                            'mask': [bool],
                            'annot': [bool],
@@ -865,14 +860,15 @@ def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False
                            'cmap': [matplotlib.colors.ListedColormap, matplotlib.colors.LinearSegmentedColormap],
                            'figsize': [tuple],
                            'contrast_factor': [float]}
-    _expected_value_args = {'df': [None],
-                            'FPATH': [None],
+    _expected_value_args = {'df': None,
+                            'FPATH': None,
+                            'EXP_PATH': None,
                             'abs_arg': [True, False],
                             'mask': [True, False],
                             'annot': [True, False],
-                            'type_corrs': [None],
-                            'cmap': [None],
-                            'figsize': [None],
+                            'type_corrs': None,
+                            'cmap': None,
+                            'figsize': None,
                             'contrast_factor': [0.0000001, np.inf]}
     data_type_sanitation(_provided_args, _expected_type_args, name)
     data_range_sanitation(_provided_args, _expected_value_args, name)
@@ -925,8 +921,8 @@ for path in [DATA_PATH_PAD, DATA_PATH_WELL]:
         raise ValueError('ERROR: {data} does not exist in the specificied location.'.format(data=path))
 
 # Import the data from the file
-# data_pad = h2o.import_file(DATA_PATH_PAD)
-data_well = h2o.import_file(DATA_PATH_WELL)
+# data_well = h2o.import_file(DATA_PATH_WELL)
+data_pad = h2o.import_file(DATA_PATH_PAD)
 
 print(Fore.GREEN + 'STATUS: Server initialized and data imported.\n\n' + Style.RESET_ALL)
 
@@ -942,8 +938,8 @@ _ = """
 RESPONDER = 'PRO_Alloc_Oil'
 
 EXCLUDE = ['C1', 'PRO_Alloc_Water', 'Bin_1', 'Bin_5', 'Date']
-# data_pad, groupby_options_pad, PREDICTORS = typical_manipulation_h20(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
-data_well, groupby_options_well, PREDICTORS = typical_manipulation_h20(data_well, 'PRO_Well', EXCLUDE, RESPONDER)
+data_pad, groupby_options_pad, PREDICTORS = typical_manipulation_h20(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
+# data_well, groupby_options_well, PREDICTORS = typical_manipulation_h20(data_well, 'PRO_Well', EXCLUDE, RESPONDER)
 
 _ = """
 #######################################################################################################################
@@ -970,29 +966,29 @@ else:
     raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
 
 
-# final_cumulative_varimps_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER)
-final_cumulative_varimps_well = run_experiment(data_well, groupby_options_well, RESPONDER)
+final_cumulative_varimps_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER)
+# final_cumulative_varimps_well = run_experiment(data_well, groupby_options_well, RESPONDER)
 
-# mask_pad = (final_cumulative_varimps_pad.mean(axis=1) > 0.0) & (final_cumulative_varimps_pad.mean(axis=1) < 1.0)
-# FILT_final_cumulative_varimps_pad = final_cumulative_varimps_pad[mask_pad].select_dtypes(float)
-mask_well = (final_cumulative_varimps_well.mean(axis=1) > 0.0) & (final_cumulative_varimps_well.mean(axis=1) < 1.0)
-FILT_final_cumulative_varimps_well = final_cumulative_varimps_well[mask_well]
+mask_pad = (final_cumulative_varimps_pad.mean(axis=1) > 0.0) & (final_cumulative_varimps_pad.mean(axis=1) < 1.0)
+FILT_final_cumulative_varimps_pad = final_cumulative_varimps_pad[mask_pad].select_dtypes(float)
+# mask_well = (final_cumulative_varimps_well.mean(axis=1) > 0.0) & (final_cumulative_varimps_well.mean(axis=1) < 1.0)
+# FILT_final_cumulative_varimps_well = final_cumulative_varimps_well[mask_well]
 
 
-# ranked_names_pad, ranked_steam_pad = plot_varimp_heatmap(final_cumulative_varimps_pad,
-#                                                          'Modeling Reference Files/Round {tag}\
-#                                                          /macropad_varimps_PAD{tag}.pdf'.format(tag=RUN_TAG))
-ranked_names_well, ranked_steam_well = plot_varimp_heatmap(final_cumulative_varimps_well,
-                                                           'Modeling Reference Files/Round ' +
-                                                           '{tag}/macropad_varimps_PWELL{tag}.pdf'.format(tag=RUN_TAG),
-                                                           FIGSIZE=(10, 100),
-                                                           highlight=False,
-                                                           annot=False)
+ranked_names_pad, ranked_steam_pad = plot_varimp_heatmap(final_cumulative_varimps_pad,
+                                                         'Modeling Reference Files/Round {tag}\
+                                                         /macropad_varimps_PAD{tag}.pdf'.format(tag=RUN_TAG))
+# ranked_names_well, ranked_steam_well = plot_varimp_heatmap(final_cumulative_varimps_well,
+#                                                            'Modeling Reference Files/Round ' +
+#                                                            '{tag}/macropad_varimps_PWELL{tag}.pdf'.format(tag=RUN_TAG),
+#                                                            FIGSIZE=(10, 100),
+#                                                            highlight=False,
+#                                                            annot=False)
 
-# correlation_matrix(FILT_final_cumulative_varimps_pad, EXP_NAME='Aggregated Experiment Results - Pad-Level',
-#                    FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_{tag}.pdf'.format(tag=RUN_TAG))
-correlation_matrix(FILT_final_cumulative_varimps_well, EXP_NAME='Aggregated Experiment Results - Well-Level',
-                   FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_PWELL{tag}.pdf'.format(tag=RUN_TAG))
+correlation_matrix(FILT_final_cumulative_varimps_pad, EXP_NAME='Aggregated Experiment Results - Pad-Level',
+                   FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_{tag}.pdf'.format(tag=RUN_TAG))
+# correlation_matrix(FILT_final_cumulative_varimps_well, EXP_NAME='Aggregated Experiment Results - Well-Level',
+#                    FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_PWELL{tag}.pdf'.format(tag=RUN_TAG))
 
 
 print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
@@ -1003,14 +999,15 @@ _ = """
 #######################################################################################################################
 """
 
-data_well_pd = pd.read_csv(DATA_PATH_WELL)
-benchline = data_well_pd[data_well_pd[RESPONDER] > 0].groupby(
-    ['Date', 'PRO_Well'])[RESPONDER].sum().reset_index().groupby('PRO_Well').median()
-grouped_tolerance = (PREFERRED_TOLERANCE * benchline).to_dict()[RESPONDER]
+# data_well_pd = pd.read_csv(DATA_PATH_WELL)
+# benchline = data_well_pd[data_well_pd[RESPONDER] > 0].groupby(
+#     ['Date', 'PRO_Well'])[RESPONDER].sum().reset_index().groupby('PRO_Well').median()
+# grouped_tolerance = (PREFERRED_TOLERANCE * benchline).to_dict()[RESPONDER]
 
-# perf_pad = model_performance(FILT_final_cumulative_varimps_pad)
-perf_well = model_performance(final_cumulative_varimps_well)
-perf_well['group_type'] = [t[1] for t in perf_well.index.str.split('___')]
+perf_pad = model_performance(final_cumulative_varimps_pad)
+
+# perf_well = model_performance(final_cumulative_varimps_well)
+# perf_well['group_type'] = [t[1] for t in perf_well.index.str.split('___')]
 
 mcmaps = {'R^2': sns.color_palette('rocket_r', as_cmap=True),
           # 'R': sns.color_palette('rocket_r'),
@@ -1024,16 +1021,20 @@ centers = {'R^2': None,
            'RMSLE': None,
            'MAE': None}
 
-# plot_model_performance(perf_pad,
-#                        'Modeling Reference Files/Round {tag}/model_performance_PWELL{tag}.pdf'.format(tag=RUN_TAG),
-#                        mcmaps, centers, ranked_names_pad, ranked_steam_pad)
-plot_model_performance(perf_well.select_dtypes(float),
-                       'Modeling Reference Files/Round {tag}/model_performance_PWELL{tag}.pdf'.format(tag=RUN_TAG),
-                       mcmaps, centers, ranked_names_well, ranked_steam_well,
+plot_model_performance(perf_pad.select_dtypes(float),
+                       'Modeling Reference Files/Round {tag}/model_performance_PAD{tag}.pdf'.format(tag=RUN_TAG),
+                       mcmaps, centers, ranked_names_pad, ranked_steam_pad,
                        highlight=False,
                        annot=True,
                        annot_size=2,
                        FIGSIZE=(10, 100))
+# plot_model_performance(perf_well.select_dtypes(float),
+#                        'Modeling Reference Files/Round {tag}/model_performance_PWELL{tag}.pdf'.format(tag=RUN_TAG),
+#                        mcmaps, centers, ranked_names_well, ranked_steam_well,
+#                        highlight=False,
+#                        annot=True,
+#                        annot_size=2,
+#                        FIGSIZE=(10, 100))
 
 
 _ = """
@@ -1041,6 +1042,7 @@ _ = """
 ########################################   SHUTDOWN THE SESSION/CLUSTER   #############################################
 #######################################################################################################################
 """
+
 if(input('Shutdown Cluster? (Y/N)') == 'Y'):
     shutdown_confirm(h2o.cluster())
 
