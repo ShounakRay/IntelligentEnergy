@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Mar-2021 00:03:94:946  GMT-0600
+# @Last modified time: 26-Mar-2021 10:03:13:130  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -604,8 +604,8 @@ def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, rank
     for col in perf_data.columns:
         cmap_local = mcmaps.get(col)
         center_local = centers.get(col)
-        vmax_local = np.percentile(perf_data[col], 100 - extrema_thresh_pct)
-        vmin_local = np.percentile(perf_data[col], extrema_thresh_pct)
+        vmax_local = np.percentile(perf_data[col].dropna(), 100 - extrema_thresh_pct)
+        vmin_local = np.percentile(perf_data[col].dropna(), extrema_thresh_pct)
 
         if not (vmin_local < vmax_local):
             raise ValueError('> ERROR: Heatmap min, center, max have incompatible values {}-{}-{}'.format(vmin_local,
@@ -614,7 +614,9 @@ def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, rank
 
         sns_fig = sns.heatmap(perf_data[[col]], ax=ax[list(perf_data.columns).index(col)],
                               annot=annot, annot_kws={"size": annot_size}, cbar=False,
-                              center=center_local, cmap=cmap_local, vmax=vmax_local, vmin=vmin_local)
+                              center=center_local, cmap=cmap_local, mask=perf_data[[col]].isnull(),
+                              vmax=vmax_local, vmin=vmin_local)
+
         if(highlight):
             if(ranked_names is None or ranked_steam is None):
                 raise ValueError('STATUS: Improper ranked rect inputs.')
@@ -976,8 +978,8 @@ FILT_final_cumulative_varimps_pad = final_cumulative_varimps_pad[mask_pad].selec
 
 
 ranked_names_pad, ranked_steam_pad = plot_varimp_heatmap(final_cumulative_varimps_pad,
-                                                         'Modeling Reference Files/Round {tag}\
-                                                         /macropad_varimps_PAD{tag}.pdf'.format(tag=RUN_TAG))
+                                                         'Modeling Reference Files/Round ' +
+                                                         '{tag}/macropad_varimps_PAD{tag}.pdf'.format(tag=RUN_TAG))
 # ranked_names_well, ranked_steam_well = plot_varimp_heatmap(final_cumulative_varimps_well,
 #                                                            'Modeling Reference Files/Round ' +
 #                                                            '{tag}/macropad_varimps_PWELL{tag}.pdf'.format(tag=RUN_TAG),
