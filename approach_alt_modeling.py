@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 25-Mar-2021 17:03:88:881  GMT-0600
+# @Last modified time: 25-Mar-2021 22:03:94:948  GMT-0600
 # @License: [Private IP]
 
 # @Author: Shounak Ray <Ray>
@@ -11,7 +11,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: IPC_Real_Modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 25-Mar-2021 17:03:88:881  GMT-0600
+# @Last modified time: 25-Mar-2021 22:03:94:948  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -28,6 +28,7 @@ from typing import Final
 
 # import featuretools
 import h2o
+import matplotlib
 import matplotlib.pyplot as plt  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp_plot()
 import numpy as np
 import pandas as pd  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp()
@@ -120,9 +121,10 @@ def typical_manipulation_h20(data, groupby, dropcols, RESPONDER, FOLD_COLUMN=FOL
     Returns
     -------
     h2o.frame.H2OFrame, list (of str), list (of str)
-        The H2O frame with a couple dropped columns.
-        The list of filtering options in the upcoming experiment.
-        The list of predictors to be used in the model (only for aesthetics, not inputted to actual experiment).
+        `data` -> The H2O frame with a couple dropped columns.
+        `groupby_options` -> The list of filtering options in the upcoming experiment.
+        `PREDICTORS` -> The list of predictors to be used in the model
+                        (only for aesthetics, not inputted to actual experiment).
 
     """
     """DATA SANITATION"""
@@ -167,7 +169,7 @@ def typical_manipulation_h20(data, groupby, dropcols, RESPONDER, FOLD_COLUMN=FOL
 def run_experiment(data, groupby_options, RESPONDER,
                    MAX_EXP_RUNTIME=MAX_EXP_RUNTIME, EVAL_METRIC=EVAL_METRIC, RANK_METRIC=RANK_METRIC,
                    RANDOM_SEED=RANDOM_SEED):
-    """Run an H2O Experiment given specific configurations.
+    """Runs an H2O Experiment given specific configurations.
 
     Parameters
     ----------
@@ -189,7 +191,7 @@ def run_experiment(data, groupby_options, RESPONDER,
     Returns
     -------
     pandas.core.DataFrame
-        The data with all, aggregated variable importance per model in all groupby_options provided.
+        `final_cumulative_varimps` -> The data with aggregated variable importances per model in all groups provided.
 
     """
     """DATA SANITATION"""
@@ -212,6 +214,7 @@ def run_experiment(data, groupby_options, RESPONDER,
     data_type_sanitation(_provided_args, _expected_type_args, name)
     data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
+
     tb_dropped = data_well.as_data_frame().select_dtypes(object).columns[0]
     cumulative_varimps = {}
     for group in groupby_options:
@@ -250,40 +253,86 @@ def run_experiment(data, groupby_options, RESPONDER,
 
 def plot_varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
                         preferred='Steam', preferred_importance=0.7, mean_importance_threshold=0.7,
-                        top_color='green', chosen_color='cyan', RUN_TAG=RUN_TAG, FIGSIZE=(10, 55), annot=False):
-    """Short summary.
+                        top_color='green', chosen_color='cyan', RUN_TAG=RUN_TAG, FIGSIZE=(10, 55), annot=False,
+                        TOP_MODELS=TOP_MODELS):
+    """Plots a heatmap based on the inputted variable importance data.
 
     Parameters
     ----------
-    final_cumulative_varimps : type
-        Description of parameter `final_cumulative_varimps`.
-    FPATH : type
-        Description of parameter `FPATH`.
-    highlight : type
-        Description of parameter `highlight`.
-    preferred : type
-        Description of parameter `preferred`.
-    preferred_importance : type
-        Description of parameter `preferred_importance`.
-    mean_importance_threshold : type
-        Description of parameter `mean_importance_threshold`.
-    top_color : type
-        Description of parameter `top_color`.
-    chosen_color : type
-        Description of parameter `chosen_color`.
-    RUN_TAG : type
-        Description of parameter `RUN_TAG`.
-    FIGSIZE : type
-        Description of parameter `FIGSIZE`.
-    annot : type
-        Description of parameter `annot`.
+    final_cumulative_varimps : pandas.core.frame.DataFrame
+        Data on each models variable importances, the model itself, and other identifying tags (like group_type)
+        Only numerical features are used to make the heatmap though.
+    FPATH : str
+        The file path where the heatmap should be saved.
+    highlight : bool
+        Whether or not Rectangles should be patched to show steam-preferred models and top models generated.
+    preferred : str
+        The name of the predictor that is preferred for the model to rank higher (for explainability).
+    preferred_importance : float
+        The relative, threshold value for which the `preferred` predictor should be at or above.
+        Used for filtering variable importances and identifying `ranked steam`.
+    mean_importance_threshold : float
+        The relative, average of each variable importance row (per model) should be at or above this value.
+        Used for filtering variable importances and identifying `ranked steam`.
+    top_color : str
+        The color the top model(s) should be. Specifically the Rectangle patched on.
+        Corresponds to `ranked_names`.
+    chosen_color : str
+        The color the high-steam model(s) should be. Specifically the Rectangle patched on.
+        Corresponds to `ranked_steam`.
+    RUN_TAG : int
+        The identifying ID/KEY for the global configuration.
+    FIGSIZE : tuple (of ints)
+        The size of the ouputted heatmap figure. (width x length)
+    annot : bool
+        Whether the heatmap should be annotated (aka variable importances should be labelled).
+        This should be turned off for very dense plots (lots of rows) or for minimzing runtime.
+    TOP_MODELS : int
+        The top n number of models which should be implicitly filtered.
+        Corresponds to `ranked_names`.
 
     Returns
     -------
-    type
-        Description of returned object.
+    list (of str), list (of str) OR None, None
+        `ranked_names` -> The indices of the models which are ranked according to
+                          `TOP_MODELS` and the predictor rank.
+        `ranked_steam` -> The indices of the models which are ranked according to
+                          `preferred` and `preferred_importance`.
+
+        NOTE RETURN DEPENDENCY: if `highlight` is False then both `ranked_names` and `ranked_steam` are None.
 
     """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'final_cumulative_varimps': [pd.core.frame.DataFrame],
+                           'FPATH': [str],
+                           'highlight': [bool],
+                           'preferred': [bool],
+                           'preferred_importance': [float],
+                           'mean_importance_threshold': [float],
+                           'top_color': [str],
+                           'chosen_color': [str],
+                           'RUN_TAG': [int],
+                           'FIGSIZE': [tuple],
+                           'annot': [bool],
+                           'TOP_MODELS': [int]}
+    _expected_value_args = {'final_cumulative_varimps': [None],
+                            'FPATH': [None],
+                            'highlight': [True, False],
+                            'preferred': [True, False],
+                            'preferred_importance': [0.0, 1.0],
+                            'mean_importance_threshold': [0.0, 1.0],
+                            'top_color': [None],
+                            'chosen_color': [None],
+                            'RUN_TAG': [None],
+                            'FIGSIZE': [None],
+                            'annot': [True, False],
+                            'TOP_MODELS': [0, np.inf]}
+    data_type_sanitation(_provided_args, _expected_type_args, name)
+    data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
+
     # Plot heatmap of variable importances across all model combinations
     fig, ax = plt.subplots(figsize=FIGSIZE)
     predictor_rank = final_cumulative_varimps.mean(axis=0).sort_values(ascending=False)
@@ -317,23 +366,45 @@ def plot_varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
 
     return ranked_names, ranked_steam
 
+# TODO: Add "normalized" RMSE value according to a benchline
 
-def model_performance(final_cumulative_varimps):
-    """Short summary.
+
+def model_performance(tracker_with_modelobj, sort_by='RMSE', modelobj_colname='model_object'):
+    """Determine the model performance through a series of predefined metrics.
 
     Parameters
     ----------
-    final_cumulative_varimps : type
-        Description of parameter `final_cumulative_varimps`.
+    tracker_with_modelobj : pandas.core.frame.DataFrame
+        Data on each models variable importances, the model itself, and other identifying tags (like group_type)
+        Only numerical features are used to make the heatmap though.
+    sort_by : str
+        The performance metric which should be used to sort the performance data in descending order.
+    modelobj_colname : str
+        The name of the column in the DataFrame which contains the H2O models.
+        The default value is dependent on the defintion of `exp_cumulative_varimps`.
 
     Returns
     -------
-    type
-        Description of returned object.
+    pandas.core.frame.DataFrame
+        `perf_data` -> The DataFrame with performance information for all of the inputted models.
+                       Specifically, R^2, R (optionally), MSE, RMSE, RMSLE, and MAE.
 
     """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'tracker_with_modelobj': [pd.core.frame.DataFrame],
+                           'sort_by': [str],
+                           'modelobj_colname': [str]}
+    _expected_value_args = {'tracker_with_modelobj': [None],
+                            'sort_by': ['R^2', 'MSE', 'RMSE', 'RMSLE', 'MAE'],
+                            'modelobj_colname': [None]}
+    data_type_sanitation(_provided_args, _expected_type_args, name)
+    data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
+
     perf_data = {}
-    for model_name, model_obj in zip(final_cumulative_varimps.index, final_cumulative_varimps['model_object']):
+    for model_name, model_obj in zip(tracker_with_modelobj.index, tracker_with_modelobj[modelobj_colname]):
         perf_data[model_name] = {}
         perf_data[model_name]['R^2'] = model_obj.r2()
         # perf_data[model_name]['R'] = model_obj.r2() ** 0.5
@@ -343,8 +414,9 @@ def model_performance(final_cumulative_varimps):
         perf_data[model_name]['MAE'] = model_obj.mae()
 
     # Structure model output and order
-    perf_data = pd.DataFrame(perf_data).T.sort_values('RMSE', ascending=False).infer_objects()
-    # Ensure correct data type
+    perf_data = pd.DataFrame(perf_data).T.sort_values(sort_by, ascending=False).infer_objects()
+    # Ensure correct data type of ther performance metric columns.
+    # Ensures proper heatmap functionality in `plot_model_performance`
     for col in perf_data.columns:
         perf_data[col] = perf_data[col].astype(float)
 
@@ -352,34 +424,40 @@ def model_performance(final_cumulative_varimps):
 
 
 def data_type_sanitation(val_and_inputs, expected, name):
-    """Short summary.
+    """Generic performance of data sanitation. Specifically cross-checks expected and actual data types.
 
     Parameters
     ----------
-    val_and_inputs : type
-        Description of parameter `val_and_inputs`.
-    expected : type
-        Description of parameter `expected`.
-    name : type
-        Description of parameter `name`.
+    val_and_inputs : dict
+        Outlines relationship between inputted variable names and their literal values.
+        That is, keys are "variable names" and values are "literal values."
+    expected : dict
+        Outlines relationship between expected variable names and their expected types.
+        That is, keys are "variable names" and values are "expected dtypes."
+    name : str
+        The name of the parent function. Used for user clarity and reference in error-handling.
 
     Returns
     -------
-    type
-        Description of returned object.
+    None
+        Nothing! Simply a type check given inputs.
 
     """
     # Data sanitation for this function itself
     if(len(val_and_inputs) != len(expected)):
         raise ValueError(f'> Mismatched expected and received dicts during data_type_sanitation for {name}.')
+    if not (type(val_and_inputs) == dict and type(expected) == dict and type(name) == str):
+        raise ValueError(
+            f'> One of the data type sanitations was unsucessful due to unexpected base inputs. Guess {str(name)}.')
 
     mismatched = {}
     try:
         for k, v in val_and_inputs.items():
             if type(v) not in expected.get(k):
                 mismatched[k] = {'recieved': type(v), 'expected': expected.get(k)}
-    except Exception:
+    except Exception as e:
         print('>> WARNING: Exception (likely edge case) ignored in data_type_sanitation')
+        print('>>\t' + str(e)[:20] + '...')
 
     if(len(mismatched) > 0):
         raise ValueError(
@@ -387,26 +465,31 @@ def data_type_sanitation(val_and_inputs, expected, name):
 
 
 def data_range_sanitation(val_and_inputs, expected, name):
-    """Short summary.
+    """Generic performance of data sanitation. Specifically cross-checks expected and actual data ranges.
 
     Parameters
     ----------
-    val_and_inputs : type
-        Description of parameter `val_and_inputs`.
-    expected : type
-        Description of parameter `expected`.
-    name : type
-        Description of parameter `name`.
+    val_and_inputs : dict
+        Outlines relationship between inputted variable names and their literal values.
+        That is, keys are "variable names" and values are "literal values."
+    expected : dict
+        Outlines relationship between expected variable names and their expected ranges (if any).
+        That is, keys are "variable names" and values are "expected ranges (if literally specified)."
+    name : str
+        The name of the parent function. Used for user clarity and reference in error-handling.
 
     Returns
     -------
-    type
-        Description of returned object.
+    None
+        Nothing! Simply a range check given inputs.
 
     """
     # Data sanitation for this function itself
     if(len(val_and_inputs) != len(expected)):
         raise ValueError(f'> ERROR: Mismatched expected and received dicts during data_range_sanitation for {name}.')
+    if not (type(val_and_inputs) == dict and type(expected) == dict and type(name) == str):
+        raise ValueError(
+            f'> One of the data type sanitations was unsucessful due to unexpected base inputs. Guess {str(name)}.')
 
     mismatched = {}
 
@@ -436,41 +519,54 @@ def data_range_sanitation(val_and_inputs, expected, name):
             f'> Invalid input for following pairs during data_range_sanitation for {name}.\n{mismatched}')
 
 
-def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, ranked_steam, outlier_thresh_pnt=5,
+def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, ranked_steam, extrema_thresh_pct=5,
                            RUN_TAG=RUN_TAG, annot=True, annot_size=4, highlight=True, FIGSIZE=(10, 50)):
-    """Short summary.
+    """Plots a heatmap based on the inputted model performance data.
 
     Parameters
     ----------
-    perf_data : type
-        Description of parameter `perf_data`.
-    FPATH : type
-        Description of parameter `FPATH`.
-    mcmaps : type
-        Description of parameter `mcmaps`.
-    centers : type
+    perf_data : pandas.core.frame.DataFrame
+        The DataFrame with performance information for all of the inputted models.
+        Specifically, R^2, R (optionally), MSE, RMSE, RMSLE, and MAE.
+    FPATH : str
+        The file path where the heatmap should be saved.
+    mcmaps : dict
+        Different heatmap/AxesPlot color schemes dependent on performance metric.
+        Stands for "macro color maps."
+    centers : dict
         Description of parameter `centers`.
-    ranked_names : type
-        Description of parameter `ranked_names`.
-    ranked_steam : type
-        Description of parameter `ranked_steam`.
-    outlier_thresh_pnt : type
-        Description of parameter `outlier_thresh_pnt`.
-    RUN_TAG : type
-        Description of parameter `RUN_TAG`.
-    annot : type
-        Description of parameter `annot`.
-    annot_size : type
-        Description of parameter `annot_size`.
-    highlight : type
-        Description of parameter `highlight`.
-    FIGSIZE : type
-        Description of parameter `FIGSIZE`.
+    ranked_names : list (of ints) OR None
+        The indices of the models which are ranked according to `TOP_MODELS` and the predictor rank.
+        `TOP_MODELS` and the predictor rank may be found in `plot_varimp_heatmap`.
+        NOTE DEPENDENCY: If `highlight` is False in `plot_varimp_heatmap`, then it MUST be locally False here.
+                         If it is True in THIS function, it will raise an Exception since control doesn't know which
+                         models to highlight, including for mean-ranks. (determined in `plot_varimp_heatmap`).
+    ranked_steam : list (of ints) OR None
+        The indices of the models which are ranked according to `preferred` and `preferred_importance`.
+        `preferred` and `preferred_importance` may be found in `plot_varimp_heatmap`.
+        NOTE DEPENDENCY: If `highlight` is False in `plot_varimp_heatmap`, then it MUST be locally False here.
+                         If it is True in THIS function, it will raise an Exception since control doesn't know which
+                         models to highlight, including for steam-ranks. (determined in `plot_varimp_heatmap`).
+    extrema_thresh_pct : int
+        The top and botton n percentage points to set as the maximum and minimum values for the heatmap colors.
+        Stands for "extrema threshold percentage."
+    RUN_TAG : int
+        The identifying ID/KEY for the global configuration.
+    annot : bool
+        Whether the heatmap should be annotated (aka variable importances should be labelled).
+        This should be turned off for very dense plots (lots of rows) or for minimzing runtime.
+    annot_size : int
+        The font size of the annotation. Only works if `annot` is not False.
+    highlight : bool
+        Whether or not Rectangles should be patched to show steam-preferred models and top models generated.
+    FIGSIZE : tuple (of ints)
+        The size of the ouputted heatmap figure. (width x length)
 
     Returns
     -------
-    type
-        Description of returned object.
+    None
+        Nothing! Simply print out a heatmap.
+        There are no new "ranking indices" like `ranked_steam` or `ranked_names` to be determined, anyways.
 
     """
     """DATA SANITATION"""
@@ -482,7 +578,7 @@ def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, rank
                            'centers': [dict],
                            'ranked_names': [list, type(None)],
                            'ranked_steam': [list, type(None)],
-                           'outlier_thresh_pnt': [int, float],
+                           'extrema_thresh_pct': [int, float],
                            'RUN_TAG': [int],
                            'annot': [bool],
                            'annot_size': [int],
@@ -494,7 +590,7 @@ def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, rank
                             'centers': [None],
                             'ranked_names': [None],
                             'ranked_steam': [None],
-                            'outlier_thresh_pnt': (0, 99),
+                            'extrema_thresh_pct': (0, 99),
                             'RUN_TAG': [None],
                             'annot': [None],
                             'annot_size': (0, np.inf),
@@ -513,8 +609,8 @@ def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, rank
     for col in perf_data.columns:
         cmap_local = mcmaps.get(col)
         center_local = centers.get(col)
-        vmax_local = np.percentile(perf_data[col], 100 - outlier_thresh_pnt)
-        vmin_local = np.percentile(perf_data[col], outlier_thresh_pnt)
+        vmax_local = np.percentile(perf_data[col], 100 - extrema_thresh_pct)
+        vmin_local = np.percentile(perf_data[col], extrema_thresh_pct)
 
         if not (vmin_local < vmax_local):
             raise ValueError('> ERROR: Heatmap min, center, max have incompatible values {}-{}-{}'.format(vmin_local,
@@ -543,6 +639,32 @@ def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, rank
 
 
 def conditional_drop(data_frame, tbd_list):
+    """Drops the specified column(s) from the H2O Frame if it exists in the Frame.
+
+    Parameters
+    ----------
+    data_frame : h2o.frame.H2OFrame
+        The H20 Frame to be traversed through and potentially modified.
+    tbd_list : list (of str) OR any iterable (of str)
+        The column names which should be conditionally dropped.
+
+    Returns
+    -------
+    h2o.frame.H2OFrame
+        The (potentially) modified H20 Frame.
+
+    """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'data_frame': [h2o.frame.H2OFrame],
+                           'tbd_list': [list]}
+    _expected_value_args = {'data_frame': [None],
+                            'tbd_list': [None]}
+    data_type_sanitation(_provided_args, _expected_type_args, name)
+    data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
+
     for tb_dropped in tbd_list:
         if(tb_dropped in data_frame.columns):
             data_frame = data_frame.drop(tb_dropped, axis=1)
@@ -550,21 +672,6 @@ def conditional_drop(data_frame, tbd_list):
         else:
             print(Fore.GREEN + '> STATUS: {} not in frame, skipping.'.format(tb_dropped) + Style.RESET_ALL)
     return data_frame
-    """Short summary.
-
-    Parameters
-    ----------
-    data_frame : type
-        Description of parameter `data_frame`.
-    tbd_list : type
-        Description of parameter `tbd_list`.
-
-    Returns
-    -------
-    type
-        Description of returned object.
-
-    """
 
 
 def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict:
@@ -575,7 +682,7 @@ def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict
     cluster : h2o.backend.cluster.H2OCluster
         The h2o cluster where the server was initialized.
     show : bool
-        Whether details should be printed to screen. Uses h2os built-in method.py
+        Whether details should be printed to screen. Uses H2Os built-in method.py
 
     Returns
     -------
@@ -583,6 +690,16 @@ def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict
         Information about the status/performance of the specified cluster.
 
     """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'cluster': [h2o.backend.cluster.H2OCluster],
+                           'show': [bool]}
+    _expected_value_args = {'cluster': [None],
+                            'show': [True, False]}
+    data_type_sanitation(_provided_args, _expected_type_args, name)
+    data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
 
     h2o.cluster().show_status() if(show) else None
 
@@ -609,6 +726,15 @@ def shutdown_confirm(cluster: h2o.backend.cluster.H2OCluster) -> None:
         Nothing. ValueError may be raised during processing and cluster metrics may be printed.
 
     """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'cluster': [h2o.backend.cluster.H2OCluster]}
+    _expected_value_args = {'cluster': [None]}
+    data_type_sanitation(_provided_args, _expected_type_args, name)
+    data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
+
     # SHUT DOWN the cluster after you're done working with it
     cluster.shutdown()
     # Double checking...
@@ -640,18 +766,20 @@ def exp_cumulative_varimps(aml_obj, tag=None, tag_name=None):
         A list of the models that did not have a variable importance. Format: (name, model object).
 
     """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'aml_obj': [h2o.backend.cluster.H2OCluster],
+                           'tag': [str, None],
+                           'tag_name': [str, None]}
+    _expected_value_args = {'aml_obj': [None],
+                            'tag': [None],
+                            'tag_name': [None]}
+    data_type_sanitation(_provided_args, _expected_type_args, name)
+    data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
 
-    # Minor data sanitation
-    if(tag is not None and tag_name is not None):
-        if(len(tag) != len(tag_name)):
-            raise ValueError('ERROR: Length of specified tag and tag names are not equal.')
-        else:
-            pass
-    else:
-        if(tag == tag_name):    # If both the arguments are None
-            pass
-        else:   # If one of the arguments is None but the other isn't
-            raise ValueError("ERROR: One of the arguments is None but the other is not.")
+    h2o.backend.cluster.H2OCluster
 
     cumulative_varimps = []
     model_novarimps = []
@@ -685,9 +813,10 @@ def exp_cumulative_varimps(aml_obj, tag=None, tag_name=None):
 
     return pd.concat(cumulative_varimps).reset_index(drop=True)  # , model_novarimps
 
-
 # Diverging: sns.diverging_palette(240, 10, n=9, as_cmap=True)
 # https://seaborn.pydata.org/generated/seaborn.color_palette.html
+
+
 def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False,
                        type_corrs=['Pearson', 'Kendall', 'Spearman'],
                        cmap=sns.color_palette('flare', as_cmap=True), figsize=(24, 8), contrast_factor=1.0):
@@ -724,6 +853,31 @@ def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False
         Furthermore, heatmap is saved in specifid format and printed to console.
 
     """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'df': [pd.core.frame.DataFrame],
+                           'FPATH': [str],
+                           'abs_arg': [bool],
+                           'mask': [bool],
+                           'annot': [bool],
+                           'type_corrs': [list],
+                           'cmap': [matplotlib.colors.ListedColormap, matplotlib.colors.LinearSegmentedColormap],
+                           'figsize': [tuple],
+                           'contrast_factor': [float]}
+    _expected_value_args = {'df': [None],
+                            'FPATH': [None],
+                            'abs_arg': [True, False],
+                            'mask': [True, False],
+                            'annot': [True, False],
+                            'type_corrs': [None],
+                            'cmap': [None],
+                            'figsize': [None],
+                            'contrast_factor': [0.0000001, np.inf]}
+    data_type_sanitation(_provided_args, _expected_type_args, name)
+    data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
+
     input_data = {}
 
     # NOTE: Conditional assignment of sns.heatmap based on parameters
