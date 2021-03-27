@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Mar-2021 16:03:33:335  GMT-0600
+# @Last modified time: 26-Mar-2021 22:03:11:117  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -15,6 +15,7 @@ import os
 import random
 import subprocess
 import sys
+from contextlib import contextmanager
 from typing import Final
 
 import h2o
@@ -57,7 +58,7 @@ _ = """
 #######################################################################################################################
 """
 
-# H2O Server Constans
+# H2O Server Constants
 IP_LINK: Final = 'localhost'                                  # Initializing the server on the local host (temporary)
 SECURED: Final = True if(IP_LINK != 'localhost') else False   # https protocol doesn't work locally, should be True
 PORT: Final = 54321                                           # Always specify the port that the server should use
@@ -74,6 +75,7 @@ WEIGHTS_COLUMN: Final = None
 EXPLOIT_RATIO: Final = 0
 MODELING_PLAN: Final = None
 
+# Data Ingestion Constants
 DATA_PATH_PAD: Final = 'Data/combined_ipc_aggregates.csv'         # Where the client-specific pad data is located
 DATA_PATH_WELL: Final = 'Data/combined_ipc_aggregates_PWELL.csv'  # Where the client-specific well data is located
 
@@ -81,7 +83,7 @@ DATA_PATH_WELL: Final = 'Data/combined_ipc_aggregates_PWELL.csv'  # Where the cl
 FOLD_COLUMN: Final = "kfold_column"                           # Target encoding, must be consistent throughout training
 TOP_MODELS = 15                                               # The top n number of models which should be filtered.
 PREFERRED_TOLERANCE = 0.1                                     # Tolerance applied on RMSE for allowable responders
-TRAINING_VERBOSITY = 'info'                                   # Verbosity of training (None, 'debug', 'info', d'warn')
+TRAINING_VERBOSITY = 'warn'                                   # Verbosity of training (None, 'debug', 'info', d'warn')
 
 # Miscellaneous Constants
 RUN_TAG: Final = random.randint(0, 10000)                     # The identifying Key/ID for the specified run/config.
@@ -95,6 +97,17 @@ print(Fore.GREEN + 'STATUS: Directory created for Round {}'.format(RUN_TAG) + St
 
 # Print file structure for reference every time this program is run
 util_traversal.print_tree_to_txt(skip_git=True)
+
+
+@contextmanager
+def suppress_stdout():
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
 
 
 def typical_manipulation_h20(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN):
@@ -845,7 +858,7 @@ def exp_cumulative_varimps(project_names):
                 # print('> WARNING: Variable importances unavailable for {MDL}'.format(MDL=model_name))
                 model_novarimps.append((model_name, model))
 
-        varimp_all_models_in_run = pd.concat(cumulative_varimps).reset_index(drop=True)
+        varimp_all_models_in_run = pd.concat(cumulative_varimps)
         variable_importances.append(varimp_all_models_in_run)  # , model_novarimps
 
     requested_varimps = pd.concat(variable_importances)
@@ -1016,48 +1029,56 @@ if(input('Proceed with given hyperparameters? (Y/N)') == 'Y'):
 else:
     raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
 
-project_names = run_experiment(data_pad, groupby_options_pad, RESPONDER)
+project_names_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER)
 # final_cumulative_varimps_well = run_experiment(data_well, groupby_options_well, RESPONDER)
 
-exp_cumulative_varimps(project_names)
 
-mask_pad = (final_cumulative_varimps_pad.mean(axis=1) > 0.0) & (final_cumulative_varimps_pad.mean(axis=1) < 1.0)
-FILT_final_cumulative_varimps_pad = final_cumulative_varimps_pad[mask_pad].select_dtypes(float)
-# mask_well = (final_cumulative_varimps_well.mean(axis=1) > 0.0) & (final_cumulative_varimps_well.mean(axis=1) < 1.0)
+varimps_pad = exp_cumulative_varimps(project_names_pad)
+
+mask_pad = (varimps_pad.mean(axis=1) > 0.0) & (varimps_pad.mean(axis=1) < 1.0)
+selective_varimps_pad = varimps_pad[mask_pad].select_dtypes(float)
+# mask_well = (varimps_well.mean(axis=1) > 0.0) & (varimps_well.mean(axis=1) < 1.0)
 # FILT_final_cumulative_varimps_well = final_cumulative_varimps_well[mask_well]
 
 
-ranked_names_pad, ranked_steam_pad = plot_varimp_heatmap(final_cumulative_varimps_pad,
+ranked_names_pad, ranked_steam_pad = plot_varimp_heatmap(selective_varimps_pad,
                                                          'Modeling Reference Files/Round ' +
                                                          '{tag}/macropad_varimps_PAD{tag}.pdf'.format(tag=RUN_TAG))
-# ranked_names_well, ranked_steam_well = plot_varimp_heatmap(final_cumulative_varimps_well,
+# ranked_names_well, ranked_steam_well = plot_varimp_heatmap(selective_varimps_well,
 #                                                            'Modeling Reference Files/Round ' +
 #                                                            '{tag}/macropad_varimps_PWELL{tag}.pdf'.format(tag=RUN_TAG),
 #                                                            FIGSIZE=(10, 100),
 #                                                            highlight=False,
 #                                                            annot=False)
 
-correlation_matrix(FILT_final_cumulative_varimps_pad, EXP_NAME='Aggregated Experiment Results - Pad-Level',
-                   FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_{tag}.pdf'.format(tag=RUN_TAG))
-# correlation_matrix(FILT_final_cumulative_varimps_well, EXP_NAME='Aggregated Experiment Results - Well-Level',
+with suppress_stdout():
+    correlation_matrix(selective_varimps_pad,
+                       EXP_NAME='Aggregated Experiment Results - Pad-Level',
+                       FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_{tag}.pdf'.format(tag=RUN_TAG))
+# correlation_matrix(selective_varimps_well, EXP_NAME='Aggregated Experiment Results - Well-Level',
 #                    FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_PWELL{tag}.pdf'.format(tag=RUN_TAG))
 
 
 print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
 print(OUT_BLOCK)
+
 _ = """
 #######################################################################################################################
 #########################################   EVALUATE MODEL PERFORMANCE   ##############################################
 #######################################################################################################################
 """
 
+get_aml_objects(project_names_pad)[1].leaderboard
+dir(h2o.get_model('GBM_3_AutoML_20210326_170904'))
+h2o.get_model('GBM_3_AutoML_20210326_170904').shap_summary_plot(data_pad)
+
 # data_well_pd = pd.read_csv(DATA_PATH_WELL)
 # benchline = data_well_pd[data_well_pd[RESPONDER] > 0].groupby(
 #     ['Date', 'PRO_Well'])[RESPONDER].sum().reset_index().groupby('PRO_Well').median()
 # grouped_tolerance = (PREFERRED_TOLERANCE * benchline).to_dict()[RESPONDER]
-perf_pad = model_performance(final_cumulative_varimps_pad)
+perf_pad = model_performance(varimps_pad)
 
-# perf_well = model_performance(final_cumulative_varimps_well)
+# perf_well = model_performance(varimps_well)
 # perf_well['group_type'] = [t[1] for t in perf_well.index.str.split('___GROUP')]
 
 mcmaps = {'R^2': sns.color_palette('rocket_r', as_cmap=True),
