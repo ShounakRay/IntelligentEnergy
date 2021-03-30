@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 30-Mar-2021 17:03:22:220  GMT-0600
+# @Last modified time: 30-Mar-2021 17:03:22:221  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -33,6 +33,7 @@ import defs
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# HYPER PARAMETER SETTINGS
 
 plot_eda = False
 plot_geo = True
@@ -54,6 +55,7 @@ y_delta = POS_TR[0] | POS_BR[0]
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # INGESTION
+
 FINALE = pd.read_csv('Data/combined_ipc.csv').infer_objects()
 DATA_INJECTION_ORIG = pd.read_pickle('Data/Pickles/DATA_INJECTION_ORIG.pkl')
 DATA_PRODUCTION_ORIG = pd.read_pickle('Data/Pickles/DATA_PRODUCTION_ORIG.pkl')
@@ -274,6 +276,7 @@ def visualize_anomalies(ft):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 FINALE['PRO_Pad'] = FINALE['PRO_Well'].apply(lambda x: PRO_PAD_KEYS.get(x))
 FINALE = FINALE.dropna(subset=['PRO_Well']).reset_index(drop=True)
 
@@ -282,9 +285,6 @@ FINALE = filter_negatives(FINALE, FINALE.select_dtypes(float))
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-# plt.figure(figsize=(25, 25))
-# sns.heatmap(FINALE.isna())
 
 TEMP = FINALE.copy()
 TEMP.columns = list(TEMP.columns.str.lower())
@@ -335,6 +335,9 @@ cumulative_anomalies = pd.concat([sole_injector_data_rep, anomaly_tag_tracker], 
 reformatted_anomalies = cumulative_anomalies.groupby(['group', 'date'])[['updated_score']].mean().reset_index()
 reformatted_anomalies.columns = ['PRO_Well', 'Date', 'weight']
 reformatted_anomalies = reformatted_anomalies.infer_objects()
+
+# Merge this data into the original, highest-resolution base table
+FINALE = pd.merge(FINALE, reformatted_anomalies, 'inner', on=['Date', 'PRO_Well'])
 
 # # Exploratory Analysis on the weights
 # fig, ax = plt.subplots(figsize=(24, 16))
