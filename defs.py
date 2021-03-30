@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: defs.py
 # @Last modified by:   Ray
-# @Last modified time: 30-Mar-2021 14:03:18:184  GMT-0600
+# @Last modified time: 30-Mar-2021 14:03:92:920  GMT-0600
 # @License: [Private IP]
 
 import sys
@@ -37,7 +37,6 @@ def process_local_anomalydetection(df, pwell, cont_col):
         range = (max(ft['date']) - min_date).days
         adjusted_anomscores = []
         transf_time = ft['date'].apply(lambda x: (x - min_date).days / range)**2
-        ft.to_html('reference_only.html')
         for score, time_factor in zip(ft['scores'], transf_time):
             if score >= 0:
                 adjusted_anomscores.append(time_factor)

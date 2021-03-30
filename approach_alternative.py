@@ -3,13 +3,14 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 30-Mar-2021 14:03:81:818  GMT-0600
+# @Last modified time: 30-Mar-2021 17:03:22:220  GMT-0600
 # @License: [Private IP]
 
 import math
 import os
 import sys
 from collections import Counter
+from datetime import datetime
 from itertools import chain
 from multiprocessing import Pool
 
@@ -291,10 +292,12 @@ col_reference = dict(zip(TEMP.columns, FINALE.columns))
 
 all_continuous_columns = TEMP.select_dtypes(float).columns
 all_prod_wells = list(FINALE['PRO_Well'].unique())
-TEMP['weights'] = None
 lc_injectors = [k for k, v in col_reference.items() if 'I' in v][1:]
 
+# Conduct Anomaly Detection
 cumulative_tagged = []
+temporal_benchmarks = []
+process_init = datetime.now()
 for cont_col in all_continuous_columns:
     rep_multiplier = len(all_prod_wells) if cont_col not in lc_injectors else 1
     arguments = list(zip([TEMP] * rep_multiplier, all_prod_wells, [cont_col] * rep_multiplier))
@@ -305,30 +308,49 @@ for cont_col in all_continuous_columns:
                 data_outputs = pool.starmap(defs.process_local_anomalydetection, arguments)
     cumulative_tagged.extend(data_outputs)
 
+    process_final = datetime.now()
+    temporal_benchmarks.append((cont_col, (process_final - process_init).total_seconds()))
     print('> STATUS: {} % progress with `{}`'.format(
         round(100.0 * list(all_continuous_columns).index(cont_col) / len(all_continuous_columns), 3), cont_col))
 
+# Reformat anomaly info to a DataFrame
 anomaly_tag_tracker = pd.concat(cumulative_tagged).reset_index(drop=True)
+# Only the injector data
+sole_injector_data = anomaly_tag_tracker[anomaly_tag_tracker['feature'].isin(
+    lc_injectors)].reset_index(drop=True).drop('group', axis=1)
 
-anomaly_tag_tracker[list(anomaly_tag_tracker.columns)[:-1]].drop_duplicates()
+# Duplicate the data for all available producer wells
+rep_tracker = []
+for pwell in all_prod_wells:
+    sole_injector_data['group'] = pwell
+    rep_tracker.append(sole_injector_data.copy())
+sole_injector_data_rep = pd.concat(rep_tracker).reset_index(drop=True)
+sole_injector_data_rep['feature'] = sole_injector_data_rep['feature'].apply(lambda x: col_reference.get(x))
+sole_injector_data_rep.drop(['selection', 'detection_iter'], axis=1, inplace=True)
 
-# plt.plot(linear_time_range)
+# Concatenate the non-injector and the duplicated-injector tables together
+cumulative_anomalies = pd.concat([sole_injector_data_rep, anomaly_tag_tracker], axis=0).reset_index(drop=True)
 
-# plt.figure(figsize=(12, 8))
-# # plt.plot(ft['scores'])
-# plt.plot(ft['selection'] / max(ft['selection'].dropna()))
-# plt.plot(adjusted_anomscores)
+# Find the daily, unweighted average of the column-specific weights
+reformatted_anomalies = cumulative_anomalies.groupby(['group', 'date'])[['updated_score']].mean().reset_index()
+reformatted_anomalies.columns = ['PRO_Well', 'Date', 'weight']
+reformatted_anomalies = reformatted_anomalies.infer_objects()
+
+# # Exploratory Analysis on the weights
+# fig, ax = plt.subplots(figsize=(24, 16))
+# temp_one = cumulative_anomalies[cumulative_anomalies['group'] == 'AP5'
+#                                 ][['feature', 'updated_score', 'date']
+#                                   ].sort_values('date').reset_index(drop=True)
+# temp_one.index = temp_one.index / max(temp_one.index)
+# temp_one.plot(ax=ax, lw=0.05)
 #
-# plt.figure(figsize=(12, 8))
-# plt.plot(ft['date'].apply(lambda x: (x - min_date).days / range)**2)
-# plt.plot(abs(ft['scores'] / max(ft['scores'].dropna())))
-# plt.plot(ft['final_weight'] / sorted(ft['final_weight'].dropna())[-1:])
-# min(ft['scores'])
+# # fig, ax = plt.subplots(figsize=(24, 16))
+# temp_two = reformatted_anomalies[reformatted_anomalies['PRO_Well'] == 'AP5'
+#                                  ][['weight', 'Date']
+#                                    ].sort_values('Date').reset_index(drop=True)
+# temp_two.index = temp_two.index / max(temp_two.index)
+# temp_two.plot(ax=ax, lw=1)
 
-_ = plt.hist(ft['scores'])
-
-# ft.to_html('anomaly_decision.html')
-visualize_anomalies(ft)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # INJECTOR/PRODUCER TRANSLATIONS  # # # # # # # # # # # # # # # # # #
