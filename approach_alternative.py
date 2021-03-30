@@ -3,17 +3,31 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 25-Mar-2021 13:03:05:056  GMT-0600
+# @Last modified time: 30-Mar-2021 14:03:81:818  GMT-0600
 # @License: [Private IP]
 
 import math
+import os
+import sys
+from collections import Counter
 from itertools import chain
+from multiprocessing import Pool
 
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+
+try:
+    import Anomaly_Detection_PKG
+except Exception:
+    sys.path.append('/Users/Ray/Documents/Github/AnomalyDetection')
+    from Anomaly_Detection_PKG import *
+
+import warnings
+
+import defs
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -48,6 +62,9 @@ INJ_PAD_KEYS = dict(zip(DATA_INJECTION_ORIG['Well'], DATA_INJECTION_ORIG['Pad'])
 
 available_pads_transformed = ['A', 'B']
 available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in available_pads_transformed]
+
+UPSCALAR = 100
+BASE_UPSCALED = 0
 
 # DEFINITIONS
 
@@ -242,14 +259,76 @@ def produce_injector_aggregates(candidates_by_prodtype, injector_data, group_typ
     return INJECTOR_AGGREGATES
 
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+def visualize_anomalies(ft):
+    fig, ax = plt.subplots(figsize=(12, 7))
+    ft[ft['anomaly'] == 'Yes'][['date', 'selection']].plot(
+        x='date', y='selection', kind='scatter', c='red', s=3, ax=ax)
+    ft[ft['anomaly'] == 'No'][['date', 'selection']].plot(x='date', y='selection', kind='line', ax=ax)
+    plt.show()
 
 
+# with Pool(os.cpu_count() - 1) as pool:
+#     pool.map(process_local_anomalydetection, arguments)
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 FINALE['PRO_Pad'] = FINALE['PRO_Well'].apply(lambda x: PRO_PAD_KEYS.get(x))
 FINALE = FINALE.dropna(subset=['PRO_Well']).reset_index(drop=True)
 
+FINALE = filter_negatives(FINALE, FINALE.select_dtypes(float))
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# plt.figure(figsize=(25, 25))
+# sns.heatmap(FINALE.isna())
+
+TEMP = FINALE.copy()
+TEMP.columns = list(TEMP.columns.str.lower())
+col_reference = dict(zip(TEMP.columns, FINALE.columns))
+
+all_continuous_columns = TEMP.select_dtypes(float).columns
+all_prod_wells = list(FINALE['PRO_Well'].unique())
+TEMP['weights'] = None
+lc_injectors = [k for k, v in col_reference.items() if 'I' in v][1:]
+
+cumulative_tagged = []
+for cont_col in all_continuous_columns:
+    rep_multiplier = len(all_prod_wells) if cont_col not in lc_injectors else 1
+    arguments = list(zip([TEMP] * rep_multiplier, all_prod_wells, [cont_col] * rep_multiplier))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        if __name__ == '__main__':
+            with Pool(os.cpu_count() - 1) as pool:
+                data_outputs = pool.starmap(defs.process_local_anomalydetection, arguments)
+    cumulative_tagged.extend(data_outputs)
+
+    print('> STATUS: {} % progress with `{}`'.format(
+        round(100.0 * list(all_continuous_columns).index(cont_col) / len(all_continuous_columns), 3), cont_col))
+
+anomaly_tag_tracker = pd.concat(cumulative_tagged).reset_index(drop=True)
+
+anomaly_tag_tracker[list(anomaly_tag_tracker.columns)[:-1]].drop_duplicates()
+
+# plt.plot(linear_time_range)
+
+# plt.figure(figsize=(12, 8))
+# # plt.plot(ft['scores'])
+# plt.plot(ft['selection'] / max(ft['selection'].dropna()))
+# plt.plot(adjusted_anomscores)
+#
+# plt.figure(figsize=(12, 8))
+# plt.plot(ft['date'].apply(lambda x: (x - min_date).days / range)**2)
+# plt.plot(abs(ft['scores'] / max(ft['scores'].dropna())))
+# plt.plot(ft['final_weight'] / sorted(ft['final_weight'].dropna())[-1:])
+# min(ft['scores'])
+
+_ = plt.hist(ft['scores'])
+
+# ft.to_html('anomaly_decision.html')
+visualize_anomalies(ft)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # INJECTOR/PRODUCER TRANSLATIONS  # # # # # # # # # # # # # # # # # #
@@ -409,7 +488,6 @@ for pwell in available_pwells_transformed:
 if(plot_geo):
     plot_geo_candidates(candidates_by_prodwell, 'BP6', PRO_finalcoords, INJ_relcoords)
 
-plot_geo_candidates(candidates_by_prodpad, 'B', PRO_finalcoords, INJ_relcoords)
 
 #
 #
@@ -607,9 +685,6 @@ COMBINED_AGGREGATES_PWELL, dropped_pwell = drop_singles(COMBINED_AGGREGATES_PWEL
 
 COMBINED_AGGREGATES_PWELL.to_csv('Data/combined_ipc_aggregates_PWELL.csv')
 COMBINED_AGGREGATES.to_csv('Data/combined_ipc_aggregates.csv')
-
-benchline = COMBINED_AGGREGATES_PWELL[COMBINED_AGGREGATES_PWELL['PRO_Alloc_Oil'] > 0].groupby(
-    ['Date', 'PRO_Well'])['PRO_Alloc_Oil'].sum().reset_index().groupby('PRO_Well').median()
 
 # plt.figure(figsize=(10, 100))
 # sns.heatmap(COMBINED_AGGREGATES.sort_values(['PRO_Pad']).select_dtypes(float))

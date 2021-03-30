@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Mar-2021 11:03:46:462  GMT-0600
+# @Last modified time: 30-Mar-2021 13:03:93:935  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -394,3 +394,12 @@
 # # Exclude any features encoded by default (H2O puts a `.` in the column name of these features)
 # final_cumulative_varimps = final_cumulative_varimps.loc[
 #     :, ~final_cumulative_varimps.columns.str.contains('.',regex=False)]
+
+# for pwell in all_prod_wells:
+#     # FINALE.loc[FINALE['PRO_Well'] == pwell, 'weights__' + cont_col] = adjusted_anomscores
+#     if(hit_an_injector):
+#         # Populate the remaining injector columns for all other wells with this one
+#         # for pwell_sub in [c for c in all_prod_wells if c is not pwell]:
+#         #     FINALE.loc[FINALE['PRO_Well'] == pwell_sub, 'weights__' + cont_col] = adjusted_anomscores
+#         break
+# lc_injectors = [k for k, v in col_reference.items() if 'I' in v][1:]

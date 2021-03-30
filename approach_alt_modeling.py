@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Mar-2021 22:03:11:117  GMT-0600
+# @Last modified time: 29-Mar-2021 13:03:94:948  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -67,7 +67,7 @@ SERVER_FORCE: Final = True                                    # Tries to init ne
 # Experiment > Model Training Constants and Hyperparameters
 MAX_EXP_RUNTIME: Final = 10                                       # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                      # To ensure reproducibility of experiments (caveats*)
-EVAL_METRIC: Final = 'auto'                                       # The evaluation metric to discontinue model training
+EVAL_METRIC: Final = 'deviance'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'rmse'                                       # Leaderboard ranking metric after all trainings
 CV_FOLDS: Final = 5
 STOPPING_ROUNDS: Final = 3
@@ -87,6 +87,20 @@ TRAINING_VERBOSITY = 'warn'                                   # Verbosity of tra
 
 # Miscellaneous Constants
 RUN_TAG: Final = random.randint(0, 10000)                     # The identifying Key/ID for the specified run/config.
+MODEL_CMAPS = {'R^2': sns.color_palette('rocket_r', as_cmap=True),
+               # 'R': sns.color_palette('rocket_r'),
+               'MSE': sns.color_palette("coolwarm", as_cmap=True),
+               'RMSE': sns.color_palette("coolwarm", as_cmap=True),
+               'Rel. RMSE': sns.color_palette("coolwarm", as_cmap=True),
+               'RMSLE': sns.color_palette("coolwarm", as_cmap=True),
+               'MAE': sns.color_palette("coolwarm", as_cmap=True)}
+HMAP_CENTERS = {'R^2': None,
+                'MSE': 400,
+                'RMSE': 20,
+                'Rel. RMSE': 0,
+                'RMSLE': None,
+                'MAE': None}
+CELL_RATIO = 4.666666666666667
 
 # Ensure overwriting does not occur while making identifying experiment directory.
 while os.path.isdir(f'Modeling Reference Files/Round {RUN_TAG}'):
@@ -110,7 +124,220 @@ def suppress_stdout():
             sys.stdout = old_stdout
 
 
-def typical_manipulation_h20(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN):
+def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict:
+    """Provides a snapshot of the H2O cluster and different status/performance indicators.
+
+    Parameters
+    ----------
+    cluster : h2o.backend.cluster.H2OCluster
+        The h2o cluster where the server was initialized.
+    show : bool
+        Whether details should be printed to screen. Uses H2Os built-in method.py
+
+    Returns
+    -------
+    dict
+        Information about the status/performance of the specified cluster.
+
+    """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'cluster': [h2o.backend.cluster.H2OCluster],
+                           'show': [bool]}
+    _expected_value_args = {'cluster': None,
+                            'show': [True, False]}
+    util_data_type_sanitation(_provided_args, _expected_type_args, name)
+    util_data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
+
+    h2o.cluster().show_status() if(show) else None
+
+    return {'cluster_name': cluster.cloud_name,
+            'pid': cluster.get_status_details()['pid'][0],
+            'version': [int(i) for i in cluster.version.split('.')],
+            'run_status': cluster.is_running(),
+            'branch_name': cluster.branch_name,
+            'uptime_ms': cluster.cloud_uptime_millis,
+            'health': cluster.cloud_healthy}
+
+
+def shutdown_confirm(h2o_instance: type(h2o)) -> None:
+    """Terminates the provided H2O cluster.
+
+    Parameters
+    ----------
+    cluster : type(h2o)
+        The H2O instance where the server was initialized.
+
+    Returns
+    -------
+    None
+        Nothing. ValueError may be raised during processing and cluster metrics may be printed.
+
+    """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'h2o_instance': [type(h2o)]}
+    _expected_value_args = {'h2o_instance': None}
+    util_data_type_sanitation(_provided_args, _expected_type_args, name)
+    util_data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
+
+    # SHUT DOWN the cluster after you're done working with it
+    h2o_instance.remove_all()
+    h2o_instance.cluster().shutdown()
+    # Double checking...
+    try:
+        snapshot(h2o_instance.cluster)
+        raise ValueError('ERROR: H2O cluster improperly closed!')
+    except Exception:
+        pass
+
+
+def util_data_type_sanitation(val_and_inputs, expected, name):
+    """Generic performance of data sanitation. Specifically cross-checks expected and actual data types.
+
+    Parameters
+    ----------
+    val_and_inputs : dict
+        Outlines relationship between inputted variable names and their literal values.
+        That is, keys are "variable names" and values are "literal values."
+    expected : dict
+        Outlines relationship between expected variable names and their expected types.
+        That is, keys are "variable names" and values are "expected dtypes."
+    name : str
+        The name of the parent function. Used for user clarity and reference in error-handling.
+
+    Returns
+    -------
+    None
+        Nothing! Simply a type check given inputs.
+
+    """
+    # Data sanitation for this function itself
+    if(len(val_and_inputs) != len(expected)):
+        raise ValueError(f'> Mismatched expected and received dicts during data_type_sanitation for {name}.')
+    if not (type(val_and_inputs) == dict and type(expected) == dict and type(name) == str):
+        raise ValueError(
+            f'> One of the data type sanitations was unsucessful due to unexpected base inputs. Guess {str(name)}.')
+
+    mismatched = {}
+    try:
+        for k, v in val_and_inputs.items():
+            if type(v) not in expected.get(k):
+                if(expected.get(k) is not None):
+                    print(v)
+                    mismatched[k] = {'recieved': type(v), 'expected': expected.get(k)}
+    except Exception as e:
+        print(f'>> WARNING: Exception (likely edge case) ignored in data_type_sanitation for {name}')
+        print('>>\t' + str(e)[:50] + '...')
+
+    if(len(mismatched) > 0):
+        raise ValueError(
+            f'> Invalid input for following pairs during data_type_sanitation for {name}.\n{mismatched}')
+
+
+def util_data_range_sanitation(val_and_inputs, expected, name):
+    """Generic performance of data sanitation. Specifically cross-checks expected and actual data ranges.
+
+    Parameters
+    ----------
+    val_and_inputs : dict
+        Outlines relationship between inputted variable names and their literal values.
+        That is, keys are "variable names" and values are "literal values."
+    expected : dict
+        Outlines relationship between expected variable names and their expected ranges (if any).
+        That is, keys are "variable names" and values are "expected ranges (if literally specified)."
+    name : str
+        The name of the parent function. Used for user clarity and reference in error-handling.
+
+    Returns
+    -------
+    None
+        Nothing! Simply a range check given inputs.
+
+    """
+    # Data sanitation for this function itself
+    if(len(val_and_inputs) != len(expected)):
+        raise ValueError(f'> ERROR: Mismatched expected and received dicts during data_range_sanitation for {name}.')
+    if not (type(val_and_inputs) == dict and type(expected) == dict and type(name) == str):
+        raise ValueError(
+            f'> One of the data type sanitations was unsucessful due to unexpected base inputs. Guess {str(name)}.')
+
+    mismatched = {}
+    type(h2o.cluster()) == list
+    try:
+        for k, v in val_and_inputs.items():
+            restriction = expected.get(k)
+            if(type(restriction) == tuple or type(restriction) == list):
+                if(len(restriction) > 2 or len(restriction) == 1):  # Check if input is one of the specified elements
+                    if v not in restriction:
+                        mismatched[k] = {'recieved': v, 'expected (inclusion I)': expected.get(k)}
+                elif(len(restriction) == 2):  # Treat it as a range
+                    if(type(restriction[0]) == float or type(restriction[0]) == int):
+                        if not (v >= restriction[0] and v <= restriction[1]):
+                            mismatched[k] = {'recieved': v, 'expected (num. range)': expected.get(k)}
+                    else:
+                        if v not in restriction:
+                            mismatched[k] = {'recieved': v, 'expected (inclusion II)': expected.get(k)}
+                else:
+                    raise ValueError(f'Restriction for {k} improperly set in {name} range sanitation')
+            elif(restriction is None):
+                pass
+    except Exception:
+        print(f'>> WARNING: Exception (likely edge case) ignored in data_range_sanitation for {name}')
+
+    if(len(mismatched) > 0):
+        raise ValueError(
+            f'> Invalid input for following pairs during data_range_sanitation for {name}.\n{mismatched}')
+
+
+def util_conditional_drop(data_frame, tbd_list):
+    """Drops the specified column(s) from the H2O Frame if it exists in the Frame.
+
+    Parameters
+    ----------
+    data_frame : h2o.frame.H2OFrame
+        The H20 Frame to be traversed through and potentially modified.
+    tbd_list : list (of str) OR any iterable (of str)
+        The column names which should be conditionally dropped.
+
+    Returns
+    -------
+    h2o.frame.H2OFrame
+        The (potentially) modified H20 Frame.
+
+    """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'data_frame': None,
+                           'tbd_list': [list]}
+    _expected_value_args = {'data_frame': None,
+                            'tbd_list': None}
+    util_data_type_sanitation(_provided_args, _expected_type_args, name)
+    util_data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
+
+    for tb_dropped in tbd_list:
+        if(tb_dropped in data_frame.columns):
+            data_frame = data_frame.drop(tb_dropped, axis=1)
+            print(Fore.GREEN + '> STATUS: {} dropped.'.format(tb_dropped) + Style.RESET_ALL)
+        else:
+            print(Fore.GREEN + '> STATUS: {} not in frame, skipping.'.format(tb_dropped) + Style.RESET_ALL)
+    return data_frame
+
+
+def get_aml_objects(project_names):
+    objs = []
+    for project_name in project_names:
+        objs.append(h2o.automl.get_automl(project_name))
+    return objs
+
+
+def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN):
     """Return minimally modified H2OFrame, all possible categorical filtering options, and predictor variables.
 
     Parameters
@@ -148,12 +375,12 @@ def typical_manipulation_h20(data, groupby, dropcols, responder, FOLD_COLUMN=FOL
                             'dropcols': None,
                             'responder': ['PRO_Alloc_Oil'],
                             'FOLD_COLUMN': None}
-    data_type_sanitation(_provided_args, _expected_type_args, name)
-    data_range_sanitation(_provided_args, _expected_value_args, name)
+    util_data_type_sanitation(_provided_args, _expected_type_args, name)
+    util_data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
 
     # Drop the specified columns before proceeding with the experiment
-    data = conditional_drop(data, dropcols)
+    data = util_conditional_drop(data, dropcols)
 
     # Determine all possible groups to filter the source data for when conducting the experiment
     groupby_options = data.as_data_frame()[groupby].unique()
@@ -172,7 +399,7 @@ def typical_manipulation_h20(data, groupby, dropcols, responder, FOLD_COLUMN=FOL
                   if col not in [FOLD_COLUMN] + [responder] + [col.replace('_te', '')
                                                                for col in data.columns if '_te' in col]]
 
-    print(Fore.GREEN + 'STATUS: Experiment hyperparameters and data configured.\n\n' + Style.RESET_ALL)
+    print(Fore.GREEN + 'STATUS: Experiment hyperparameters and data configured.' + Style.RESET_ALL)
 
     return data, groupby_options, predictors
 
@@ -248,8 +475,8 @@ def run_experiment(data, groupby_options, responder,
                             'EXPLOIT_RATIO': [0.0, 1.0],
                             'MODELING_PLAN': None,
                             'TRAINING_VERBOSITY': None}
-    data_type_sanitation(_provided_args, _expected_type_args, name)
-    data_range_sanitation(_provided_args, _expected_value_args, name)
+    util_data_type_sanitation(_provided_args, _expected_type_args, name)
+    util_data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
 
     # Determined the categorical variable to be dropped (should only be the groupby)
@@ -290,10 +517,84 @@ def run_experiment(data, groupby_options, responder,
     return initialized_projects
 
 
-def plot_varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
-                        preferred='Steam', preferred_importance=0.7, mean_importance_threshold=0.7,
-                        top_color='green', chosen_color='cyan', RUN_TAG=RUN_TAG, FIGSIZE=(10, 55), annot=False,
-                        TOP_MODELS=TOP_MODELS):
+def varimps(project_names):
+    """Determines variable importances for all models in an experiment.
+
+    Parameters
+    ----------
+    project_names : id
+        The H2O AutoML experiment configuration.
+
+    Returns
+    -------
+    pandas.core.frame.DataFrame, list (of tuples)
+        A concatenated DataFrame with all the model's variable importances for all the input features.
+        [Optional] A list of the models that did not have a variable importance. Format: (name, model object).
+
+    """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'aml_obj': [h2o.automl.autoh2o.H2OAutoML]}
+    _expected_value_args = {'aml_obj': None}
+    util_data_type_sanitation(_provided_args, _expected_type_args, name)
+    util_data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
+
+    aml_objects = get_aml_objects(project_names)
+
+    variable_importances = []
+    for aml_obj in aml_objects:
+        responder, group = project_names[aml_objects.index(aml_obj)].split('__')[-2:]
+        tag = [group, responder]
+        tag_name = ['group', 'responder']
+
+        cumulative_varimps = []
+        model_novarimps = []
+        exp_leaderboard = aml_obj.leaderboard
+        # Retrieve all the model objects from the given experiment
+        exp_models = [h2o.get_model(exp_leaderboard[m_num, "model_id"]) for m_num in range(exp_leaderboard.shape[0])]
+        for model in exp_models:
+            model_name = model.params['model_id']['actual']['name']
+            variable_importance = model.varimp(use_pandas=True)
+
+            # Only conduct variable importance dataset manipulation if ranking data is available
+            # > (eg. unavailable, stacked)
+            if(variable_importance is not None):
+                variable_importance = pd.pivot_table(variable_importance,
+                                                     values='scaled_importance',
+                                                     columns='variable').reset_index(drop=True)
+                variable_importance['model_name'] = model_name
+                variable_importance['model_object'] = model
+                if(tag is not None and tag_name is not None):
+                    for i in range(len(tag)):
+                        variable_importance[tag_name[i]] = tag[i]
+                variable_importance.index = variable_importance['model_name'] + \
+                    '___GROUP-' + variable_importance['group']
+                variable_importance.drop('model_name', axis=1, inplace=True)
+                variable_importance.columns.name = None
+
+                cumulative_varimps.append(variable_importance)
+            else:
+                # print('> WARNING: Variable importances unavailable for {MDL}'.format(MDL=model_name))
+                model_novarimps.append((model_name, model))
+
+        varimp_all_models_in_run = pd.concat(cumulative_varimps)
+        variable_importances.append(varimp_all_models_in_run)  # , model_novarimps
+
+    requested_varimps = pd.concat(variable_importances)
+
+    print(Fore.GREEN +
+          '> STATUS: Determined variable importances of all models in given experiments: {}.'.format(project_names) +
+          Style.RESET_ALL)
+
+    return requested_varimps
+
+
+def varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
+                   preferred='Steam', preferred_importance=0.7, mean_importance_threshold=0.7,
+                   top_color='green', chosen_color='cyan', RUN_TAG=RUN_TAG, FIGSIZE=(10, 55), annot=False,
+                   TOP_MODELS=TOP_MODELS):
     """Plots a heatmap based on the inputted variable importance data.
 
     Parameters
@@ -368,9 +669,14 @@ def plot_varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
                             'FIGSIZE': None,
                             'annot': [True, False],
                             'TOP_MODELS': [0, np.inf]}
-    data_type_sanitation(_provided_args, _expected_type_args, name)
-    data_range_sanitation(_provided_args, _expected_value_args, name)
+    util_data_type_sanitation(_provided_args, _expected_type_args, name)
+    util_data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
+
+    new = len(final_cumulative_varimps) / CELL_RATIO
+    if(new > 100):
+        print(f'> WARNING: The height of this figure is {int(new)} units. Render may take significant time...')
+    FIGSIZE = (FIGSIZE[0], new)
 
     # Plot heatmap of variable importances across all model combinations
     fig, ax = plt.subplots(figsize=FIGSIZE)
@@ -405,10 +711,98 @@ def plot_varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
 
     return ranked_names, ranked_steam
 
+
+def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False,
+                       type_corrs=['Pearson', 'Kendall', 'Spearman'],
+                       cmap=sns.color_palette('flare', as_cmap=True), figsize=(24, 8), contrast_factor=1.0):
+    """Outputs to console and saves to file correlation matrices given data with input features.
+    Intended to represent the parameter space and different relationships within. Tool for modeling.
+
+    Parameters
+    ----------
+    df : pandas.core.frame.DataFrame
+        Input dataframe where each column is a feature that is to be correlated.
+    FPATH : str
+        Where the file should be saved. If directory is provided, it should already be created.
+    abs_arg : bool
+        Whether the absolute value of the correlations should be plotted (for strength magnitude).
+        Impacts cmap, switches to diverging instead of sequential.
+    mask : bool
+        Whether only the bottom left triange of the matrix should be rendered.
+    annot : bool
+        Whether each cell should be annotated with its numerical value.
+    type_corrs : list
+        All the different correlations that should be provided. Default to all built-in pandas options for df.corr().
+    cmap : child of matplotlib.colors
+        The color map which should be used for the heatmap. Dependent on abs_arg.
+    figsize : tuple
+        The size of the outputted/saved heatmap (width, height).
+    contrast_factor:
+        The factor/exponent by which all the correlationed should be raised to the power of.
+        Purpose is for high-contrast, better identification of highly correlated features.
+
+    Returns
+    -------
+    pandas.core.frame.DataFrame
+        The correlations given the input data, and other transformation arguments (abs_arg, contrast_factor)
+        Furthermore, heatmap is saved in specifid format and printed to console.
+
+    """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'df': [pd.core.frame.DataFrame],
+                           'FPATH': [str],
+                           'EXP_NAME': [str],
+                           'abs_arg': [bool],
+                           'mask': [bool],
+                           'annot': [bool],
+                           'type_corrs': [list],
+                           'cmap': [matplotlib.colors.ListedColormap, matplotlib.colors.LinearSegmentedColormap],
+                           'figsize': [tuple],
+                           'contrast_factor': [float]}
+    _expected_value_args = {'df': None,
+                            'FPATH': None,
+                            'EXP_PATH': None,
+                            'abs_arg': [True, False],
+                            'mask': [True, False],
+                            'annot': [True, False],
+                            'type_corrs': None,
+                            'cmap': None,
+                            'figsize': None,
+                            'contrast_factor': [0.0000001, np.inf]}
+    util_data_type_sanitation(_provided_args, _expected_type_args, name)
+    util_data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
+
+    input_data = {}
+
+    # NOTE: Conditional assignment of sns.heatmap based on parameters
+    # > Mask sns.heatmap parameter is conditionally controlled
+    # > If absolute value is not chosen by the user, switch to divergent heatmap. Otherwise keep it as sequential.
+    fig, ax = plt.subplots(ncols=len(type_corrs), sharey=True, figsize=figsize)
+    for typec in type_corrs:
+        input_data[typec] = (df.corr(typec.lower()).abs()**contrast_factor if abs_arg
+                             else df.corr(typec.lower())**contrast_factor)
+        sns_fig = sns.heatmap(input_data[typec],
+                              mask=np.triu(df.corr().abs()) if mask else None,
+                              ax=ax[type_corrs.index(typec)],
+                              annot=annot,
+                              cmap=cmap if abs_arg else sns.diverging_palette(240, 10, n=9, as_cmap=True)
+                              ).set_title("{cortype}'s Correlation Matrix\n{EXP_NAME}".format(cortype=typec,
+                                                                                              EXP_NAME=EXP_NAME))
+    plt.tight_layout()
+    sns_fig.get_figure().savefig(FPATH, bbox_inches='tight')
+
+    plt.clf()
+
+    return input_data
+
+
 # TODO: Add "normalized" RMSE value according to a benchline
 
 
-def model_performance(tracker_with_modelobj, sort_by='RMSE', modelobj_colname='model_object'):
+def model_performance(tracker_with_modelobj, adj_factor, sort_by='RMSE', modelobj_colname='model_object'):
     """Determine the model performance through a series of predefined metrics.
 
     Parameters
@@ -416,11 +810,13 @@ def model_performance(tracker_with_modelobj, sort_by='RMSE', modelobj_colname='m
     tracker_with_modelobj : pandas.core.frame.DataFrame
         Data on each models variable importances, the model itself, and other identifying tags (like group_type)
         Only numerical features are used to make the heatmap though.
+    adj_factor : dict
+        The benchlines for each grouping.
     sort_by : str
         The performance metric which should be used to sort the performance data in descending order.
     modelobj_colname : str
         The name of the column in the DataFrame which contains the H2O models.
-        The default value is dependent on the defintion of `exp_cumulative_varimps`.
+        The default value is dependent on the defintion of `varimps`.
 
     Returns
     -------
@@ -433,22 +829,26 @@ def model_performance(tracker_with_modelobj, sort_by='RMSE', modelobj_colname='m
     _provided_args = locals()
     name = sys._getframe(0).f_code.co_name
     _expected_type_args = {'tracker_with_modelobj': [pd.core.frame.DataFrame],
+                           'adj_factor': [dict],
                            'sort_by': [str],
                            'modelobj_colname': [str]}
     _expected_value_args = {'tracker_with_modelobj': None,
+                            'adj_factor': None,
                             'sort_by': ['R^2', 'MSE', 'RMSE', 'RMSLE', 'MAE'],
                             'modelobj_colname': None}
-    data_type_sanitation(_provided_args, _expected_type_args, name)
-    data_range_sanitation(_provided_args, _expected_value_args, name)
+    util_data_type_sanitation(_provided_args, _expected_type_args, name)
+    util_data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
 
     perf_data = {}
     for model_name, model_obj in zip(tracker_with_modelobj.index, tracker_with_modelobj[modelobj_colname]):
         perf_data[model_name] = {}
+        group = model_name.split('GROUP-')[1]
         perf_data[model_name]['R^2'] = model_obj.r2()
         # perf_data[model_name]['R'] = model_obj.r2() ** 0.5
         perf_data[model_name]['MSE'] = model_obj.mse()
         perf_data[model_name]['RMSE'] = model_obj.rmse()
+        perf_data[model_name]['Rel. RMSE'] = model_obj.rmse() - adj_factor.get(group)
         perf_data[model_name]['RMSLE'] = model_obj.rmsle()
         perf_data[model_name]['MAE'] = model_obj.mae()
 
@@ -460,104 +860,6 @@ def model_performance(tracker_with_modelobj, sort_by='RMSE', modelobj_colname='m
         perf_data[col] = perf_data[col].astype(float)
 
     return perf_data
-
-
-def data_type_sanitation(val_and_inputs, expected, name):
-    """Generic performance of data sanitation. Specifically cross-checks expected and actual data types.
-
-    Parameters
-    ----------
-    val_and_inputs : dict
-        Outlines relationship between inputted variable names and their literal values.
-        That is, keys are "variable names" and values are "literal values."
-    expected : dict
-        Outlines relationship between expected variable names and their expected types.
-        That is, keys are "variable names" and values are "expected dtypes."
-    name : str
-        The name of the parent function. Used for user clarity and reference in error-handling.
-
-    Returns
-    -------
-    None
-        Nothing! Simply a type check given inputs.
-
-    """
-    # Data sanitation for this function itself
-    if(len(val_and_inputs) != len(expected)):
-        raise ValueError(f'> Mismatched expected and received dicts during data_type_sanitation for {name}.')
-    if not (type(val_and_inputs) == dict and type(expected) == dict and type(name) == str):
-        raise ValueError(
-            f'> One of the data type sanitations was unsucessful due to unexpected base inputs. Guess {str(name)}.')
-
-    mismatched = {}
-    try:
-        for k, v in val_and_inputs.items():
-            if type(v) not in expected.get(k):
-                if(expected.get(k) is not None):
-                    print(v)
-                    mismatched[k] = {'recieved': type(v), 'expected': expected.get(k)}
-    except Exception as e:
-        print('>> WARNING: Exception (likely edge case) ignored in data_type_sanitation')
-        print('>>\t' + str(e)[:50] + '...')
-
-    if(len(mismatched) > 0):
-        raise ValueError(
-            f'> Invalid input for following pairs during data_type_sanitation for {name}.\n{mismatched}')
-
-
-def data_range_sanitation(val_and_inputs, expected, name):
-    """Generic performance of data sanitation. Specifically cross-checks expected and actual data ranges.
-
-    Parameters
-    ----------
-    val_and_inputs : dict
-        Outlines relationship between inputted variable names and their literal values.
-        That is, keys are "variable names" and values are "literal values."
-    expected : dict
-        Outlines relationship between expected variable names and their expected ranges (if any).
-        That is, keys are "variable names" and values are "expected ranges (if literally specified)."
-    name : str
-        The name of the parent function. Used for user clarity and reference in error-handling.
-
-    Returns
-    -------
-    None
-        Nothing! Simply a range check given inputs.
-
-    """
-    # Data sanitation for this function itself
-    if(len(val_and_inputs) != len(expected)):
-        raise ValueError(f'> ERROR: Mismatched expected and received dicts during data_range_sanitation for {name}.')
-    if not (type(val_and_inputs) == dict and type(expected) == dict and type(name) == str):
-        raise ValueError(
-            f'> One of the data type sanitations was unsucessful due to unexpected base inputs. Guess {str(name)}.')
-
-    mismatched = {}
-    type(h2o.cluster()) == list
-    try:
-        for k, v in val_and_inputs.items():
-            restriction = expected.get(k)
-            if(type(restriction) == tuple or type(restriction) == list):
-                if(len(restriction) > 2 or len(restriction) == 1):  # Check if input is one of the specified elements
-                    if v not in restriction:
-                        mismatched[k] = {'recieved': v, 'expected (inclusion I)': expected.get(k)}
-                elif(len(restriction) == 2):  # Treat it as a range
-                    if(type(restriction[0]) == float or type(restriction[0]) == int):
-                        if not (v >= restriction[0] and v <= restriction[1]):
-                            mismatched[k] = {'recieved': v, 'expected (num. range)': expected.get(k)}
-                    else:
-                        if v not in restriction:
-                            mismatched[k] = {'recieved': v, 'expected (inclusion II)': expected.get(k)}
-                else:
-                    raise ValueError(f'Restriction for {k} improperly set in {name} range sanitation')
-            elif(restriction is None):
-                pass
-    except Exception:
-        print('>> WARNING: Exception (likely edge case) ignored in data_range_sanitation')
-
-    if(len(mismatched) > 0):
-        raise ValueError(
-            f'> Invalid input for following pairs during data_range_sanitation for {name}.\n{mismatched}')
 
 
 def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, ranked_steam, extrema_thresh_pct=5,
@@ -637,9 +939,17 @@ def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, rank
                             'annot_size': (0, np.inf),
                             'highlight': None,
                             'FIGSIZE': None}
-    data_type_sanitation(_provided_args, _expected_type_args, name)
-    data_range_sanitation(_provided_args, _expected_value_args, name)
+    util_data_type_sanitation(_provided_args, _expected_type_args, name)
+    util_data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
+
+    new = len(perf_data) / CELL_RATIO
+    if(new > 100):
+        print(f'> WARNING: The height of this figure is {int(new)} units. Render may take significant time...')
+    if(FIGSIZE[1] >= new):
+        pass
+    else:
+        FIGSIZE = (FIGSIZE[0], new)
 
     # CUSTOM DATA SANITATION
     if not (len(perf_data.select_dtypes(float).columns) <= len(perf_data.columns)):
@@ -681,281 +991,7 @@ def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, rank
     print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
 
 
-def conditional_drop(data_frame, tbd_list):
-    """Drops the specified column(s) from the H2O Frame if it exists in the Frame.
-
-    Parameters
-    ----------
-    data_frame : h2o.frame.H2OFrame
-        The H20 Frame to be traversed through and potentially modified.
-    tbd_list : list (of str) OR any iterable (of str)
-        The column names which should be conditionally dropped.
-
-    Returns
-    -------
-    h2o.frame.H2OFrame
-        The (potentially) modified H20 Frame.
-
-    """
-    """DATA SANITATION"""
-    _provided_args = locals()
-    name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'data_frame': None,
-                           'tbd_list': [list]}
-    _expected_value_args = {'data_frame': None,
-                            'tbd_list': None}
-    data_type_sanitation(_provided_args, _expected_type_args, name)
-    data_range_sanitation(_provided_args, _expected_value_args, name)
-    """END OF DATA SANITATION"""
-
-    for tb_dropped in tbd_list:
-        if(tb_dropped in data_frame.columns):
-            data_frame = data_frame.drop(tb_dropped, axis=1)
-            print(Fore.GREEN + '> STATUS: {} dropped.'.format(tb_dropped) + Style.RESET_ALL)
-        else:
-            print(Fore.GREEN + '> STATUS: {} not in frame, skipping.'.format(tb_dropped) + Style.RESET_ALL)
-    return data_frame
-
-
-def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict:
-    """Provides a snapshot of the H2O cluster and different status/performance indicators.
-
-    Parameters
-    ----------
-    cluster : h2o.backend.cluster.H2OCluster
-        The h2o cluster where the server was initialized.
-    show : bool
-        Whether details should be printed to screen. Uses H2Os built-in method.py
-
-    Returns
-    -------
-    dict
-        Information about the status/performance of the specified cluster.
-
-    """
-    """DATA SANITATION"""
-    _provided_args = locals()
-    name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'cluster': [h2o.backend.cluster.H2OCluster],
-                           'show': [bool]}
-    _expected_value_args = {'cluster': None,
-                            'show': [True, False]}
-    data_type_sanitation(_provided_args, _expected_type_args, name)
-    data_range_sanitation(_provided_args, _expected_value_args, name)
-    """END OF DATA SANITATION"""
-
-    h2o.cluster().show_status() if(show) else None
-
-    return {'cluster_name': cluster.cloud_name,
-            'pid': cluster.get_status_details()['pid'][0],
-            'version': [int(i) for i in cluster.version.split('.')],
-            'run_status': cluster.is_running(),
-            'branch_name': cluster.branch_name,
-            'uptime_ms': cluster.cloud_uptime_millis,
-            'health': cluster.cloud_healthy}
-
-
-def shutdown_confirm(h2o_instance: type(h2o)) -> None:
-    """Terminates the provided H2O cluster.
-
-    Parameters
-    ----------
-    cluster : type(h2o)
-        The H2O instance where the server was initialized.
-
-    Returns
-    -------
-    None
-        Nothing. ValueError may be raised during processing and cluster metrics may be printed.
-
-    """
-    """DATA SANITATION"""
-    _provided_args = locals()
-    name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'h2o_instance': [type(h2o)]}
-    _expected_value_args = {'h2o_instance': None}
-    data_type_sanitation(_provided_args, _expected_type_args, name)
-    data_range_sanitation(_provided_args, _expected_value_args, name)
-    """END OF DATA SANITATION"""
-
-    # SHUT DOWN the cluster after you're done working with it
-    h2o_instance.remove_all()
-    h2o_instance.cluster().shutdown()
-    # Double checking...
-    try:
-        snapshot(h2o_instance.cluster)
-        raise ValueError('ERROR: H2O cluster improperly closed!')
-    except Exception:
-        pass
-
-
-def get_aml_objects(project_names):
-    objs = []
-    for project_name in project_names:
-        objs.append(h2o.automl.get_automl(project_name))
-    return objs
-
-
-def exp_cumulative_varimps(project_names):
-    """Determines variable importances for all models in an experiment.
-
-    Parameters
-    ----------
-    project_names : id
-        The H2O AutoML experiment configuration.
-
-    Returns
-    -------
-    pandas.core.frame.DataFrame, list (of tuples)
-        A concatenated DataFrame with all the model's variable importances for all the input features.
-        [Optional] A list of the models that did not have a variable importance. Format: (name, model object).
-
-    """
-    """DATA SANITATION"""
-    _provided_args = locals()
-    name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'aml_obj': [h2o.automl.autoh2o.H2OAutoML]}
-    _expected_value_args = {'aml_obj': None}
-    data_type_sanitation(_provided_args, _expected_type_args, name)
-    data_range_sanitation(_provided_args, _expected_value_args, name)
-    """END OF DATA SANITATION"""
-
-    aml_objects = get_aml_objects(project_names)
-
-    variable_importances = []
-    for aml_obj in aml_objects:
-        responder, group = project_names[aml_objects.index(aml_obj)].split('__')[-2:]
-        tag = [group, responder]
-        tag_name = ['group', 'responder']
-
-        cumulative_varimps = []
-        model_novarimps = []
-        exp_leaderboard = aml_obj.leaderboard
-        # Retrieve all the model objects from the given experiment
-        exp_models = [h2o.get_model(exp_leaderboard[m_num, "model_id"]) for m_num in range(exp_leaderboard.shape[0])]
-        for model in exp_models:
-            model_name = model.params['model_id']['actual']['name']
-            variable_importance = model.varimp(use_pandas=True)
-
-            # Only conduct variable importance dataset manipulation if ranking data is available
-            # > (eg. unavailable, stacked)
-            if(variable_importance is not None):
-                variable_importance = pd.pivot_table(variable_importance,
-                                                     values='scaled_importance',
-                                                     columns='variable').reset_index(drop=True)
-                variable_importance['model_name'] = model_name
-                variable_importance['model_object'] = model
-                if(tag is not None and tag_name is not None):
-                    for i in range(len(tag)):
-                        variable_importance[tag_name[i]] = tag[i]
-                variable_importance.index = variable_importance['model_name'] + \
-                    '___GROUP-' + variable_importance['group']
-                variable_importance.drop('model_name', axis=1, inplace=True)
-                variable_importance.columns.name = None
-
-                cumulative_varimps.append(variable_importance)
-            else:
-                # print('> WARNING: Variable importances unavailable for {MDL}'.format(MDL=model_name))
-                model_novarimps.append((model_name, model))
-
-        varimp_all_models_in_run = pd.concat(cumulative_varimps)
-        variable_importances.append(varimp_all_models_in_run)  # , model_novarimps
-
-    requested_varimps = pd.concat(variable_importances)
-
-    print(Fore.GREEN +
-          '> STATUS: Determined variable importances of all models in given experiments: {}.'.format(project_names) +
-          Style.RESET_ALL)
-
-    return requested_varimps
 # Diverging: sns.diverging_palette(240, 10, n=9, as_cmap=True)
-
-
-def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False,
-                       type_corrs=['Pearson', 'Kendall', 'Spearman'],
-                       cmap=sns.color_palette('flare', as_cmap=True), figsize=(24, 8), contrast_factor=1.0):
-    """Outputs to console and saves to file correlation matrices given data with input features.
-    Intended to represent the parameter space and different relationships within. Tool for modeling.
-
-    Parameters
-    ----------
-    df : pandas.core.frame.DataFrame
-        Input dataframe where each column is a feature that is to be correlated.
-    FPATH : str
-        Where the file should be saved. If directory is provided, it should already be created.
-    abs_arg : bool
-        Whether the absolute value of the correlations should be plotted (for strength magnitude).
-        Impacts cmap, switches to diverging instead of sequential.
-    mask : bool
-        Whether only the bottom left triange of the matrix should be rendered.
-    annot : bool
-        Whether each cell should be annotated with its numerical value.
-    type_corrs : list
-        All the different correlations that should be provided. Default to all built-in pandas options for df.corr().
-    cmap : child of matplotlib.colors
-        The color map which should be used for the heatmap. Dependent on abs_arg.
-    figsize : tuple
-        The size of the outputted/saved heatmap (width, height).
-    contrast_factor:
-        The factor/exponent by which all the correlationed should be raised to the power of.
-        Purpose is for high-contrast, better identification of highly correlated features.
-
-    Returns
-    -------
-    pandas.core.frame.DataFrame
-        The correlations given the input data, and other transformation arguments (abs_arg, contrast_factor)
-        Furthermore, heatmap is saved in specifid format and printed to console.
-
-    """
-    """DATA SANITATION"""
-    _provided_args = locals()
-    name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'df': [pd.core.frame.DataFrame],
-                           'FPATH': [str],
-                           'EXP_NAME': [str],
-                           'abs_arg': [bool],
-                           'mask': [bool],
-                           'annot': [bool],
-                           'type_corrs': [list],
-                           'cmap': [matplotlib.colors.ListedColormap, matplotlib.colors.LinearSegmentedColormap],
-                           'figsize': [tuple],
-                           'contrast_factor': [float]}
-    _expected_value_args = {'df': None,
-                            'FPATH': None,
-                            'EXP_PATH': None,
-                            'abs_arg': [True, False],
-                            'mask': [True, False],
-                            'annot': [True, False],
-                            'type_corrs': None,
-                            'cmap': None,
-                            'figsize': None,
-                            'contrast_factor': [0.0000001, np.inf]}
-    data_type_sanitation(_provided_args, _expected_type_args, name)
-    data_range_sanitation(_provided_args, _expected_value_args, name)
-    """END OF DATA SANITATION"""
-
-    input_data = {}
-
-    # NOTE: Conditional assignment of sns.heatmap based on parameters
-    # > Mask sns.heatmap parameter is conditionally controlled
-    # > If absolute value is not chosen by the user, switch to divergent heatmap. Otherwise keep it as sequential.
-    fig, ax = plt.subplots(ncols=len(type_corrs), sharey=True, figsize=figsize)
-    for typec in type_corrs:
-        input_data[typec] = (df.corr(typec.lower()).abs()**contrast_factor if abs_arg
-                             else df.corr(typec.lower())**contrast_factor)
-        sns_fig = sns.heatmap(input_data[typec],
-                              mask=np.triu(df.corr().abs()) if mask else None,
-                              ax=ax[type_corrs.index(typec)],
-                              annot=annot,
-                              cmap=cmap if abs_arg else sns.diverging_palette(240, 10, n=9, as_cmap=True)
-                              ).set_title("{cortype}'s Correlation Matrix\n{EXP_NAME}".format(cortype=typec,
-                                                                                              EXP_NAME=EXP_NAME))
-    plt.tight_layout()
-    sns_fig.get_figure().savefig(FPATH, bbox_inches='tight')
-
-    plt.clf()
-
-    return input_data
 
 
 print(Fore.GREEN + 'STATUS: Hyperparameters assigned and functions defined.' + Style.RESET_ALL)
@@ -994,14 +1030,14 @@ _ = """
 #######################################################################################################################
 """
 # Table diagnostics
-# data_pad = conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water'])
-# data_pad = conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed'])
-# data_pad = conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed', 'Bin_1', 'Bin_5'])
+# data_pad = util_conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water'])
+# data_pad = util_conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed'])
+# data_pad = util_conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed', 'Bin_1', 'Bin_5'])
 RESPONDER = 'PRO_Alloc_Oil'
 
 EXCLUDE = ['C1', 'PRO_Alloc_Water', 'Bin_1', 'Bin_5', 'Date']
-data_pad, groupby_options_pad, PREDICTORS = typical_manipulation_h20(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
-# data_well, groupby_options_well, PREDICTORS = typical_manipulation_h20(data_well, 'PRO_Well', EXCLUDE, RESPONDER)
+data_pad, groupby_options_pad, PREDICTORS = data_refinement(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
+# data_well, groupby_options_well, PREDICTORS = data_refinement(data_well, 'PRO_Well', EXCLUDE, RESPONDER)
 
 print(OUT_BLOCK)
 
@@ -1018,6 +1054,17 @@ print(Fore.GREEN + '\t* stopping_metric\t-> ', EVAL_METRIC,
       Fore.GREEN + '\t\tThis option specifies the metric to consider when early stopping is specified')
 print(Fore.GREEN + '\t* sort_metric\t\t-> ', RANK_METRIC,
       Fore.GREEN + '\t\tThis option specifies the metric used to sort the Leaderboard by at the end of an AutoML run.')
+print(Fore.GREEN + '\t* n_folds\t\t-> ', CV_FOLDS,
+      Fore.GREEN + '\t\t\tThis is the number of cross-validation folds for each model in the experiment.')
+print(Fore.GREEN + '\t* stopping_rounds\t-> ', STOPPING_ROUNDS,
+      Fore.GREEN + '\t\t\tThis is the tolerated number of training rounds until `stopping_metric` stops improving.')
+print(Fore.GREEN + '\t* exploitation\t\t-> ', EXPLOIT_RATIO,
+      Fore.GREEN + '\t\t\tThe "budget ratio" dedicated to exploiting vs. exploring for fine-tuning XGBoost and GBM. ' +
+      '**Experimental**')
+print(Fore.GREEN + '\t* tolerance\t\t-> ', PREFERRED_TOLERANCE,
+      Fore.GREEN + '\t\tThis is the two-tailed value for RMSE.')
+print(Fore.GREEN + '\t* top_models\t\t-> ', TOP_MODELS,
+      Fore.GREEN + '\t\t\tThis is the top "n" models to visually filter when plotting the variable importance heatmap.')
 print(Fore.GREEN + '\t* seed\t\t\t-> ', RANDOM_SEED,
       Fore.GREEN + '\t\tRandom seed for reproducibility. There are caveats.')
 print(Fore.GREEN + '\t* Predictors\t\t-> ', PREDICTORS,
@@ -1029,35 +1076,41 @@ if(input('Proceed with given hyperparameters? (Y/N)') == 'Y'):
 else:
     raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
 
+# Run the experiment
 project_names_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER)
-# final_cumulative_varimps_well = run_experiment(data_well, groupby_options_well, RESPONDER)
+# Calculate Variable Importance
+varimps_pad = varimps(project_names_pad)
+# Configure filtering for variable importance
+mask_pad = (varimps_pad.mean(axis=1) > 0.2) & (varimps_pad.mean(axis=1) < 1.0)
+selective_varimps_pad = varimps_pad[mask_pad]
+# Create variable importance heatmap
+ranked_names_pad, ranked_steam_pad = varimp_heatmap(varimps_pad,
+                                                    'Modeling Reference Files/Round ' +
+                                                    '{tag}/variable_importances_PAD{tag}.pdf'.format(tag=RUN_TAG),
+                                                    FIGSIZE=(10, 50),
+                                                    highlight=False,
+                                                    annot=False)
 
-
-varimps_pad = exp_cumulative_varimps(project_names_pad)
-
-mask_pad = (varimps_pad.mean(axis=1) > 0.0) & (varimps_pad.mean(axis=1) < 1.0)
-selective_varimps_pad = varimps_pad[mask_pad].select_dtypes(float)
-# mask_well = (varimps_well.mean(axis=1) > 0.0) & (varimps_well.mean(axis=1) < 1.0)
-# FILT_final_cumulative_varimps_well = final_cumulative_varimps_well[mask_well]
-
-
-ranked_names_pad, ranked_steam_pad = plot_varimp_heatmap(selective_varimps_pad,
-                                                         'Modeling Reference Files/Round ' +
-                                                         '{tag}/macropad_varimps_PAD{tag}.pdf'.format(tag=RUN_TAG))
-# ranked_names_well, ranked_steam_well = plot_varimp_heatmap(selective_varimps_well,
-#                                                            'Modeling Reference Files/Round ' +
-#                                                            '{tag}/macropad_varimps_PWELL{tag}.pdf'.format(tag=RUN_TAG),
-#                                                            FIGSIZE=(10, 100),
-#                                                            highlight=False,
-#                                                            annot=False)
-
+# Plot predictor/regressor correlation matrix
 with suppress_stdout():
     correlation_matrix(selective_varimps_pad,
                        EXP_NAME='Aggregated Experiment Results - Pad-Level',
-                       FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_{tag}.pdf'.format(tag=RUN_TAG))
-# correlation_matrix(selective_varimps_well, EXP_NAME='Aggregated Experiment Results - Well-Level',
-#                    FPATH='Modeling Reference Files/Round {tag}/select_var_corrs_PWELL{tag}.pdf'.format(tag=RUN_TAG))
+                       FPATH='Modeling Reference Files/Round {tag}/cross-correlations_PAD{tag}.pdf'.format(tag=RUN_TAG))
 
+# project_names_well = run_experiment(data_well, groupby_options_well, RESPONDER)
+# varimps_well = varimps(project_names_well)
+# mask_well = (varimps_well.mean(axis=1) > 0.0) & (varimps_well.mean(axis=1) < 1.0)
+# selective_varimps_well = varimps_well[mask_well]
+# ranked_names_well, ranked_steam_well = varimp_heatmap(selective_varimps_well,
+#                                                            'Modeling Reference Files/Round ' +
+#                                                            '{tag}/variable_importance_WELL{tag}.pdf'.format(tag=RUN_TAG),
+#                                                            FIGSIZE=(10, 100),
+#                                                            highlight=False,
+#                                                            annot=False)
+# with suppress_stdout():
+#     correlation_matrix(selective_varimps_well,
+#                        EXP_NAME='Aggregated Experiment Results - Well-Level',
+#                        FPATH='Modeling Reference Files/Round {tag}/correlations_WELL{tag}.pdf'.format(tag=RUN_TAG))
 
 print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
 print(OUT_BLOCK)
@@ -1068,45 +1121,38 @@ _ = """
 #######################################################################################################################
 """
 
-get_aml_objects(project_names_pad)[1].leaderboard
-dir(h2o.get_model('GBM_3_AutoML_20210326_170904'))
-h2o.get_model('GBM_3_AutoML_20210326_170904').shap_summary_plot(data_pad)
+# get_aml_objects(project_names_pad)[1].leaderboard
+# dir(h2o.get_model('GBM_3_AutoML_20210326_170904'))
+# h2o.get_model('GBM_3_AutoML_20210326_170904').shap_summary_plot(data_pad)
+
+data_pad_pd = pd.read_csv(DATA_PATH_PAD)
+benchline_pad = list(data_pad_pd[data_pad_pd[RESPONDER] > 0].groupby(
+    ['Date', 'PRO_Pad'])[RESPONDER].sum().reset_index().groupby('PRO_Pad').median().to_dict().values())[0]
+benchline_pad.update((x, y * PREFERRED_TOLERANCE) for x, y in benchline_pad.items())
+# Calculate model performance metrics
+perf_pad = model_performance(varimps_pad, benchline_pad)
+# Plot model performance metrics
+with suppress_stdout():
+    plot_model_performance(perf_pad.select_dtypes(float),
+                           'Modeling Reference Files/Round {tag}/model_performance_PAD{tag}.pdf'.format(tag=RUN_TAG),
+                           MODEL_CMAPS, HMAP_CENTERS, ranked_names_pad, ranked_steam_pad,
+                           highlight=False,
+                           annot=True,
+                           annot_size=6,
+                           FIGSIZE=(10, 1))
 
 # data_well_pd = pd.read_csv(DATA_PATH_WELL)
-# benchline = data_well_pd[data_well_pd[RESPONDER] > 0].groupby(
-#     ['Date', 'PRO_Well'])[RESPONDER].sum().reset_index().groupby('PRO_Well').median()
-# grouped_tolerance = (PREFERRED_TOLERANCE * benchline).to_dict()[RESPONDER]
-perf_pad = model_performance(varimps_pad)
-
+# benchline_well = list(data_well_pd[data_well_pd[RESPONDER] > 0].groupby(
+#     ['Date', 'PRO_Well'])[RESPONDER].sum().reset_index().groupby('PRO_Well').median().to_dict().values())[0]
+# benchline_well.update((x, y * PREFERRED_TOLERANCE) for x, y in benchline_well.items())
 # perf_well = model_performance(varimps_well)
-# perf_well['group_type'] = [t[1] for t in perf_well.index.str.split('___GROUP')]
-
-mcmaps = {'R^2': sns.color_palette('rocket_r', as_cmap=True),
-          # 'R': sns.color_palette('rocket_r'),
-          'MSE': sns.color_palette("coolwarm", as_cmap=True),
-          'RMSE': sns.color_palette("coolwarm", as_cmap=True),
-          'RMSLE': sns.color_palette("coolwarm", as_cmap=True),
-          'MAE': sns.color_palette("coolwarm", as_cmap=True)}
-centers = {'R^2': None,
-           'MSE': 400,
-           'RMSE': 20,
-           'RMSLE': None,
-           'MAE': None}
-
-plot_model_performance(perf_pad.select_dtypes(float),
-                       'Modeling Reference Files/Round {tag}/model_performance_PAD{tag}.pdf'.format(tag=RUN_TAG),
-                       mcmaps, centers, ranked_names_pad, ranked_steam_pad,
-                       highlight=False,
-                       annot=True,
-                       annot_size=6,
-                       FIGSIZE=(10, 10))
 # plot_model_performance(perf_well.select_dtypes(float),
 #                        'Modeling Reference Files/Round {tag}/model_performance_PWELL{tag}.pdf'.format(tag=RUN_TAG),
-#                        mcmaps, centers, ranked_names_well, ranked_steam_well,
+#                        MODEL_CMAPS, HMAP_CENTERS, ranked_names_well, ranked_steam_well,
 #                        highlight=False,
 #                        annot=True,
-#                        annot_size=2,
-#                        FIGSIZE=(10, 100))
+#                        annot_size=6,
+#                        FIGSIZE=(10, 10))
 
 
 _ = """
