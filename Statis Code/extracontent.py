@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 30-Mar-2021 13:03:93:935  GMT-0600
+# @Last modified time: 30-Mar-2021 18:03:38:389  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -403,3 +403,24 @@
 #         #     FINALE.loc[FINALE['PRO_Well'] == pwell_sub, 'weights__' + cont_col] = adjusted_anomscores
 #         break
 # lc_injectors = [k for k, v in col_reference.items() if 'I' in v][1:]
+
+# INJECTOR_AGGREGATES = {}
+# for propad, pad_candidates in candidates_by_prodpad.items():
+#     # Select candidates (not all the wells)
+#     local_candidates = pad_candidates.copy()
+#     absence = []
+#     for cand in local_candidates:
+#         if cand not in all_injs:
+#             print('> STATUS: Candidate {} removed, unavailable in initial data'.format(cand))
+#             absence.append(cand)
+#     local_candidates = [el for el in local_candidates if el not in absence]
+#
+#     FINALE_melted_inj = pd.melt(FINALE_inj, id_vars=['Date'], value_vars=local_candidates,
+#                                 var_name='Injector', value_name='Steam')
+#     FINALE_melted_inj['INJ_Pad'] = FINALE_melted_inj['Injector'].apply(lambda x: INJ_PAD_KEYS.get(x))
+#     FINALE_melted_inj = FINALE_melted_inj[~FINALE_melted_inj['INJ_Pad'].isna()].reset_index(drop=True)
+#     # To groupby injector pads, by=['Date', 'INJ_Pad']
+#     FINALE_agg_inj = FINALE_melted_inj.groupby(by=['Date'], axis=0, sort=False, as_index=False).sum()
+#     FINALE_agg_inj['PRO_Pad'] = propad
+#     INJECTOR_AGGREGATES[propad] = FINALE_agg_inj
+# INJECTOR_AGGREGATES = pd.concat(INJECTOR_AGGREGATES.values()).reset_index(drop=True)

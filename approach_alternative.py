@@ -3,13 +3,12 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 30-Mar-2021 17:03:22:221  GMT-0600
+# @Last modified time: 30-Mar-2021 21:03:15:157  GMT-0600
 # @License: [Private IP]
 
 import math
 import os
 import sys
-from collections import Counter
 from datetime import datetime
 from itertools import chain
 from multiprocessing import Pool
@@ -18,7 +17,6 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 
 try:
     import Anomaly_Detection_PKG
@@ -295,8 +293,8 @@ all_prod_wells = list(FINALE['PRO_Well'].unique())
 lc_injectors = [k for k, v in col_reference.items() if 'I' in v][1:]
 
 # Conduct Anomaly Detection
-cumulative_tagged = []
-temporal_benchmarks = []
+cumulative_tagged = []          # Stores the outputs from the customized, anomaly detection function
+temporal_benchmarks = []        # Used to track multi-process benchmarking for utlimate vizualization
 process_init = datetime.now()
 for cont_col in all_continuous_columns:
     rep_multiplier = len(all_prod_wells) if cont_col not in lc_injectors else 1
@@ -313,10 +311,11 @@ for cont_col in all_continuous_columns:
     print('> STATUS: {} % progress with `{}`'.format(
         round(100.0 * list(all_continuous_columns).index(cont_col) / len(all_continuous_columns), 3), cont_col))
 
-# Reformat anomaly info to a DataFrame
-anomaly_tag_tracker = pd.concat(cumulative_tagged).reset_index(drop=True)
-# Only the injector data
-sole_injector_data = anomaly_tag_tracker[anomaly_tag_tracker['feature'].isin(
+fig, ax = plt.subplots(figsize=(12, 8))
+plt.plot([t[1] for t in temporal_benchmarks])
+
+anomaly_tag_tracker = pd.concat(cumulative_tagged).reset_index(drop=True)       # Reformat anomaly info to a DataFrame
+sole_injector_data = anomaly_tag_tracker[anomaly_tag_tracker['feature'].isin(   # Only the injector data
     lc_injectors)].reset_index(drop=True).drop('group', axis=1)
 
 # Duplicate the data for all available producer wells
@@ -336,23 +335,26 @@ reformatted_anomalies = cumulative_anomalies.groupby(['group', 'date'])[['update
 reformatted_anomalies.columns = ['PRO_Well', 'Date', 'weight']
 reformatted_anomalies = reformatted_anomalies.infer_objects()
 
+FINALE['Date'] = pd.to_datetime(FINALE['Date'])
+reformatted_anomalies['Date'] = pd.to_datetime(reformatted_anomalies['Date'])
+
 # Merge this data into the original, highest-resolution base table
-FINALE = pd.merge(FINALE, reformatted_anomalies, 'inner', on=['Date', 'PRO_Well'])
+FINALE = pd.merge(FINALE.infer_objects(), reformatted_anomalies, 'inner', on=['Date', 'PRO_Well'])
 
 # # Exploratory Analysis on the weights
-# fig, ax = plt.subplots(figsize=(24, 16))
+# fig, ax = plt.subplots(figsize=(20, 13))
 # temp_one = cumulative_anomalies[cumulative_anomalies['group'] == 'AP5'
 #                                 ][['feature', 'updated_score', 'date']
 #                                   ].sort_values('date').reset_index(drop=True)
 # temp_one.index = temp_one.index / max(temp_one.index)
-# temp_one.plot(ax=ax, lw=0.05)
+# temp_one[['updated_score']].plot(ax=ax, lw=0.05)
 #
 # # fig, ax = plt.subplots(figsize=(24, 16))
 # temp_two = reformatted_anomalies[reformatted_anomalies['PRO_Well'] == 'AP5'
 #                                  ][['weight', 'Date']
 #                                    ].sort_values('Date').reset_index(drop=True)
 # temp_two.index = temp_two.index / max(temp_two.index)
-# temp_two.plot(ax=ax, lw=1)
+# temp_two[['weight']].plot(ax=ax, lw=1)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -517,9 +519,6 @@ if(plot_geo):
 #
 #
 #
-#
-#
-#
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -565,11 +564,8 @@ all_pro_data = ['PRO_Well',
                 'Bin_4',
                 'Bin_5']
 
-FINALE_pro = FINALE[all_pro_data + ['Date']]
+FINALE_pro = FINALE[all_pro_data + ['Date', 'weight']]
 FINALE_pro, dropped_cols = drop_singles(FINALE_pro)
-
-# Smoothen out the Oil Data
-unique_pro_wells = list(FINALE_pro['PRO_Well'].unique())
 
 aggregation_dict = {'PRO_Pump_Speed': 'sum',
                     'PRO_Time_On': 'mean',
@@ -585,7 +581,8 @@ aggregation_dict = {'PRO_Pump_Speed': 'sum',
                     'Bin_2': 'mean',
                     'Bin_3': 'mean',
                     'Bin_4': 'mean',
-                    'Bin_5': 'mean'}
+                    'Bin_5': 'mean',
+                    'weight': 'mean'}
 
 FINALE_agg_pro = FINALE_pro.groupby(by=['Date', 'PRO_Pad'], axis=0,
                                     sort=False, as_index=False).agg(aggregation_dict)
@@ -632,31 +629,9 @@ FINALE_agg_pro_pwell = FINALE_pro.groupby(by=['Date', 'PRO_Well'], axis=0,
 FINALE_inj = FINALE[FINALE['PRO_Well'] == 'AP3'].reset_index(drop=True).drop('PRO_Well', 1)
 all_injs = [c for c in FINALE_inj.columns if 'I' in c and '_' not in c]
 
-# INJECTOR_AGGREGATES = {}
-# for propad, pad_candidates in candidates_by_prodpad.items():
-#     # Select candidates (not all the wells)
-#     local_candidates = pad_candidates.copy()
-#     absence = []
-#     for cand in local_candidates:
-#         if cand not in all_injs:
-#             print('> STATUS: Candidate {} removed, unavailable in initial data'.format(cand))
-#             absence.append(cand)
-#     local_candidates = [el for el in local_candidates if el not in absence]
-#
-#     FINALE_melted_inj = pd.melt(FINALE_inj, id_vars=['Date'], value_vars=local_candidates,
-#                                 var_name='Injector', value_name='Steam')
-#     FINALE_melted_inj['INJ_Pad'] = FINALE_melted_inj['Injector'].apply(lambda x: INJ_PAD_KEYS.get(x))
-#     FINALE_melted_inj = FINALE_melted_inj[~FINALE_melted_inj['INJ_Pad'].isna()].reset_index(drop=True)
-#     # To groupby injector pads, by=['Date', 'INJ_Pad']
-#     FINALE_agg_inj = FINALE_melted_inj.groupby(by=['Date'], axis=0, sort=False, as_index=False).sum()
-#     FINALE_agg_inj['PRO_Pad'] = propad
-#     INJECTOR_AGGREGATES[propad] = FINALE_agg_inj
-# INJECTOR_AGGREGATES = pd.concat(INJECTOR_AGGREGATES.values()).reset_index(drop=True)
-
-
 INJECTOR_AGGREGATES = produce_injector_aggregates(candidates_by_prodpad, FINALE_inj, 'PRO_Pad')
 INJECTOR_AGGREGATES_PWELL = produce_injector_aggregates(candidates_by_prodwell, FINALE_inj, 'PRO_Well')
-
+list(FINALE_inj.columns)
 
 if(plot_eda):
     # FIGURE PLOTTING (INJECTION PAD-LEVEL STATISTICS)
@@ -682,16 +657,19 @@ if(plot_eda):
 # # # # # # # # # # # # # #  COMBINE INJECTOR AND PRODUCER AGGREGATIONS # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 PRODUCER_AGGREGATES = FINALE_agg_pro[FINALE_agg_pro['PRO_Pad'].isin(available_pads_transformed)]
-PRODUCER_AGGREGATES_PWELL = FINALE_agg_pro_pwell[FINALE_agg_pro_pwell['PRO_Well'].isin(available_pwells_transformed)]
-
 COMBINED_AGGREGATES = pd.merge(PRODUCER_AGGREGATES, INJECTOR_AGGREGATES,
                                how='inner', on=['Date', 'PRO_Pad']).drop(['PRO_Alloc_Water'], axis=1)
+COMBINED_AGGREGATES, dropped = drop_singles(COMBINED_AGGREGATES)
 
+PRODUCER_AGGREGATES_PWELL = FINALE_agg_pro_pwell[FINALE_agg_pro_pwell['PRO_Well'].isin(available_pwells_transformed)]
 COMBINED_AGGREGATES_PWELL = pd.merge(PRODUCER_AGGREGATES_PWELL, INJECTOR_AGGREGATES_PWELL,
                                      how='inner', on=['Date', 'PRO_Well']).drop(['PRO_Alloc_Water'], axis=1)
-
-COMBINED_AGGREGATES, dropped = drop_singles(COMBINED_AGGREGATES)
 COMBINED_AGGREGATES_PWELL, dropped_pwell = drop_singles(COMBINED_AGGREGATES_PWELL)
+
+fig, ax = plt.subplots(figsize=(24, 16))
+COMBINED_AGGREGATES_PWELL[COMBINED_AGGREGATES_PWELL['PRO_Well'] == 'AP8']['PRO_Alloc_Oil'].plot()
+fig, ax = plt.subplots(figsize=(24, 16))
+COMBINED_AGGREGATES[COMBINED_AGGREGATES['PRO_Pad'] == 'B']['PRO_Alloc_Oil'].plot()
 
 # COMBINED_AGGREGATES_temp = COMBINED_AGGREGATES.rolling(window=7).mean()
 # COMBINED_AGGREGATES_temp['PRO_Pad'] = COMBINED_AGGREGATES['PRO_Pad']
