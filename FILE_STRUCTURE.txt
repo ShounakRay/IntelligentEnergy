@@ -5,7 +5,10 @@ IntelligentEnergy/
 │   └── JUPYTER-IPC_Real_Modeling-checkpoint.ipynb
 ├── __init__.py
 ├── __pycache__/
+│   ├── _context_managers.cpython-38.pyc
+│   ├── defs.cpython-38.pyc
 │   └── util_traversal.cpython-38.pyc
+├── _context_managers.py
 ├── Approach 1/
 │   ├── AUTO-IPC_Real_Manipulation.py
 │   ├── heatmap_anitest.py
@@ -162,6 +165,7 @@ IntelligentEnergy/
 │       ├── FINALE.pkl
 │       ├── PRODUCTION_WELL_INTER.pkl
 │       └── PRODUCTION_WELL_WSENSOR.pkl
+├── defs.py
 ├── Exploratory Data Analysis/
 │   ├── report_DATA_INJECTION_PRESS.html
 │   ├── report_DATA_INJECTION_STEAM.html
@@ -171,6 +175,7 @@ IntelligentEnergy/
 │   ├── report_FINALE.html
 │   ├── report_PRODUCTION_WELL_INTER.html
 │   └── report_PRODUCTION_WELL_WSENSOR.html
+├── feature_engineering.py
 ├── FILE_STRUCTURE.txt
 ├── HTML/
 │   ├── just_foref.html
@@ -178,7 +183,6 @@ IntelligentEnergy/
 │   └── nx_visjs_TAILOR.html
 ├── IPC_Real_Manipulation.py
 ├── IPC_Real_Modeling.py
-├── just_foref.html
 ├── LICENSE
 ├── Manipulation Reference Files/
 │   ├── .DS_Store
@@ -211,13 +215,17 @@ IntelligentEnergy/
 │   │   ├── PRODUCTION_WELL_INTER.png
 │   │   ├── PRODUCTION_WELL_WSENSOR.png
 │   │   └── target.png
-│   └── Schematic 3/
-│       ├── IPC_BASE.png
-│       └── IPC_BASE.svg
+│   ├── Schematic 3/
+│   │   ├── IPC_BASE.png
+│   │   └── IPC_BASE.svg
+│   └── Schematic 4/
+│       ├── Screen Shot 2021-03-22 at 3.26.28 PM (2).png
+│       └── Screen Shot 2021-03-22 at 3.26.31 PM (2).png
 ├── Manipulation Validation/
 │   ├── IPC_Validation_initial.pdf
 │   └── IPC_Validation_revised.pdf
 ├── Modeling Pickles/
+│   ├── anomaly_tag_tracker.html
 │   ├── final_cumulative_varimps.pkl
 │   └── model_novarimps.pkl
 ├── Modeling Reference Files/
@@ -266,7 +274,10 @@ IntelligentEnergy/
 │   ├── Producer-Injector Overlap for BP4.png
 │   ├── Producer-Injector Overlap for BP5.png
 │   ├── Producer-Injector Overlap for BP6.png
-│   ├── Round 7194/
+│   ├── Round 2869/
+│   │   └── hyperparams.txt
+│   ├── Round 7496/
+│   │   └── hyperparams.txt
 │   ├── Round Base, Core Features/
 │   │   ├── macropad_varimps_920.pdf
 │   │   ├── model_performance_920.pdf
@@ -307,14 +318,11 @@ IntelligentEnergy/
 │   ├── TS Phase Space Theoretical.pdf
 │   └── TS Phase Space.pdf
 ├── README.md
-├── Screen Shot 2021-03-22 at 3.26.28 PM (2).png
-├── Screen Shot 2021-03-22 at 3.26.31 PM (2).png
 ├── Statis Code/
 │   ├── extracontent.py
 │   ├── mds_example.py
 │   ├── pool_error_log.txt
 │   └── run_remote.py
-├── test.py
 ├── util_traversal.py
 └── vis/
     ├── .babelrc

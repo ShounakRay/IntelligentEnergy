@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 29-Mar-2021 13:03:94:948  GMT-0600
+# @Last modified time: 30-Mar-2021 23:03:33:332  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -11,11 +11,13 @@
 # > https://www.h2o.ai/blog/h2o-release-3-30-zahradnik/#AutoML-Improvements
 # > https://seaborn.pydata.org/generated/seaborn.color_palette.html
 
+import datetime
 import os
 import random
 import subprocess
 import sys
 from contextlib import contextmanager
+from pprint import pprint
 from typing import Final
 
 import h2o
@@ -25,6 +27,7 @@ import numpy as np
 import pandas as pd  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp()
 import seaborn as sns
 import util_traversal
+from _context_managers import *
 from colorama import Fore, Style
 from h2o.automl import H2OAutoML
 from matplotlib.patches import Rectangle
@@ -57,6 +60,9 @@ _ = """
 #########################################   DEFINITIONS AND HYPERPARAMTERS   ##########################################
 #######################################################################################################################
 """
+# Data Ingestion Constants
+DATA_PATH_PAD: Final = 'Data/combined_ipc_aggregates.csv'         # Where the client-specific pad data is located
+DATA_PATH_WELL: Final = 'Data/combined_ipc_aggregates_PWELL.csv'  # Where the client-specific well data is located
 
 # H2O Server Constants
 IP_LINK: Final = 'localhost'                                  # Initializing the server on the local host (temporary)
@@ -65,19 +71,15 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 10                                       # The longest that the experiment will run (seconds)
+MAX_EXP_RUNTIME: Final = 600                                      # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                      # To ensure reproducibility of experiments (caveats*)
 EVAL_METRIC: Final = 'deviance'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'rmse'                                       # Leaderboard ranking metric after all trainings
 CV_FOLDS: Final = 5
 STOPPING_ROUNDS: Final = 3
-WEIGHTS_COLUMN: Final = None
+WEIGHTS_COLUMN: Final = 'weight'
 EXPLOIT_RATIO: Final = 0
 MODELING_PLAN: Final = None
-
-# Data Ingestion Constants
-DATA_PATH_PAD: Final = 'Data/combined_ipc_aggregates.csv'         # Where the client-specific pad data is located
-DATA_PATH_WELL: Final = 'Data/combined_ipc_aggregates_PWELL.csv'  # Where the client-specific well data is located
 
 # Feature Engineering Constants
 FOLD_COLUMN: Final = "kfold_column"                           # Target encoding, must be consistent throughout training
@@ -107,6 +109,45 @@ while os.path.isdir(f'Modeling Reference Files/Round {RUN_TAG}'):
     RUN_TAG: Final = random.randint(0, 10000)
 os.makedirs(f'Modeling Reference Files/Round {RUN_TAG}')
 
+# Compartmentalize Hyperparameters
+__LOCAL_VARS = locals().copy()
+_SERVER_HYPERPARAMS = ('IP_LINK', 'SECURED', 'PORT', 'SERVER_FORCE')
+_SERVER_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _SERVER_HYPERPARAMS}
+_TRAIN_HYPERPARAMS = ('MAX_EXP_RUNTIME', 'RANDOM_SEED', 'EVAL_METRIC', 'RANK_METRIC', 'CV_FOLDS', 'STOPPING_ROUNDS',
+                      'WEIGHTS_COLUMN', 'EXPLOIT_RATIO', 'MODELING_PLAN')
+_TRAIN_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _TRAIN_HYPERPARAMS}
+_EXECUTION_HYPERPARAMS = ('FOLD_COLUMN', 'TOP_MODELS', 'PREFERRED_TOLERANCE', 'TRAINING_VERBOSITY')
+_EXECUTION_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _EXECUTION_HYPERPARAMS}
+_MISCELLANEOUS_HYPERPARAMS = ('MODEL_CMAPS', 'MODEL_CMAPS', 'HMAP_CENTERS', 'CELL_RATIO')
+_MISCELLANEOUS_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _MISCELLANEOUS_HYPERPARAMS}
+
+# Save hyperparameter configurations to file with TIMESTAMP
+with open(f'Modeling Reference Files/Round {RUN_TAG}/hyperparams.txt', 'wt') as out:
+    print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+    print('JOB INITIALIZED: ', datetime.datetime.now(), file=out)
+    print('RUN ID:', RUN_TAG, file=out)
+    print(file=out)
+
+    print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+    print('SERVER HYPERPARAMETERS:', file=out)
+    pprint(_SERVER_HYPERPARAMS, stream=out)
+    print(file=out)
+
+    print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+    print('TRAINING HYPERPARAMETRS:', file=out)
+    pprint(_TRAIN_HYPERPARAMS, stream=out)
+    print(file=out)
+
+    print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+    print('EXECUTION HYPERPARAMETRS:', file=out)
+    pprint(_EXECUTION_HYPERPARAMS, stream=out)
+    print(file=out)
+
+    print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+    print('MISCELLANEOUS HYPERPARAMETRS:', file=out)
+    pprint(_MISCELLANEOUS_HYPERPARAMS, stream=out)
+    print(file=out)
+
 print(Fore.GREEN + 'STATUS: Directory created for Round {}'.format(RUN_TAG) + Style.RESET_ALL)
 
 # Print file structure for reference every time this program is run
@@ -124,6 +165,7 @@ def suppress_stdout():
             sys.stdout = old_stdout
 
 
+@server
 def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict:
     """Provides a snapshot of the H2O cluster and different status/performance indicators.
 
@@ -162,6 +204,7 @@ def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict
             'health': cluster.cloud_healthy}
 
 
+@server
 def shutdown_confirm(h2o_instance: type(h2o)) -> None:
     """Terminates the provided H2O cluster.
 
@@ -196,6 +239,15 @@ def shutdown_confirm(h2o_instance: type(h2o)) -> None:
         pass
 
 
+@server
+def get_aml_objects(project_names):
+    objs = []
+    for project_name in project_names:
+        objs.append(h2o.automl.get_automl(project_name))
+    return objs
+
+
+@utility
 def util_data_type_sanitation(val_and_inputs, expected, name):
     """Generic performance of data sanitation. Specifically cross-checks expected and actual data types.
 
@@ -239,6 +291,7 @@ def util_data_type_sanitation(val_and_inputs, expected, name):
             f'> Invalid input for following pairs during data_type_sanitation for {name}.\n{mismatched}')
 
 
+@utility
 def util_data_range_sanitation(val_and_inputs, expected, name):
     """Generic performance of data sanitation. Specifically cross-checks expected and actual data ranges.
 
@@ -294,6 +347,7 @@ def util_data_range_sanitation(val_and_inputs, expected, name):
             f'> Invalid input for following pairs during data_range_sanitation for {name}.\n{mismatched}')
 
 
+@utility
 def util_conditional_drop(data_frame, tbd_list):
     """Drops the specified column(s) from the H2O Frame if it exists in the Frame.
 
@@ -330,13 +384,7 @@ def util_conditional_drop(data_frame, tbd_list):
     return data_frame
 
 
-def get_aml_objects(project_names):
-    objs = []
-    for project_name in project_names:
-        objs.append(h2o.automl.get_automl(project_name))
-    return objs
-
-
+@analytics
 def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN):
     """Return minimally modified H2OFrame, all possible categorical filtering options, and predictor variables.
 
@@ -404,6 +452,7 @@ def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN)
     return data, groupby_options, predictors
 
 
+@analytics
 def run_experiment(data, groupby_options, responder,
                    MAX_EXP_RUNTIME=MAX_EXP_RUNTIME, EVAL_METRIC=EVAL_METRIC, RANK_METRIC=RANK_METRIC,
                    RANDOM_SEED=RANDOM_SEED, CV_FOLDS=CV_FOLDS, STOPPING_ROUNDS=STOPPING_ROUNDS,
@@ -517,6 +566,7 @@ def run_experiment(data, groupby_options, responder,
     return initialized_projects
 
 
+@analytics
 def varimps(project_names):
     """Determines variable importances for all models in an experiment.
 
@@ -591,6 +641,68 @@ def varimps(project_names):
     return requested_varimps
 
 
+@analytics
+def model_performance(tracker_with_modelobj, adj_factor, sort_by='RMSE', modelobj_colname='model_object'):
+    """Determine the model performance through a series of predefined metrics.
+
+    Parameters
+    ----------
+    tracker_with_modelobj : pandas.core.frame.DataFrame
+        Data on each models variable importances, the model itself, and other identifying tags (like group_type)
+        Only numerical features are used to make the heatmap though.
+    adj_factor : dict
+        The benchlines for each grouping.
+    sort_by : str
+        The performance metric which should be used to sort the performance data in descending order.
+    modelobj_colname : str
+        The name of the column in the DataFrame which contains the H2O models.
+        The default value is dependent on the defintion of `varimps`.
+
+    Returns
+    -------
+    pandas.core.frame.DataFrame
+        `perf_data` -> The DataFrame with performance information for all of the inputted models.
+                       Specifically, R^2, R (optionally), MSE, RMSE, RMSLE, and MAE.
+
+    """
+    """DATA SANITATION"""
+    _provided_args = locals()
+    name = sys._getframe(0).f_code.co_name
+    _expected_type_args = {'tracker_with_modelobj': [pd.core.frame.DataFrame],
+                           'adj_factor': [dict],
+                           'sort_by': [str],
+                           'modelobj_colname': [str]}
+    _expected_value_args = {'tracker_with_modelobj': None,
+                            'adj_factor': None,
+                            'sort_by': ['R^2', 'MSE', 'RMSE', 'RMSLE', 'MAE'],
+                            'modelobj_colname': None}
+    util_data_type_sanitation(_provided_args, _expected_type_args, name)
+    util_data_range_sanitation(_provided_args, _expected_value_args, name)
+    """END OF DATA SANITATION"""
+
+    perf_data = {}
+    for model_name, model_obj in zip(tracker_with_modelobj.index, tracker_with_modelobj[modelobj_colname]):
+        perf_data[model_name] = {}
+        group = model_name.split('GROUP-')[1]
+        perf_data[model_name]['R^2'] = model_obj.r2()
+        # perf_data[model_name]['R'] = model_obj.r2() ** 0.5
+        perf_data[model_name]['MSE'] = model_obj.mse()
+        perf_data[model_name]['RMSE'] = model_obj.rmse()
+        perf_data[model_name]['Rel. RMSE'] = model_obj.rmse() - adj_factor.get(group)
+        perf_data[model_name]['RMSLE'] = model_obj.rmsle()
+        perf_data[model_name]['MAE'] = model_obj.mae()
+
+    # Structure model output and order
+    perf_data = pd.DataFrame(perf_data).T.sort_values(sort_by, ascending=False).infer_objects()
+    # Ensure correct data type of ther performance metric columns.
+    # Ensures proper heatmap functionality in `plot_model_performance`
+    for col in perf_data.columns:
+        perf_data[col] = perf_data[col].astype(float)
+
+    return perf_data
+
+
+@representation
 def varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
                    preferred='Steam', preferred_importance=0.7, mean_importance_threshold=0.7,
                    top_color='green', chosen_color='cyan', RUN_TAG=RUN_TAG, FIGSIZE=(10, 55), annot=False,
@@ -712,6 +824,7 @@ def varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
     return ranked_names, ranked_steam
 
 
+@representation
 def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False,
                        type_corrs=['Pearson', 'Kendall', 'Spearman'],
                        cmap=sns.color_palette('flare', as_cmap=True), figsize=(24, 8), contrast_factor=1.0):
@@ -799,69 +912,7 @@ def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False
     return input_data
 
 
-# TODO: Add "normalized" RMSE value according to a benchline
-
-
-def model_performance(tracker_with_modelobj, adj_factor, sort_by='RMSE', modelobj_colname='model_object'):
-    """Determine the model performance through a series of predefined metrics.
-
-    Parameters
-    ----------
-    tracker_with_modelobj : pandas.core.frame.DataFrame
-        Data on each models variable importances, the model itself, and other identifying tags (like group_type)
-        Only numerical features are used to make the heatmap though.
-    adj_factor : dict
-        The benchlines for each grouping.
-    sort_by : str
-        The performance metric which should be used to sort the performance data in descending order.
-    modelobj_colname : str
-        The name of the column in the DataFrame which contains the H2O models.
-        The default value is dependent on the defintion of `varimps`.
-
-    Returns
-    -------
-    pandas.core.frame.DataFrame
-        `perf_data` -> The DataFrame with performance information for all of the inputted models.
-                       Specifically, R^2, R (optionally), MSE, RMSE, RMSLE, and MAE.
-
-    """
-    """DATA SANITATION"""
-    _provided_args = locals()
-    name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'tracker_with_modelobj': [pd.core.frame.DataFrame],
-                           'adj_factor': [dict],
-                           'sort_by': [str],
-                           'modelobj_colname': [str]}
-    _expected_value_args = {'tracker_with_modelobj': None,
-                            'adj_factor': None,
-                            'sort_by': ['R^2', 'MSE', 'RMSE', 'RMSLE', 'MAE'],
-                            'modelobj_colname': None}
-    util_data_type_sanitation(_provided_args, _expected_type_args, name)
-    util_data_range_sanitation(_provided_args, _expected_value_args, name)
-    """END OF DATA SANITATION"""
-
-    perf_data = {}
-    for model_name, model_obj in zip(tracker_with_modelobj.index, tracker_with_modelobj[modelobj_colname]):
-        perf_data[model_name] = {}
-        group = model_name.split('GROUP-')[1]
-        perf_data[model_name]['R^2'] = model_obj.r2()
-        # perf_data[model_name]['R'] = model_obj.r2() ** 0.5
-        perf_data[model_name]['MSE'] = model_obj.mse()
-        perf_data[model_name]['RMSE'] = model_obj.rmse()
-        perf_data[model_name]['Rel. RMSE'] = model_obj.rmse() - adj_factor.get(group)
-        perf_data[model_name]['RMSLE'] = model_obj.rmsle()
-        perf_data[model_name]['MAE'] = model_obj.mae()
-
-    # Structure model output and order
-    perf_data = pd.DataFrame(perf_data).T.sort_values(sort_by, ascending=False).infer_objects()
-    # Ensure correct data type of ther performance metric columns.
-    # Ensures proper heatmap functionality in `plot_model_performance`
-    for col in perf_data.columns:
-        perf_data[col] = perf_data[col].astype(float)
-
-    return perf_data
-
-
+@representation
 def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, ranked_steam, extrema_thresh_pct=5,
                            RUN_TAG=RUN_TAG, annot=True, annot_size=4, highlight=True, FIGSIZE=(10, 50)):
     """Plots a heatmap based on the inputted model performance data.
@@ -1049,11 +1100,13 @@ _ = """
 
 print(Fore.GREEN + 'STATUS: Hyperparameter Overview:')
 print(Fore.GREEN + '\t* max_runtime_secs\t-> ', MAX_EXP_RUNTIME,
-      Fore.GREEN + '\t\t\tThe maximum runtime in seconds that you want to allot in order to complete the model.')
+      Fore.GREEN + '\t\tThe maximum runtime in seconds that you want to allot in order to complete the model.')
 print(Fore.GREEN + '\t* stopping_metric\t-> ', EVAL_METRIC,
       Fore.GREEN + '\t\tThis option specifies the metric to consider when early stopping is specified')
 print(Fore.GREEN + '\t* sort_metric\t\t-> ', RANK_METRIC,
       Fore.GREEN + '\t\tThis option specifies the metric used to sort the Leaderboard by at the end of an AutoML run.')
+print(Fore.GREEN + '\t* weights_column\t-> ', WEIGHTS_COLUMN,
+      Fore.GREEN + '\t\tThe name of the column with the weights')
 print(Fore.GREEN + '\t* n_folds\t\t-> ', CV_FOLDS,
       Fore.GREEN + '\t\t\tThis is the number of cross-validation folds for each model in the experiment.')
 print(Fore.GREEN + '\t* stopping_rounds\t-> ', STOPPING_ROUNDS,
