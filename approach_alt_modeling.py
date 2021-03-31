@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 31-Mar-2021 10:03:32:320  GMT-0600
+# @Last modified time: 31-Mar-2021 12:03:24:244  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -81,6 +81,7 @@ STOPPING_ROUNDS: Final = 3
 WEIGHTS_COLUMN: Final = 'weight'
 EXPLOIT_RATIO: Final = 0
 MODELING_PLAN: Final = None
+TRAIN_VAL_SPLIT: Final = 0.8
 
 # Feature Engineering Constants
 FOLD_COLUMN: Final = "kfold_column"                           # Target encoding, must be consistent throughout training
@@ -1077,7 +1078,11 @@ for path in [DATA_PATH_PAD, DATA_PATH_WELL]:
 
 # Import the data from the file
 # data_well = h2o.import_file(DATA_PATH_WELL)
-data_pad = h2o.import_file(DATA_PATH_PAD)
+data_pad_complete = h2o.import_file(DATA_PATH_PAD)
+data_pad, data_pad_validation = [h2o.H2OFrame(dat.reset_index(drop=True).infer_objects())
+                                 for dat in np.split(data_pad_complete.as_data_frame(),
+                                                     [int(TRAIN_VAL_SPLIT * len(data_pad_complete))])]
+
 
 print(Fore.GREEN + 'STATUS: Server initialized and data imported.' + Style.RESET_ALL)
 print(OUT_BLOCK)
@@ -1180,7 +1185,7 @@ print(OUT_BLOCK)
 
 _ = """
 #######################################################################################################################
-#########################################   EVALUATE MODEL PERFORMANCE   ##############################################
+###############################   EVALUATE MODEL PERFORMANCE | CROSS-VALIDATION   #####################################
 #######################################################################################################################
 """
 
@@ -1217,6 +1222,12 @@ with suppress_stdout():
 #                        annot_size=6,
 #                        FIGSIZE=(10, 10))
 
+
+_ = """
+#######################################################################################################################
+##################################   EVALUATE MODEL PERFORMANCE | HOLDOUT   ###########################################
+#######################################################################################################################
+"""
 
 _ = """
 #######################################################################################################################

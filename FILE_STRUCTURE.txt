@@ -229,7 +229,26 @@ IntelligentEnergy/
 │   ├── final_cumulative_varimps.pkl
 │   └── model_novarimps.pkl
 ├── Modeling Reference Files/
+│   ├── (SPURIOUS) R_Pad, All Features/
+│   │   ├── macropad_varimps.pdf
+│   │   ├── model_performance.pdf
+│   │   └── select_var_corrs.pdf
 │   ├── .DS_Store
+│   ├── Candidate Selection/
+│   │   ├── Producer-Injector Overlap for A.png
+│   │   ├── Producer-Injector Overlap for AP3.png
+│   │   ├── Producer-Injector Overlap for AP4.png
+│   │   ├── Producer-Injector Overlap for AP5.png
+│   │   ├── Producer-Injector Overlap for AP6.png
+│   │   ├── Producer-Injector Overlap for AP7.png
+│   │   ├── Producer-Injector Overlap for AP8.png
+│   │   ├── Producer-Injector Overlap for B.png
+│   │   ├── Producer-Injector Overlap for BP1.png
+│   │   ├── Producer-Injector Overlap for BP2.png
+│   │   ├── Producer-Injector Overlap for BP3.png
+│   │   ├── Producer-Injector Overlap for BP4.png
+│   │   ├── Producer-Injector Overlap for BP5.png
+│   │   └── Producer-Injector Overlap for BP6.png
 │   ├── inj_pads_ts.png
 │   ├── Oil Proxy/
 │   ├── OilProxy_NoFiber/
@@ -260,48 +279,37 @@ IntelligentEnergy/
 │   │   ├── oilproxy_variable_importance_BP6.pdf
 │   │   └── Variable Importance Distributions.pdf
 │   ├── PredictProxy/
-│   ├── Producer-Injector Overlap for A.png
-│   ├── Producer-Injector Overlap for AP3.png
-│   ├── Producer-Injector Overlap for AP4.png
-│   ├── Producer-Injector Overlap for AP5.png
-│   ├── Producer-Injector Overlap for AP6.png
-│   ├── Producer-Injector Overlap for AP7.png
-│   ├── Producer-Injector Overlap for AP8.png
-│   ├── Producer-Injector Overlap for B.png
-│   ├── Producer-Injector Overlap for BP1.png
-│   ├── Producer-Injector Overlap for BP2.png
-│   ├── Producer-Injector Overlap for BP3.png
-│   ├── Producer-Injector Overlap for BP4.png
-│   ├── Producer-Injector Overlap for BP5.png
-│   ├── Producer-Injector Overlap for BP6.png
-│   ├── Round 2869/
-│   │   └── hyperparams.txt
-│   ├── Round 7496/
-│   │   └── hyperparams.txt
-│   ├── Round Base, Core Features/
-│   │   ├── macropad_varimps_920.pdf
-│   │   ├── model_performance_920.pdf
-│   │   └── select_var_corrs.920.pdf
-│   ├── Round Base, Spurious/
-│   │   ├── macropad_varimps.pdf
-│   │   ├── model_performance.pdf
-│   │   └── select_var_corrs.pdf
-│   ├── Round No SPM, No Bins/
-│   │   ├── macropad_varimps_6575.pdf
-│   │   ├── model_performance_6575.pdf
-│   │   └── select_var_corrs_6575.pdf
-│   ├── Round PWELL, No End-Bins/
-│   │   ├── macropad_varimps_PWELL7153.pdf
-│   │   ├── model_performance_PWELL7153.pdf
-│   │   └── select_var_corrs_PWELL7153.pdf
-│   ├── Round PWELL, No SPM, End-bins/
-│   │   ├── macropad_varimps_PWELL770.pdf
-│   │   ├── model_performance_PWELL770.pdf
-│   │   └── select_var_corrs_PWELL770.pdf
-│   ├── Round, No SPM/
+│   ├── R_PAD, !End-Bins, Weighted/
+│   │   ├── cross-correlations_PAD2869.pdf
+│   │   ├── hyperparams.txt
+│   │   ├── model_performance_PAD2869.pdf
+│   │   └── variable_importances_PAD2869.pdf
+│   ├── R_PAD, !SPM/
 │   │   ├── macropad_varimps_2449.pdf
 │   │   ├── model_performance_2449.pdf
 │   │   └── select_var_corrs_2449.pdf
+│   ├── R_Pad, !SPM, !Bins/
+│   │   ├── macropad_varimps_6575.pdf
+│   │   ├── model_performance_6575.pdf
+│   │   └── select_var_corrs_6575.pdf
+│   ├── R_PAD, Base Features/
+│   │   ├── macropad_varimps_920.pdf
+│   │   ├── model_performance_920.pdf
+│   │   └── select_var_corrs.920.pdf
+│   ├── R_WELL, !End-Bins/
+│   │   ├── macropad_varimps_PWELL7153.pdf
+│   │   ├── model_performance_PWELL7153.pdf
+│   │   └── select_var_corrs_PWELL7153.pdf
+│   ├── R_WELL, !SPM, !End-Bins/
+│   │   ├── macropad_varimps_PWELL770.pdf
+│   │   ├── model_performance_PWELL770.pdf
+│   │   └── select_var_corrs_PWELL770.pdf
+│   ├── Round 1688/
+│   │   └── hyperparams.txt
+│   ├── Round 2672/
+│   │   └── hyperparams.txt
+│   ├── Round 3713/
+│   │   └── hyperparams.txt
 │   └── Round, No SPM, End-bins/
 │       ├── macropad_varimps_6187.pdf
 │       ├── model_performance_6187.pdf
