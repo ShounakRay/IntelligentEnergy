@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 30-Mar-2021 23:03:33:332  GMT-0600
+# @Last modified time: 31-Mar-2021 10:03:32:320  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -30,6 +30,7 @@ import util_traversal
 from _context_managers import *
 from colorama import Fore, Style
 from h2o.automl import H2OAutoML
+from h2o.exceptions import *
 from matplotlib.patches import Rectangle
 
 # from h2o.estimators import H2OTargetEncoderEstimator
@@ -195,13 +196,19 @@ def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict
 
     h2o.cluster().show_status() if(show) else None
 
-    return {'cluster_name': cluster.cloud_name,
-            'pid': cluster.get_status_details()['pid'][0],
-            'version': [int(i) for i in cluster.version.split('.')],
-            'run_status': cluster.is_running(),
-            'branch_name': cluster.branch_name,
-            'uptime_ms': cluster.cloud_uptime_millis,
-            'health': cluster.cloud_healthy}
+    try:
+        birds_eye = {'cluster_name': cluster.cloud_name,
+                     'pid': cluster.get_status_details()['pid'][0],
+                     'version': [int(i) for i in cluster.version.split('.')],
+                     'run_status': cluster.is_running(),
+                     'branch_name': cluster.branch_name,
+                     'uptime_ms': cluster.cloud_uptime_millis,
+                     'health': cluster.cloud_healthy}
+    except H2OConnectionError as e:
+        print('> STATUS: Connection to cluster seems to be closed.\n\t\t' +
+              str(e).replace('H2OConnectionError: ', '')[:40] + '...')
+
+    return
 
 
 @server
@@ -674,7 +681,7 @@ def model_performance(tracker_with_modelobj, adj_factor, sort_by='RMSE', modelob
                            'modelobj_colname': [str]}
     _expected_value_args = {'tracker_with_modelobj': None,
                             'adj_factor': None,
-                            'sort_by': ['R^2', 'MSE', 'RMSE', 'RMSLE', 'MAE'],
+                            'sort_by': ['R^2', 'MSE', 'RMSE', 'Rel. RMSE', 'RMSLE', 'MAE'],
                             'modelobj_colname': None}
     util_data_type_sanitation(_provided_args, _expected_type_args, name)
     util_data_range_sanitation(_provided_args, _expected_value_args, name)
@@ -1090,7 +1097,10 @@ EXCLUDE = ['C1', 'PRO_Alloc_Water', 'Bin_1', 'Bin_5', 'Date']
 data_pad, groupby_options_pad, PREDICTORS = data_refinement(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
 # data_well, groupby_options_well, PREDICTORS = data_refinement(data_well, 'PRO_Well', EXCLUDE, RESPONDER)
 
-print(OUT_BLOCK)
+with open(f'Modeling Reference Files/Round {RUN_TAG}/hyperparams.txt', 'a') as out:
+    print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+    print('PREDICTORS', file=out)
+    pprint(PREDICTORS, stream=out)
 
 _ = """
 #######################################################################################################################
@@ -1183,7 +1193,7 @@ benchline_pad = list(data_pad_pd[data_pad_pd[RESPONDER] > 0].groupby(
     ['Date', 'PRO_Pad'])[RESPONDER].sum().reset_index().groupby('PRO_Pad').median().to_dict().values())[0]
 benchline_pad.update((x, y * PREFERRED_TOLERANCE) for x, y in benchline_pad.items())
 # Calculate model performance metrics
-perf_pad = model_performance(varimps_pad, benchline_pad)
+perf_pad = model_performance(varimps_pad, benchline_pad, sort_by='Rel. RMSE')
 # Plot model performance metrics
 with suppress_stdout():
     plot_model_performance(perf_pad.select_dtypes(float),

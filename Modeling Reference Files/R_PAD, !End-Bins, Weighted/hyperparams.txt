@@ -1,5 +1,5 @@
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
-JOB INITIALIZED:  2021-03-30 23:51:41.963184
+JOB INITIALIZED:  2021-03-31 09:50:08.460848
 RUN ID: 2869
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
@@ -41,3 +41,18 @@ MISCELLANEOUS HYPERPARAMETRS:
                  'R^2': <matplotlib.colors.ListedColormap object at 0x130ffe430>,
                  'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x119fdc0d0>}}
 
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+PREDICTORS
+['PRO_Pad',
+ 'PRO_Pump_Speed',
+ 'PRO_Time_On',
+ 'PRO_Casing_Pressure',
+ 'PRO_Heel_Pressure',
+ 'PRO_Toe_Pressure',
+ 'PRO_Heel_Temp',
+ 'PRO_Toe_Temp',
+ 'Bin_2',
+ 'Bin_3',
+ 'Bin_4',
+ 'weight',
+ 'Steam']
