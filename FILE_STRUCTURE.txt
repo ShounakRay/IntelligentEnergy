@@ -286,11 +286,6 @@ IntelligentEnergy/
 │   │   ├── model_analytics_1688.png
 │   │   ├── model_performance_PAD1688.pdf
 │   │   └── variable_importances_PAD1688.pdf
-│   ├── R_PAD, !End-Bins, Weighted reff/
-│   │   ├── cross-correlations_PAD2869.pdf
-│   │   ├── hyperparams.txt
-│   │   ├── model_performance_PAD2869.pdf
-│   │   └── variable_importances_PAD2869.pdf
 │   ├── R_PAD, !SPM/
 │   │   ├── macropad_varimps_2449.pdf
 │   │   ├── model_performance_2449.pdf
@@ -311,7 +306,7 @@ IntelligentEnergy/
 │   │   ├── macropad_varimps_PWELL770.pdf
 │   │   ├── model_performance_PWELL770.pdf
 │   │   └── select_var_corrs_PWELL770.pdf
-│   ├── Round 3390/
+│   ├── Round 5158/
 │   │   └── hyperparams.txt
 │   └── Round, No SPM, End-bins/
 │       ├── macropad_varimps_6187.pdf

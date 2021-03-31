@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 30-Mar-2021 21:03:15:157  GMT-0600
+# @Last modified time: 31-Mar-2021 17:03:13:136  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -54,7 +54,7 @@ y_delta = POS_TR[0] | POS_BR[0]
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # INGESTION
 
-FINALE = pd.read_csv('Data/combined_ipc.csv').infer_objects()
+FINALE = pd.read_csv('Data/combined_ipc_engineered.csv').infer_objects()
 DATA_INJECTION_ORIG = pd.read_pickle('Data/Pickles/DATA_INJECTION_ORIG.pkl')
 DATA_PRODUCTION_ORIG = pd.read_pickle('Data/Pickles/DATA_PRODUCTION_ORIG.pkl')
 
@@ -292,6 +292,10 @@ all_continuous_columns = TEMP.select_dtypes(float).columns
 all_prod_wells = list(FINALE['PRO_Well'].unique())
 lc_injectors = [k for k, v in col_reference.items() if 'I' in v][1:]
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 # Conduct Anomaly Detection
 cumulative_tagged = []          # Stores the outputs from the customized, anomaly detection function
 temporal_benchmarks = []        # Used to track multi-process benchmarking for utlimate vizualization
@@ -355,7 +359,6 @@ FINALE = pd.merge(FINALE.infer_objects(), reformatted_anomalies, 'inner', on=['D
 #                                    ].sort_values('Date').reset_index(drop=True)
 # temp_two.index = temp_two.index / max(temp_two.index)
 # temp_two[['weight']].plot(ax=ax, lw=1)
-
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # # # # # # # # # # # # INJECTOR/PRODUCER TRANSLATIONS  # # # # # # # # # # # # # # # # # #

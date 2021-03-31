@@ -1,6 +1,6 @@
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
-JOB INITIALIZED:  2021-03-31 09:50:08.460848
-RUN ID: 2869
+JOB INITIALIZED:  2021-03-31 15:37:41.803644
+RUN ID: 5158
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 SERVER HYPERPARAMETERS:
@@ -34,12 +34,12 @@ MISCELLANEOUS HYPERPARAMETRS:
                   'RMSLE': None,
                   'R^2': None,
                   'Rel. RMSE': 0},
- 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x119fdc0d0>,
-                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x119fdc0d0>,
-                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x119fdc0d0>,
-                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x119fdc0d0>,
-                 'R^2': <matplotlib.colors.ListedColormap object at 0x130ffe430>,
-                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x119fdc0d0>}}
+ 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x1215da6d0>,
+                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x1215da6d0>,
+                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x1215da6d0>,
+                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x1215da6d0>,
+                 'R^2': <matplotlib.colors.ListedColormap object at 0x1304f5a30>,
+                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x1215da6d0>}}
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 PREDICTORS

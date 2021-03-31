@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 31-Mar-2021 15:03:38:384  GMT-0600
+# @Last modified time: 31-Mar-2021 17:03:51:517  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -72,7 +72,7 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 10                                       # The longest that the experiment will run (seconds)
+MAX_EXP_RUNTIME: Final = 600                                      # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                      # To ensure reproducibility of experiments (caveats*)
 EVAL_METRIC: Final = 'deviance'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'rmse'                                       # Leaderboard ranking metric after all trainings
@@ -463,8 +463,9 @@ def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN)
 @analytics
 def run_experiment(data, groupby_options, responder,
                    MAX_EXP_RUNTIME=MAX_EXP_RUNTIME, EVAL_METRIC=EVAL_METRIC, RANK_METRIC=RANK_METRIC,
-                   RANDOM_SEED=RANDOM_SEED, CV_FOLDS=CV_FOLDS, STOPPING_ROUNDS=STOPPING_ROUNDS,
-                   EXPLOIT_RATIO=EXPLOIT_RATIO, MODELING_PLAN=MODELING_PLAN, TRAINING_VERBOSITY=TRAINING_VERBOSITY):
+                   RANDOM_SEED=RANDOM_SEED, WEIGHTS_COLUMNS=WEIGHTS_COLUMN, CV_FOLDS=CV_FOLDS,
+                   STOPPING_ROUNDS=STOPPING_ROUNDS, EXPLOIT_RATIO=EXPLOIT_RATIO, MODELING_PLAN=MODELING_PLAN,
+                   TRAINING_VERBOSITY=TRAINING_VERBOSITY):
     """Runs an H2O Experiment given specific configurations.
 
 
@@ -1051,19 +1052,28 @@ def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, rank
 
 
 @representation
-def validate_models(perf_data, training_data, benchline, validation_data, order_by='Rel. RMSE', RUN_TAG=RUN_TAG):
+def validate_models(perf_data, training_data, benchline, validation_data, order_by='Rel. RMSE', RUN_TAG=RUN_TAG,
+                    TOP_MODELS=TOP_MODELS):
+    FIG_SCALAR = 5.33333333333333
+
     perf_data.sort_values(order_by, inplace=True)
     all_model_RMSE_H_to_L = [h2o.get_model(perf_data.index[i].split('___GROUP')[0]) for i in range(len(perf_data))]
     # all_model_RMSE_H_to_L = all_model_RMSE_H_to_L[-1 * TOP_MODELS:]
-    all_model_RMSE_H_to_L = all_model_RMSE_H_to_L[:1 * TOP_MODELS]
+    if(TOP_MODELS < 0):
+        all_model_RMSE_H_to_L = all_model_RMSE_H_to_L[TOP_MODELS:]
+    else:
+        all_model_RMSE_H_to_L = all_model_RMSE_H_to_L[:TOP_MODELS]
 
     demonstrations = ['Scoring History',
                       'Training Correlations', 'Testing Correlations',
                       'Training TS', 'Testing TS', 'Residual Plot']
 
+    if(len(all_model_RMSE_H_to_L) * FIG_SCALAR > 150):
+        print(f'WARNING: Figure length is: {int(len(all_model_RMSE_H_to_L) * FIG_SCALAR)}')
+
     fig, ax = plt.subplots(nrows=len(all_model_RMSE_H_to_L),
                            ncols=len(demonstrations),
-                           figsize=(50, 80))
+                           figsize=(50, len(all_model_RMSE_H_to_L) * FIG_SCALAR))
 
     models_iterated = []
     for top_model in all_model_RMSE_H_to_L:
@@ -1085,7 +1095,7 @@ def validate_models(perf_data, training_data, benchline, validation_data, order_
         val_accuracy = (pd_data_validation[RESPONDER] - prediction_on_validation['predict'])
         val_rmse = np.sqrt(np.mean((pd_data_validation[RESPONDER] - prediction_on_validation['predict'])**2))
         allowable_rmse = str(int(benchline.get(model_name.split('___GROUP-')[1])))
-        rel_val_rmse = str(int(val_rmse - allowable_rmse))
+        rel_val_rmse = str(int(val_rmse - int(allowable_rmse)))
 
         # IDENTIFIERS FOR MODELING
         axis = model_position[0]
@@ -1136,9 +1146,8 @@ def validate_models(perf_data, training_data, benchline, validation_data, order_
     #     ax.set_ylabel(row, rotation=90, size='large')
     plt.tight_layout()
 
-    fig.savefig(f'Modeling Reference Files/Round {RUN_TAG}/model_analytics_{RUN_TAG}.pdf', bbox_inches='tight')
-
-# Diverging: sns.diverging_palette(240, 10, n=9, as_cmap=True)
+    fig.savefig(f'Modeling Reference Files/Round {RUN_TAG}/model_analytics_{RUN_TAG}_top{TOP_MODELS}.png',
+                bbox_inches='tight')
 
 
 print(Fore.GREEN + 'STATUS: Hyperparameters assigned and functions defined.' + Style.RESET_ALL)
@@ -1233,13 +1242,17 @@ print(Fore.GREEN + '\t* Predictors\t\t-> ', PREDICTORS,
       Fore.GREEN + '\t\tThese are the variables which will be used to predict the responder.')
 print(Fore.GREEN + '\t* Responder\t\t-> ', RESPONDER,
       Fore.GREEN + '\tThis is what is being predicted.\n' + Style.RESET_ALL)
-if(input('Proceed with given hyperparameters? (Y/N)') == 'Y'):
-    pass
-else:
-    raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
+
+# if(input('Proceed with given hyperparameters? (Y/N)') == 'Y'):
+#     pass
+# else:
+#     raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
 
 # Run the experiment
 project_names_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER)
+
+_ = os.system("say Done Training")
+
 # Calculate Variable Importance
 varimps_pad = varimps(project_names_pad)
 # Configure filtering for variable importance
@@ -1274,6 +1287,9 @@ with suppress_stdout():
 #                        EXP_NAME='Aggregated Experiment Results - Well-Level',
 #                        FPATH='Modeling Reference Files/Round {tag}/correlations_WELL{tag}.pdf'.format(tag=RUN_TAG))
 
+_ = os.system("say done variable importances")
+
+
 print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
 print(OUT_BLOCK)
 
@@ -1286,6 +1302,7 @@ _ = """
 # get_aml_objects(project_names_pad)[1].leaderboard
 # dir(h2o.get_model('GBM_3_AutoML_20210326_170904'))
 # h2o.get_model('GBM_3_AutoML_20210326_170904').shap_summary_plot(data_pad)
+_ = os.system("say determining model performance")
 
 data_pad_pd = pd.read_csv(DATA_PATH_PAD)
 benchline_pad = list(data_pad_pd[data_pad_pd[RESPONDER] > 0].groupby(
@@ -1325,8 +1342,10 @@ _ = """
 
 # aml_objects_pad = dict(zip(project_names_pad, get_aml_objects(project_names_pad)))
 # leaderboard_pad = aml_objects_pad.get('IPC_MacroPadModeling__PRO_Alloc_Oil__A').leaderboard.as_data_frame(0)
+_ = os.system("say Validating Models")
 
-validate_models(perf_pad, data_pad, benchline_pad, data_pad_validation)
+with suppress_stdout():
+    validate_models(perf_pad, data_pad, benchline_pad, data_pad_validation, TOP_MODELS=-25)
 
 
 _ = """
@@ -1335,8 +1354,10 @@ _ = """
 #######################################################################################################################
 """
 
-if(input('Shutdown Cluster? (Y/N)') == 'Y'):
-    shutdown_confirm(h2o)
+_ = os.system("say Finished")
+
+# if(input('Shutdown Cluster? (Y/N)') == 'Y'):
+#     shutdown_confirm(h2o)
 print(OUT_BLOCK)
 
 # EOF

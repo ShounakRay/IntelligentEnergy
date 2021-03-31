@@ -3,11 +3,12 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Mar-2021 15:03:85:857  GMT-0600
+# @Last modified time: 31-Mar-2021 15:03:77:779  GMT-0600
 # @License: [Private IP]
 
 
 import os
+from collections import Counter
 
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -86,7 +87,8 @@ well_test.columns = ['PRO_Pad', 'PRO_Well', 'PRO_Start_Time', 'PRO_End_Time', 'P
                      'PRO_Operator_Comment', 'PRO_Engineering_Approved',
                      'PRO_Engineering_Rejected', 'PRO_Engineering_Comment']
 well_test = well_test[['PRO_Pad', 'PRO_Well', 'PRO_Start_Time', 'PRO_Duration',
-                       'PRO_Oil', 'PRO_Water', 'PRO_Gas', 'PRO_Fluid', 'PRO_Chlorides']]
+                       'PRO_Oil', 'PRO_Water', 'PRO_Gas', 'PRO_Fluid', 'PRO_Chlorides', 'PRO_Pump_Efficiency',
+                       'PRO_Engineering_Approved']]
 # well_test = well_test[['Start Date/Time (yyyy/mm/dd HH:mm)', 'Pad', 'Well', '24 Hour Oil (m3)', '24 Hour Water (m3)',
 #                        'Oil (m3)', 'Water (m3)', 'Gas (m3)''Pump Speed (SPM)', 'Pump Size in', 'Pump Efficiency (%)',
 #                        'Operator Approved', 'Engineering Approved']]
@@ -96,6 +98,7 @@ well_test.drop('PRO_Start_Time', 1, inplace=True)
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # INJECTOR FORMATTING
+
 # injectors.columns = ['date', 'pad', 'injector_well', 'uwi', 'hours_on_inj', 'alloc_steam', 'steam',
 #                      'inj_bhp', 'inj_tubing_pressure', 'Reason', 'Comment']
 injectors.columns = ['Date', 'INJ_Pad', 'INJ_Well', 'INJ_UWI', 'INJ_Time_On',
@@ -106,6 +109,7 @@ inj_cols = ['Date', 'INJ_Pad', 'INJ_Well', 'INJ_Meter_Steam', 'INJ_Casing_BHP', 
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # PRODUCER FORMATTING
+
 # producers.columns = ['date', 'pad', 'producer_well', 'uwi', 'hours_on_prod',
 #                      'Downtime Reason Code', 'oil', 'water',
 #                      'gas', 'Allocated Injector Steam (m3)',
@@ -134,8 +138,8 @@ injector_table = pd.pivot_table(injectors, values='INJ_Meter_Steam', index='Date
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # PRODUCER TRANSFORMATION
-# producers['date'] = pd.to_datetime(producers['date']).astype(str)
 
+# producers['date'] = pd.to_datetime(producers['date']).astype(str)
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # FIBER TRANSFORMATION
@@ -158,13 +162,11 @@ df = pd.merge(producers[prod_cols], aggregated_fiber, how='outer', on=['Date', '
 df = pd.merge(df, injector_table, how='outer', on=['Date'])
 df = pd.merge(df, well_test, how='left', on=['Date', 'PRO_Well'])
 
-df[df['PRO_Well'] == 'AP3'].sort_values('Date')['PRO_Alloc_Oil'].plot()
-df[df['PRO_Well'] == 'AP3'].sort_values('Date')['PRO_Alloc_Water'].plot()
-df[df['PRO_Well'] == 'AP3'].sort_values('Date')['PRO_Pump_Speed'].plot()
-
-df[df['PRO_Well'] == 'AP3'].sort_values('Date')[]
-
-list(df.columns)
+# df[df['PRO_Well'] == 'AP3'].sort_values('Date')['PRO_Alloc_Oil'].plot()
+# df[df['PRO_Well'] == 'AP3'].sort_values('Date')['PRO_Alloc_Water'].plot()
+# df[df['PRO_Well'] == 'AP3'].sort_values('Date')['PRO_Pump_Speed'].plot()
+#
+# Counter(df[df['PRO_Well'] == 'AP3'].sort_values('Date')['PRO_Pump_Efficiency'])
 
 df = df.infer_objects()
 
