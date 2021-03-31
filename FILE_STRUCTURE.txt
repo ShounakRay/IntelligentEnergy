@@ -279,7 +279,14 @@ IntelligentEnergy/
 │   │   ├── oilproxy_variable_importance_BP6.pdf
 │   │   └── Variable Importance Distributions.pdf
 │   ├── PredictProxy/
-│   ├── R_PAD, !End-Bins, Weighted/
+│   ├── R_PAD, !End-Bins, Weighted rEF/
+│   │   ├── cross-correlations_PAD1688.pdf
+│   │   ├── hyperparams.txt
+│   │   ├── model_analytics_1688.pdf
+│   │   ├── model_analytics_1688.png
+│   │   ├── model_performance_PAD1688.pdf
+│   │   └── variable_importances_PAD1688.pdf
+│   ├── R_PAD, !End-Bins, Weighted reff/
 │   │   ├── cross-correlations_PAD2869.pdf
 │   │   ├── hyperparams.txt
 │   │   ├── model_performance_PAD2869.pdf
@@ -304,11 +311,7 @@ IntelligentEnergy/
 │   │   ├── macropad_varimps_PWELL770.pdf
 │   │   ├── model_performance_PWELL770.pdf
 │   │   └── select_var_corrs_PWELL770.pdf
-│   ├── Round 1688/
-│   │   └── hyperparams.txt
-│   ├── Round 2672/
-│   │   └── hyperparams.txt
-│   ├── Round 3713/
+│   ├── Round 3390/
 │   │   └── hyperparams.txt
 │   └── Round, No SPM, End-bins/
 │       ├── macropad_varimps_6187.pdf

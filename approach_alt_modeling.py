@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 31-Mar-2021 12:03:24:244  GMT-0600
+# @Last modified time: 31-Mar-2021 15:03:38:384  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -72,7 +72,7 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 600                                      # The longest that the experiment will run (seconds)
+MAX_EXP_RUNTIME: Final = 10                                       # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                      # To ensure reproducibility of experiments (caveats*)
 EVAL_METRIC: Final = 'deviance'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'rmse'                                       # Leaderboard ranking metric after all trainings
@@ -1050,6 +1050,94 @@ def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, rank
     print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
 
 
+@representation
+def validate_models(perf_data, training_data, benchline, validation_data, order_by='Rel. RMSE', RUN_TAG=RUN_TAG):
+    perf_data.sort_values(order_by, inplace=True)
+    all_model_RMSE_H_to_L = [h2o.get_model(perf_data.index[i].split('___GROUP')[0]) for i in range(len(perf_data))]
+    # all_model_RMSE_H_to_L = all_model_RMSE_H_to_L[-1 * TOP_MODELS:]
+    all_model_RMSE_H_to_L = all_model_RMSE_H_to_L[:1 * TOP_MODELS]
+
+    demonstrations = ['Scoring History',
+                      'Training Correlations', 'Testing Correlations',
+                      'Training TS', 'Testing TS', 'Residual Plot']
+
+    fig, ax = plt.subplots(nrows=len(all_model_RMSE_H_to_L),
+                           ncols=len(demonstrations),
+                           figsize=(50, 80))
+
+    models_iterated = []
+    for top_model in all_model_RMSE_H_to_L:
+        # Extracting Model Configurations
+        model_name = [c for c in list(perf_data.index) if top_model.key in c][0]
+        model_type = top_model.algo
+        model_position = ax[all_model_RMSE_H_to_L.index(top_model)]
+        models_iterated.append(model_name)
+        RMSE_resp = f'{order_by}: ' + str(int(perf_data[perf_data.index == model_name][order_by][0]))
+
+        # Determining training and validation predictions
+        prediction_on_training = top_model.predict(training_data).as_data_frame().infer_objects()
+        prediction_on_validation = top_model.predict(validation_data).as_data_frame().infer_objects()
+
+        # Loading existing objects
+        pd_data = training_data.as_data_frame().infer_objects()
+        pd_data_validation = validation_data.as_data_frame().infer_objects()
+
+        val_accuracy = (pd_data_validation[RESPONDER] - prediction_on_validation['predict'])
+        val_rmse = np.sqrt(np.mean((pd_data_validation[RESPONDER] - prediction_on_validation['predict'])**2))
+        allowable_rmse = str(int(benchline.get(model_name.split('___GROUP-')[1])))
+        rel_val_rmse = str(int(val_rmse - allowable_rmse))
+
+        # IDENTIFIERS FOR MODELING
+        axis = model_position[0]
+        # top_model = h2o.get_model(perf_data.index[-1].split('___GROUP')[0])
+        # scoring_history = top_model.scoring_history()
+        # # plt.figure(figsize=(15, 11.25))
+        # axis.set_title(f'Scoring history\n{model_name}')
+        # # perf_plot = scoring_history['training_rmse']
+        # perf_plot = [0] * len(scoring_history)
+        # axis.plot(scoring_history['timestamp'], perf_plot)
+        # RMSE PRESENTATIONS
+        axis.text(0.5, 0.5, model_type + '\n' + RMSE_resp + f'\nValidation {order_by}: {rel_val_rmse}' +
+                  f'\nAllowable RMSE: {allowable_rmse}',
+                  horizontalalignment='center', verticalalignment='center',
+                  transform=axis.transAxes, fontsize=24)
+
+        # Correlations for training
+        axis = model_position[1]
+        # plt.figure(figsize=(10, 10))
+        axis.set_title(f'Model Predicting Training Dataset\n{model_name}')
+        axis.scatter(pd_data[RESPONDER], prediction_on_training['predict'])
+        # Correlations for testing
+        axis = model_position[2]
+        # plt.figure(figsize=(10, 10))
+        axis.set_title(f'Model Predicting Holdout Dataset\n{model_name}')
+        axis.scatter(pd_data_validation[RESPONDER], prediction_on_validation['predict'])
+
+        # Time Series comparison for training
+        axis = model_position[3]
+        plt.figure(figsize=(30, 20))
+        axis.set_title(f'Model Predicting Training Time Series\n{model_name}')
+        axis.plot(pd_data[RESPONDER], linewidth=0.7)
+        axis.plot(prediction_on_training['predict'], linewidth=0.7)
+        # Time Series comparison for training
+        axis = model_position[4]
+        # plt.figure(figsize=(30, 20))
+        axis.set_title(f'Model Predicting Holdout Time Series\n{model_name}')
+        axis.plot(pd_data_validation[RESPONDER], linewidth=0.7)
+        axis.plot(prediction_on_validation['predict'], linewidth=0.7)
+
+        axis = model_position[5]
+        axis.set_title(f'Residual Plot\n{model_name}')
+        axis.plot(val_accuracy, linewidth=0.7)
+        axis.plot(val_accuracy.rolling(window=7).mean().fillna(val_accuracy.mean()), linewidth=0.4)
+
+        plt.tight_layout()
+    # for ax, row in zip(ax[:, 0], models_iterated):
+    #     ax.set_ylabel(row, rotation=90, size='large')
+    plt.tight_layout()
+
+    fig.savefig(f'Modeling Reference Files/Round {RUN_TAG}/model_analytics_{RUN_TAG}.pdf', bbox_inches='tight')
+
 # Diverging: sns.diverging_palette(240, 10, n=9, as_cmap=True)
 
 
@@ -1083,6 +1171,12 @@ data_pad, data_pad_validation = [h2o.H2OFrame(dat.reset_index(drop=True).infer_o
                                  for dat in np.split(data_pad_complete.as_data_frame(),
                                                      [int(TRAIN_VAL_SPLIT * len(data_pad_complete))])]
 
+# __TEMP_PD_PAD = pd.read_csv(DATA_PATH_PAD)
+# split_date = __TEMP_PD_PAD[__TEMP_PD_PAD.index == data_pad_validation.as_data_frame()['C1'][0]
+#                            ].reset_index()['Date'][0]
+# last_date = __TEMP_PD_PAD['Date'].values[-1]
+#
+# delta = (datetime.datetime.strptime(last_date, "%Y-%m-%d") - datetime.datetime.strptime(split_date, "%Y-%m-%d")).days
 
 print(Fore.GREEN + 'STATUS: Server initialized and data imported.' + Style.RESET_ALL)
 print(OUT_BLOCK)
@@ -1149,8 +1243,8 @@ project_names_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER)
 # Calculate Variable Importance
 varimps_pad = varimps(project_names_pad)
 # Configure filtering for variable importance
-mask_pad = (varimps_pad.mean(axis=1) > 0.2) & (varimps_pad.mean(axis=1) < 1.0)
-selective_varimps_pad = varimps_pad[mask_pad]
+# mask_pad = (varimps_pad.mean(axis=1) > 0.2) & (varimps_pad.mean(axis=1) < 1.0)
+# selective_varimps_pad = varimps_pad[mask_pad]
 # Create variable importance heatmap
 ranked_names_pad, ranked_steam_pad = varimp_heatmap(varimps_pad,
                                                     'Modeling Reference Files/Round ' +
@@ -1161,7 +1255,7 @@ ranked_names_pad, ranked_steam_pad = varimp_heatmap(varimps_pad,
 
 # Plot predictor/regressor correlation matrix
 with suppress_stdout():
-    correlation_matrix(selective_varimps_pad,
+    correlation_matrix(varimps_pad,
                        EXP_NAME='Aggregated Experiment Results - Pad-Level',
                        FPATH='Modeling Reference Files/Round {tag}/cross-correlations_PAD{tag}.pdf'.format(tag=RUN_TAG))
 
@@ -1228,6 +1322,12 @@ _ = """
 ##################################   EVALUATE MODEL PERFORMANCE | HOLDOUT   ###########################################
 #######################################################################################################################
 """
+
+# aml_objects_pad = dict(zip(project_names_pad, get_aml_objects(project_names_pad)))
+# leaderboard_pad = aml_objects_pad.get('IPC_MacroPadModeling__PRO_Alloc_Oil__A').leaderboard.as_data_frame(0)
+
+validate_models(perf_pad, data_pad, benchline_pad, data_pad_validation)
+
 
 _ = """
 #######################################################################################################################
