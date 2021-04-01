@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 01-Apr-2021 10:04:17:179  GMT-0600
+# @Last modified time: 01-Apr-2021 15:04:53:538  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -74,7 +74,7 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 60                                       # The longest that the experiment will run (seconds)
+MAX_EXP_RUNTIME: Final = 600                                      # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                      # To ensure reproducibility of experiments (caveats*)
 EVAL_METRIC: Final = 'rmse'                                       # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'rmse'                                       # Leaderboard ranking metric after all trainings
@@ -711,13 +711,18 @@ def model_performance(tracker_with_modelobj, adj_factor, sort_by='RMSE', modelob
     for model_name, model_obj in zip(tracker_with_modelobj.index, tracker_with_modelobj[modelobj_colname]):
         perf_data[model_name] = {}
         group = model_name.split('GROUP-')[1]
-        perf_data[model_name]['R^2'] = model_obj.r2()
+        # perf_data[model_name]['R^2'] = model_obj.r2()
         # perf_data[model_name]['R'] = model_obj.r2() ** 0.5
-        perf_data[model_name]['MSE'] = model_obj.mse()
+        # perf_data[model_name]['MSE'] = model_obj.mse()
         perf_data[model_name]['RMSE'] = model_obj.rmse()
         perf_data[model_name]['Rel. RMSE'] = model_obj.rmse() - adj_factor.get(group)
-        perf_data[model_name]['RMSLE'] = model_obj.rmsle()
-        perf_data[model_name]['MAE'] = model_obj.mae()
+        perf_data[model_name]['Val. RMSE'] = model_obj.rmse(valid=True)
+        if(model_obj.rmse(valid=True) is not None):
+            perf_data[model_name]['Rel. Val. RMSE'] = model_obj.rmse(valid=True) - adj_factor.get(group)
+        else:
+            perf_data[model_name]['Rel. Val. RMSE'] = None
+        # perf_data[model_name]['RMSLE'] = model_obj.rmsle()
+        # perf_data[model_name]['MAE'] = model_obj.mae()
 
     # Structure model output and order
     perf_data = pd.DataFrame(perf_data).T.sort_values(sort_by, ascending=False).infer_objects()
@@ -1077,7 +1082,9 @@ def validate_models(perf_data, training_data_dict, benchline, validation_data_di
     perf_data.sort_values(order_by, inplace=True)
     all_model_RMSE_H_to_L = [h2o.get_model(perf_data.index[i].split('___GROUP')[0]) for i in range(len(perf_data))]
     # all_model_RMSE_H_to_L = all_model_RMSE_H_to_L[-1 * TOP_MODELS:]
-    if(TOP_MODELS < 0):
+    if(TOP_MODELS is None):
+        all_model_RMSE_H_to_L = all_model_RMSE_H_to_L[:]
+    elif(TOP_MODELS < 0):
         all_model_RMSE_H_to_L = all_model_RMSE_H_to_L[TOP_MODELS:]
     else:
         all_model_RMSE_H_to_L = all_model_RMSE_H_to_L[:TOP_MODELS]
@@ -1170,7 +1177,7 @@ def validate_models(perf_data, training_data_dict, benchline, validation_data_di
     #     ax.set_ylabel(row, rotation=90, size='large')
     plt.tight_layout()
 
-    fig.savefig(f'Modeling Reference Files/Round {RUN_TAG}/model_analytics_{RUN_TAG}_top{TOP_MODELS}.png',
+    fig.savefig(f'Modeling Reference Files/Round {RUN_TAG}/model_analytics_{RUN_TAG}_top{TOP_MODELS}.pdf',
                 bbox_inches='tight')
 
 
@@ -1400,9 +1407,18 @@ _ = """
 # leaderboard_pad = aml_objects_pad.get('IPC_MacroPadModeling__PRO_Adj_Alloc_Oil__A').leaderboard.as_data_frame(0)
 # _ = os.system("say Validating Models")
 
-
+# Validation metrics
 with suppress_stdout():
-    validate_models(perf_pad, pad_relationship_training, benchline_pad, pad_relationship_validation, TOP_MODELS=25)
+    validate_models(perf_pad, pad_relationship_training, benchline_pad, pad_relationship_validation,
+                    TOP_MODELS=30, order_by='Rel. Val. RMSE')
+
+# get_aml_objects(project_names_pad)[1].model_correlation_heatmap(pad_relationship_validation['B'])
+#
+# h2o.get_model('GBM_1_AutoML_20210401_124725').shap_summary_plot(pad_relationship_validation['B'])
+# plt.figure(figsize=(30, 30))
+# h2o.get_model('GBM_1_AutoML_20210401_124725').pd_plot(pad_relationship_validation['B'], 'PRO_Toe_Temp')
+#
+# h2o.get_model('GBM_1_AutoML_20210401_124725').ice_plot(pad_relationship_validation['B'], 'PRO_Casing_Pressure')
 
 
 _ = """

@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 01-Apr-2021 10:04:11:112  GMT-0600
+# @Last modified time: 01-Apr-2021 10:04:58:586  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -778,7 +778,6 @@ for pwell in available_pwells_transformed:
 COMBINED_AGGREGATES_PWELL.to_csv('Data/combined_ipc_aggregates_PWELL.csv')
 COMBINED_AGGREGATES.to_csv('Data/combined_ipc_aggregates.csv')
 
-list(COMBINED_AGGREGATES_PWELL.columns)
 
 # plt.figure(figsize=(10, 100))
 # sns.heatmap(COMBINED_AGGREGATES.sort_values(['PRO_Pad']).select_dtypes(float))

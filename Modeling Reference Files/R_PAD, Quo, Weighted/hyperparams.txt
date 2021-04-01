@@ -1,6 +1,6 @@
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
-JOB INITIALIZED:  2021-04-01 09:44:29.184808
-RUN ID: 8452
+JOB INITIALIZED:  2021-04-01 12:31:07.298931
+RUN ID: 6867
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 SERVER HYPERPARAMETERS:
@@ -9,9 +9,9 @@ SERVER HYPERPARAMETERS:
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 TRAINING HYPERPARAMETRS:
 {'CV_FOLDS': 5,
- 'EVAL_METRIC': 'deviance',
+ 'EVAL_METRIC': 'rmse',
  'EXPLOIT_RATIO': 0,
- 'MAX_EXP_RUNTIME': 60,
+ 'MAX_EXP_RUNTIME': 600,
  'MODELING_PLAN': None,
  'RANDOM_SEED': 2381125,
  'RANK_METRIC': 'rmse',
@@ -34,12 +34,12 @@ MISCELLANEOUS HYPERPARAMETRS:
                   'RMSLE': None,
                   'R^2': None,
                   'Rel. RMSE': 0},
- 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x106ca5d60>,
-                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x106ca5d60>,
-                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x106ca5d60>,
-                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x106ca5d60>,
-                 'R^2': <matplotlib.colors.ListedColormap object at 0x125af0100>,
-                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x106ca5d60>}}
+ 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x11e298ee0>,
+                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x11e298ee0>,
+                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x11e298ee0>,
+                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x11e298ee0>,
+                 'R^2': <matplotlib.colors.ListedColormap object at 0x12d234280>,
+                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x11e298ee0>}}
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 PREDICTORS
