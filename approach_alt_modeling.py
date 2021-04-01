@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 31-Mar-2021 17:03:51:517  GMT-0600
+# @Last modified time: 31-Mar-2021 19:03:84:841  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -429,7 +429,7 @@ def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN)
     _expected_value_args = {'data': None,
                             'groupby': None,
                             'dropcols': None,
-                            'responder': ['PRO_Alloc_Oil'],
+                            'responder': ['PRO_Alloc_Oil', 'PRO_Adj_Alloc_Oil'],
                             'FOLD_COLUMN': None}
     util_data_type_sanitation(_provided_args, _expected_type_args, name)
     util_data_range_sanitation(_provided_args, _expected_value_args, name)
@@ -516,6 +516,7 @@ def run_experiment(data, groupby_options, responder,
                            'EVAL_METRIC': [list, type(None)],
                            'RANK_METRIC': [list, type(None)],
                            'RANDOM_SEED': [int, float],
+                           'WEIGHTS_COLUMNS': [str],
                            'CV_FOLDS': [int],
                            'STOPPING_ROUNDS': [int],
                            'EXPLOIT_RATIO': [float],
@@ -528,6 +529,7 @@ def run_experiment(data, groupby_options, responder,
                             'EVAL_METRIC': None,
                             'RANK_METRIC': None,
                             'RANDOM_SEED': [0, np.inf],
+                            'WEIGHTS_COLUMNS': None,
                             'CV_FOLDS': list(range(1, 10 + 1)),
                             'STOPPING_ROUNDS': list(range(1, 10 + 1)),
                             'EXPLOIT_RATIO': [0.0, 1.0],
@@ -1199,7 +1201,7 @@ _ = """
 # data_pad = util_conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water'])
 # data_pad = util_conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed'])
 # data_pad = util_conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed', 'Bin_1', 'Bin_5'])
-RESPONDER = 'PRO_Alloc_Oil'
+RESPONDER = 'PRO_Adj_Alloc_Oil'  # 'PRO_Alloc_Oil'
 
 EXCLUDE = ['C1', 'PRO_Alloc_Water', 'Bin_1', 'Bin_5', 'Date']
 data_pad, groupby_options_pad, PREDICTORS = data_refinement(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
@@ -1341,7 +1343,7 @@ _ = """
 """
 
 # aml_objects_pad = dict(zip(project_names_pad, get_aml_objects(project_names_pad)))
-# leaderboard_pad = aml_objects_pad.get('IPC_MacroPadModeling__PRO_Alloc_Oil__A').leaderboard.as_data_frame(0)
+# leaderboard_pad = aml_objects_pad.get('IPC_MacroPadModeling__PRO_Adj_Alloc_Oil__A').leaderboard.as_data_frame(0)
 _ = os.system("say Validating Models")
 
 with suppress_stdout():
@@ -1358,6 +1360,7 @@ _ = os.system("say Finished")
 
 # if(input('Shutdown Cluster? (Y/N)') == 'Y'):
 #     shutdown_confirm(h2o)
+shutdown_confirm(h2o)
 print(OUT_BLOCK)
 
 # EOF

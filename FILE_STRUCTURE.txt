@@ -31,6 +31,7 @@ IntelligentEnergy/
 │   ├── combined_ipc.csv
 │   ├── combined_ipc_aggregates.csv
 │   ├── combined_ipc_aggregates_PWELL.csv
+│   ├── combined_ipc_engineered.csv
 │   ├── DTS/
 │   │   ├── .DS_Store
 │   │   ├── AP2/
@@ -186,6 +187,7 @@ IntelligentEnergy/
 ├── LICENSE
 ├── Manipulation Reference Files/
 │   ├── .DS_Store
+│   ├── Benchmarking Anomaly Detection.png
 │   ├── JUPYTER-IPC_Real_Modeling.ipynb
 │   ├── Producer-Injector Overlap.png
 │   ├── Schematic 1/
@@ -279,13 +281,15 @@ IntelligentEnergy/
 │   │   ├── oilproxy_variable_importance_BP6.pdf
 │   │   └── Variable Importance Distributions.pdf
 │   ├── PredictProxy/
-│   ├── R_PAD, !End-Bins, Weighted rEF/
-│   │   ├── cross-correlations_PAD1688.pdf
+│   ├── Producer-Injector Overlap for BP6.png
+│   ├── R_PAD, !End-Bins, Weighted/
+│   │   ├── cross-correlations_PAD5158.pdf
 │   │   ├── hyperparams.txt
-│   │   ├── model_analytics_1688.pdf
-│   │   ├── model_analytics_1688.png
-│   │   ├── model_performance_PAD1688.pdf
-│   │   └── variable_importances_PAD1688.pdf
+│   │   ├── model_analytics_5158.pdf
+│   │   ├── model_analytics_5158_top-25.png
+│   │   ├── model_analytics_5158_top15.pdf
+│   │   ├── model_performance_PAD5158.pdf
+│   │   └── variable_importances_PAD5158.pdf
 │   ├── R_PAD, !SPM/
 │   │   ├── macropad_varimps_2449.pdf
 │   │   ├── model_performance_2449.pdf
@@ -306,7 +310,7 @@ IntelligentEnergy/
 │   │   ├── macropad_varimps_PWELL770.pdf
 │   │   ├── model_performance_PWELL770.pdf
 │   │   └── select_var_corrs_PWELL770.pdf
-│   ├── Round 5158/
+│   ├── Round 4152/
 │   │   └── hyperparams.txt
 │   └── Round, No SPM, End-bins/
 │       ├── macropad_varimps_6187.pdf

@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: feature_engineering.py
 # @Last modified by:   Ray
-# @Last modified time: 31-Mar-2021 17:03:48:488  GMT-0600
+# @Last modified time: 31-Mar-2021 21:03:84:846  GMT-0600
 # @License: [Private IP]
 
 from collections import Counter
@@ -23,7 +23,7 @@ df[df['PRO_Oil'] > 0][['Date', 'PRO_Well', 'PRO_Alloc_Oil', 'PRO_Alloc_Water', '
                        'PRO_Oil', 'PRO_Water', 'PRO_Fluid', 'PRO_Water_cut', 'PRO_Pump_Speed', 'PRO_Pump_Efficiency']].dropna()
 
 
-injectors = [c for c in df.columns if c[0] == 'I']
+injectors = [c for c in df.columns if 'I' in c][1:]
 fiber_segments = [c for c in df.columns if c[0:3] == 'bin']
 
 # df.groupby('Date')['PRO_Alloc_Oil'].sum().plot()
@@ -72,7 +72,7 @@ theoretical_df.drop(['PRO_Pump_Efficiency', 'PRO_Engineering_Approved', 'PRO_Tot
                      'PRO_Water_cut', 'PRO_Theo_Fluid', 'PRO_Alloc_Factor', 'adj_PRO_Theo_Fluid',
                      'PRO_Adj_Alloc_Water', 'PRO_Adj_Pump_Efficiency', 'Field_Steam'], axis=1, inplace=True)
 
-theoretical_df['PRO_Adj_Pump_Speed'] = (theoretical_df['PRO_Pump_Speed'] * theoretical_df['PRO_Time_On']) / 24
-theoretical_df.drop(['PRO_Alloc_Oil', 'PRO_Pump_Speed'], axis=1, inplace=True)
+theoretical_df['PRO_Adj_Pump_Speed'] = (theoretical_df['PRO_Pump_Speed'] * theoretical_df['PRO_Time_On']) / 24.0
+# theoretical_df.drop(['PRO_Alloc_Oil', 'PRO_Pump_Speed'], axis=1, inplace=True)
 
 theoretical_df.to_csv('Data/combined_ipc_engineered.csv')

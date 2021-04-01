@@ -1,6 +1,6 @@
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
-JOB INITIALIZED:  2021-03-31 11:40:59.998227
-RUN ID: 1688
+JOB INITIALIZED:  2021-03-31 19:32:14.798486
+RUN ID: 4152
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 SERVER HYPERPARAMETERS:
@@ -34,17 +34,17 @@ MISCELLANEOUS HYPERPARAMETRS:
                   'RMSLE': None,
                   'R^2': None,
                   'Rel. RMSE': 0},
- 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x11721d370>,
-                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x11721d370>,
-                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x11721d370>,
-                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x11721d370>,
-                 'R^2': <matplotlib.colors.ListedColormap object at 0x12611d6d0>,
-                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x11721d370>}}
+ 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x1167d6280>,
+                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x1167d6280>,
+                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x1167d6280>,
+                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x1167d6280>,
+                 'R^2': <matplotlib.colors.ListedColormap object at 0x1256df5e0>,
+                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x1167d6280>}}
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 PREDICTORS
 ['PRO_Pad',
- 'PRO_Pump_Speed',
+ 'PRO_Adj_Pump_Speed',
  'PRO_Time_On',
  'PRO_Casing_Pressure',
  'PRO_Heel_Pressure',

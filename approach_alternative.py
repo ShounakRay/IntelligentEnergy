@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 31-Mar-2021 17:03:13:136  GMT-0600
+# @Last modified time: 01-Apr-2021 00:04:89:895  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -28,13 +28,14 @@ import warnings
 
 import defs
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# HYPER PARAMETER SETTINGS
+_ = """
+#######################################################################################################################
+#############################################   HYPERPARAMETER SETTINGS   #############################################
+#######################################################################################################################
+"""
 
 plot_eda = False
-plot_geo = True
+plot_geo = False
 
 # Display hyperparams
 relative_radius = 50
@@ -49,10 +50,13 @@ POS_BR = (1439, 1008)
 x_delta = POS_TL[0] | POS_BL[0]
 y_delta = POS_TR[0] | POS_BR[0]
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# INGESTION
+OLD_DUPLICATES = ['PRO_Alloc_Oil', 'PRO_Pump_Speed']
+
+_ = """
+#######################################################################################################################
+#################################################   DATA INGESTIONS   #################################################
+#######################################################################################################################
+"""
 
 FINALE = pd.read_csv('Data/combined_ipc_engineered.csv').infer_objects()
 DATA_INJECTION_ORIG = pd.read_pickle('Data/Pickles/DATA_INJECTION_ORIG.pkl')
@@ -67,7 +71,11 @@ available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in avail
 UPSCALAR = 100
 BASE_UPSCALED = 0
 
-# DEFINITIONS
+_ = """
+#######################################################################################################################
+###############################################   FUNCTION DEFINITIONS   ##############################################
+#######################################################################################################################
+"""
 
 
 def filter_negatives(df, columns):
@@ -268,22 +276,73 @@ def visualize_anomalies(ft):
     plt.show()
 
 
-# with Pool(os.cpu_count() - 1) as pool:
-#     pool.map(process_local_anomalydetection, arguments)
+def plot_aggregation_eda(df, resp_feature_1, resp_feature_2, wells_iterator, pad_val):
+    fig, ax = plt.subplots(figsize=(50, 25), nrows=2, ncols=2)
+    ax[0][0].set_title(f'Aggregation breakdown of {resp_feature_1}')
+    for pwell in wells_iterator:
+        _temp = df[df['PRO_Well'] == pwell][resp_feature_1].reset_index(drop=True)
+        _temp.plot(ax=ax[0][0], linewidth=0.9)
+    _temp = COMBINED_AGGREGATES[COMBINED_AGGREGATES['PRO_Pad'] == pad_val][resp_feature_1]
+    (_temp / 1).plot(ax=ax[0][0], c='black')
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    ax[0][1].set_title(f'Histogram of {resp_feature_1}')
+    ax[0][1].hist(_temp, bins=200)
+
+    ax[1][0].set_title(f'Aggregation breakdown of {resp_feature_2}')
+    for pwell in wells_iterator:
+        _temp = df[df['PRO_Well'] == pwell][resp_feature_2].reset_index(drop=True)
+        _temp.plot(ax=ax[1][0], linewidth=0.9)
+    _temp = COMBINED_AGGREGATES[COMBINED_AGGREGATES['PRO_Pad'] == pad_val][resp_feature_2]
+    (_temp / 1).plot(ax=ax[1][0], c='black')
+
+    ax[1][1].set_title(f'Histogram of {resp_feature_2}')
+    ax[1][1].hist(_temp, bins=200)
+
+
+def plot_weights_eda(df, groupby_val, groupby_col, time_col='Date', weight_col='weight', col_thresh=None):
+    plt.figure(figsize=(30, 20))
+    _temp = df[df[groupby_col] == groupby_val].sort_values(time_col).reset_index(drop=True)
+    if(col_thresh is None):
+        iter_cols = _temp.columns
+    else:
+        iter_cols = _temp.columns[:col_thresh]
+    # Plot all features (normalized to 100 max)
+    for col in [c for c in iter_cols if c not in ['Date', 'PRO_Pad', 'PRO_Well', 'weight', 'PRO_Alloc_Oil']]:
+        __temp = _temp[['Date', col]].copy().fillna(_temp[col].mean())
+        __temp[col] = 100.0 * __temp[col] / (100 if max(__temp[col]) is np.nan else max(__temp[col]))
+        # plt.hist(__temp[col], bins=100)
+        if(col in ['PRO_Adj_Alloc_Oil', 'Steam', 'PRO_Adj_Pump_Speed']):
+            lw = 0.75
+        else:
+            lw = 0.3
+        plt.plot(__temp[time_col], __temp[col], linewidth=lw, label=col)
+    plt.legend(loc='upper left', ncol=2)
+
+    # # Plot weight
+    plt.plot(_temp[time_col], _temp[weight_col])
+    plt.title(f'Weight Time Series for {groupby_col} = {groupby_val}')
+    plt.savefig(f'Manipulation Reference Files/Weight TS {groupby_col} = {groupby_val}.png')
+
+
+_ = """
+#######################################################################################################################
+#############################################   MINOR DATA PRE-PROCESSING  ############################################
+#######################################################################################################################
+"""
 
 FINALE['PRO_Pad'] = FINALE['PRO_Well'].apply(lambda x: PRO_PAD_KEYS.get(x))
 FINALE = FINALE.dropna(subset=['PRO_Well']).reset_index(drop=True)
 
 FINALE = filter_negatives(FINALE, FINALE.select_dtypes(float))
+FINALE.drop(FINALE.columns[0], axis=1, inplace=True)
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+_ = """
+#######################################################################################################################
+################################################   ANOMALY DETECTION   ################################################
+#######################################################################################################################
+"""
 
+# Anomaly Detection Preparation
 TEMP = FINALE.copy()
 TEMP.columns = list(TEMP.columns.str.lower())
 col_reference = dict(zip(TEMP.columns, FINALE.columns))
@@ -291,10 +350,6 @@ col_reference = dict(zip(TEMP.columns, FINALE.columns))
 all_continuous_columns = TEMP.select_dtypes(float).columns
 all_prod_wells = list(FINALE['PRO_Well'].unique())
 lc_injectors = [k for k, v in col_reference.items() if 'I' in v][1:]
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # Conduct Anomaly Detection
 cumulative_tagged = []          # Stores the outputs from the customized, anomaly detection function
@@ -315,12 +370,25 @@ for cont_col in all_continuous_columns:
     print('> STATUS: {} % progress with `{}`'.format(
         round(100.0 * list(all_continuous_columns).index(cont_col) / len(all_continuous_columns), 3), cont_col))
 
+# Save benchmarking materials
 fig, ax = plt.subplots(figsize=(12, 8))
-plt.plot([t[1] for t in temporal_benchmarks])
+ax.plot([t[1] for t in temporal_benchmarks])
+ax.set_xlabel('Feature (the middle are injectors)')
+ax.set_ylabel('Cumulative Time (s)')
+ax.set_title('Multiprocessing – Benchmarking Anomaly Detection')
+fig.savefig('Manipulation Reference Files/Benchmarking Anomaly Detection.png')
 
+# Reformat the tagged anomalies to a format more accessible
 anomaly_tag_tracker = pd.concat(cumulative_tagged).reset_index(drop=True)       # Reformat anomaly info to a DataFrame
 sole_injector_data = anomaly_tag_tracker[anomaly_tag_tracker['feature'].isin(   # Only the injector data
     lc_injectors)].reset_index(drop=True).drop('group', axis=1)
+
+# NOTE: Do not consider old pump speed and allocated oil value in the weighting transformations
+_temp_OLD_DUPLICATES = [c.lower() for c in OLD_DUPLICATES]
+anomaly_tag_tracker = anomaly_tag_tracker[
+    ~anomaly_tag_tracker['feature'].isin(_temp_OLD_DUPLICATES)].reset_index(drop=True)
+anomaly_tag_tracker.drop(['selection', 'detection_iter', 'anomaly'], axis=1, inplace=True)
+
 
 # Duplicate the data for all available producer wells
 rep_tracker = []
@@ -329,7 +397,7 @@ for pwell in all_prod_wells:
     rep_tracker.append(sole_injector_data.copy())
 sole_injector_data_rep = pd.concat(rep_tracker).reset_index(drop=True)
 sole_injector_data_rep['feature'] = sole_injector_data_rep['feature'].apply(lambda x: col_reference.get(x))
-sole_injector_data_rep.drop(['selection', 'detection_iter'], axis=1, inplace=True)
+sole_injector_data_rep.drop(['selection', 'detection_iter', 'anomaly'], axis=1, inplace=True)
 
 # Concatenate the non-injector and the duplicated-injector tables together
 cumulative_anomalies = pd.concat([sole_injector_data_rep, anomaly_tag_tracker], axis=0).reset_index(drop=True)
@@ -360,10 +428,11 @@ FINALE = pd.merge(FINALE.infer_objects(), reformatted_anomalies, 'inner', on=['D
 # temp_two.index = temp_two.index / max(temp_two.index)
 # temp_two[['weight']].plot(ax=ax, lw=1)
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # INJECTOR/PRODUCER TRANSLATIONS  # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
+_ = """
+#######################################################################################################################
+########################################   INJECTOR > RELATIVE REPRESENTATION   #######################################
+#######################################################################################################################
+"""
 # # Injector wells to producer well overlaps (only those spanning different producer pads)
 # INJ_well_to_pad_overlaps = {'I16': ['AP3', 'BP1'],
 #                             'I21': ['AP3', 'BP1'],
@@ -382,9 +451,6 @@ FINALE = pd.merge(FINALE.infer_objects(), reformatted_anomalies, 'inner', on=['D
 #                       '15-05': ['AP4', 'AP6', 'AP7'],
 #                       '16-05': ['AP2', 'AP3', 'AP4', 'AP5', 'AP6', 'AP7']}
 
-# # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # #
-# INJECTOR COORDINATE TRANSFORMATIONS
 INJ_relcoords = {}
 INJ_relcoords = {'I02': '(757, 534)',
                  'I03': '(709, 519)',
@@ -440,10 +506,11 @@ for k, v in INJ_relcoords.items():
     # Re-scaling
     INJ_relcoords[k] = (v[0] - x_delta, y_delta - v[1])
 
-
-# # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # #
-# PRODUCER COORDINATE TRANSFORMATIONS
+_ = """
+#######################################################################################################################
+########################################   PRODUCER > RELATIVE REPRESENTATION   #######################################
+#######################################################################################################################
+"""
 
 PRO_relcoords = {}
 PRO_relcoords = {'AP2': '(616, 512) <> (683, 557) <> (995, 551)',
@@ -486,9 +553,11 @@ for k, v in PRO_relcoords.items():
         discrete_links.append(discrete_ind)
     PRO_finalcoords[k] = list(chain.from_iterable(discrete_links))
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # NAIVE INJECTOR SELECTION ALGO # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+_ = """
+#######################################################################################################################
+########################################   NAIVE INJECTOR SELECTION ALGORITHM   #######################################
+#######################################################################################################################
+"""
 
 candidates_by_prodpad = {}
 reports_by_prodpad = {}
@@ -514,19 +583,15 @@ for pwell in available_pwells_transformed:
     candidates_by_prodwell[pwell] = candidates
     reports_by_prodwell[pwell] = report
 
-
 if(plot_geo):
     plot_geo_candidates(candidates_by_prodwell, 'BP6', PRO_finalcoords, INJ_relcoords)
 
+_ = """
+#######################################################################################################################
+########################################   PRODUCER/INJECTOR DISTANCE MATRIX    #######################################
+#######################################################################################################################
+"""
 
-#
-#
-#
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # PRODUCER-INJECTOR DIST. MATRIX # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 pro_inj_distance = pd.DataFrame([], columns=INJ_relcoords.keys(), index=PRO_finalcoords.keys())
 pro_inj_distance = pro_inj_distance.rename_axis('PRO_Well').reset_index()
 operat = 'mean'
@@ -541,26 +606,31 @@ for injector in INJ_relcoords.keys():
         inj_specific_distances.append(dist_store)
     pro_inj_distance[injector] = inj_specific_distances
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # PAD-LEVEL SENSOR DATA # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-# # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # #
-# PRODUCER PAD-LEVEL AGGREGATOIN
+_ = """
+#######################################################################################################################
+###########################################   PRODUCTION-DATA AGGREGATION   ###########################################
+#######################################################################################################################
+"""
+_ = """
+####################################
+######  PAD-LEVEL AGGREGATION ######
+####################################
+"""
 unique_pro_pads = list(FINALE['PRO_Pad'].unique())
 all_pro_data = ['PRO_Well',
+                'PRO_Adj_Pump_Speed',
                 'PRO_Pump_Speed',
-                'PRO_Time_On',
+                # 'PRO_Time_On',
                 'PRO_Casing_Pressure',
                 'PRO_Heel_Pressure',
                 'PRO_Toe_Pressure',
                 'PRO_Heel_Temp',
                 'PRO_Toe_Temp',
                 'PRO_Pad',
-                'PRO_Duration',
+                # 'PRO_Duration',
+                'PRO_Adj_Alloc_Oil',
                 'PRO_Alloc_Oil',
-                'PRO_Alloc_Water',
+                # 'PRO_Alloc_Water',
                 'Bin_1',
                 'Bin_2',
                 'Bin_3',
@@ -570,16 +640,18 @@ all_pro_data = ['PRO_Well',
 FINALE_pro = FINALE[all_pro_data + ['Date', 'weight']]
 FINALE_pro, dropped_cols = drop_singles(FINALE_pro)
 
-aggregation_dict = {'PRO_Pump_Speed': 'sum',
-                    'PRO_Time_On': 'mean',
+aggregation_dict = {'PRO_Adj_Pump_Speed': 'mean',
+                    'PRO_Pump_Speed': 'sum',
+                    # 'PRO_Time_On': 'mean',
                     'PRO_Casing_Pressure': 'mean',
                     'PRO_Heel_Pressure': 'mean',
                     'PRO_Toe_Pressure': 'mean',
                     'PRO_Heel_Temp': 'mean',
                     'PRO_Toe_Temp': 'mean',
+                    'PRO_Adj_Alloc_Oil': 'sum',
                     # 'PRO_Duration': 'mean',
                     'PRO_Alloc_Oil': 'sum',
-                    'PRO_Alloc_Water': 'sum',
+                    # 'PRO_Alloc_Water': 'sum',
                     'Bin_1': 'mean',
                     'Bin_2': 'mean',
                     'Bin_3': 'mean',
@@ -614,27 +686,36 @@ if(plot_eda):
 
     plt.savefig('pro_pads_cols_ts.png')
 
-# # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # #
-# PRODUCER WELL-LEVEL AGGREGATION
+_ = """
+####################################
+#####  WELL-LEVEL AGGREGATION ######
+####################################
+"""
 FINALE_agg_pro_pwell = FINALE_pro.groupby(by=['Date', 'PRO_Well'], axis=0,
                                           sort=False, as_index=False).agg(aggregation_dict)
 
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # INJECTOR PAD-LEVEL STEAM ALLOCATION # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-# # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # #
-# INJECTOR BY PRODUCER PAD-LEVEL AGGREGATION
+_ = """
+#######################################################################################################################
+############################################   INJECTOR-DATA AGGREGATION   ############################################
+#######################################################################################################################
+"""
 # This is just to delete the implicit duplicates found in the data (each production well has the same injection data)
 FINALE_inj = FINALE[FINALE['PRO_Well'] == 'AP3'].reset_index(drop=True).drop('PRO_Well', 1)
 all_injs = [c for c in FINALE_inj.columns if 'I' in c and '_' not in c]
 
+_ = """
+####################################
+#####  PAD-LEVEL AGGREGATION #######
+####################################
+"""
 INJECTOR_AGGREGATES = produce_injector_aggregates(candidates_by_prodpad, FINALE_inj, 'PRO_Pad')
+
+_ = """
+####################################
+#####  WELL-LEVEL AGGREGATION ######
+####################################
+"""
 INJECTOR_AGGREGATES_PWELL = produce_injector_aggregates(candidates_by_prodwell, FINALE_inj, 'PRO_Well')
-list(FINALE_inj.columns)
 
 if(plot_eda):
     # FIGURE PLOTTING (INJECTION PAD-LEVEL STATISTICS)
@@ -651,43 +732,48 @@ if(plot_eda):
 
     plt.savefig('inj_pads_ts.png')
 
-# # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # #
-# INJECTOR BY PRODUCER PAD-LEVEL AGGREGATION
-
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # #  COMBINE INJECTOR AND PRODUCER AGGREGATIONS # # # # # # # # # # # # # # # # # #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+_ = """
+#######################################################################################################################
+#####################################   INJECTOR/PRODUCER AGGREGATION – MERGING   #####################################
+#######################################################################################################################
+"""
+_ = """
+####################################
+########  PAD-LEVEL MERGING ########
+####################################
+"""
 PRODUCER_AGGREGATES = FINALE_agg_pro[FINALE_agg_pro['PRO_Pad'].isin(available_pads_transformed)]
 COMBINED_AGGREGATES = pd.merge(PRODUCER_AGGREGATES, INJECTOR_AGGREGATES,
-                               how='inner', on=['Date', 'PRO_Pad']).drop(['PRO_Alloc_Water'], axis=1)
+                               how='inner', on=['Date', 'PRO_Pad'])
 COMBINED_AGGREGATES, dropped = drop_singles(COMBINED_AGGREGATES)
-
+_ = """
+####################################
+########  WELL-LEVEL MERGING #######
+####################################
+"""
 PRODUCER_AGGREGATES_PWELL = FINALE_agg_pro_pwell[FINALE_agg_pro_pwell['PRO_Well'].isin(available_pwells_transformed)]
 COMBINED_AGGREGATES_PWELL = pd.merge(PRODUCER_AGGREGATES_PWELL, INJECTOR_AGGREGATES_PWELL,
-                                     how='inner', on=['Date', 'PRO_Well']).drop(['PRO_Alloc_Water'], axis=1)
+                                     how='inner', on=['Date', 'PRO_Well'])
 COMBINED_AGGREGATES_PWELL, dropped_pwell = drop_singles(COMBINED_AGGREGATES_PWELL)
 
-fig, ax = plt.subplots(figsize=(24, 16))
-COMBINED_AGGREGATES_PWELL[COMBINED_AGGREGATES_PWELL['PRO_Well'] == 'AP8']['PRO_Alloc_Oil'].plot()
-fig, ax = plt.subplots(figsize=(24, 16))
-COMBINED_AGGREGATES[COMBINED_AGGREGATES['PRO_Pad'] == 'B']['PRO_Alloc_Oil'].plot()
+_ = """
+####################################
+#########  AGGREGATION EDA #########
+####################################
+"""
+plot_aggregation_eda(COMBINED_AGGREGATES_PWELL, 'PRO_Adj_Alloc_Oil', 'PRO_Alloc_Oil',
+                     available_pwells_transformed[:7], 'A')
 
-# COMBINED_AGGREGATES_temp = COMBINED_AGGREGATES.rolling(window=7).mean()
-# COMBINED_AGGREGATES_temp['PRO_Pad'] = COMBINED_AGGREGATES['PRO_Pad']
-#
-# plt.figure(figsize=(24, 16))
-# # COMBINED_AGGREGATES['PRO_Oil'].plot()
-# COMBINED_AGGREGATES[(COMBINED_AGGREGATES['PRO_Pad'] == 'A') & (COMBINED_AGGREGATES['PRO_Oil'] > 0)]['PRO_Oil'].plot()
-# COMBINED_AGGREGATES[(COMBINED_AGGREGATES['PRO_Pad'] == 'B') & (COMBINED_AGGREGATES['PRO_Oil'] > 0)]['PRO_Oil'].plot()
-
-# plt.figure(figsize=(24, 16))
-# # COMBINED_AGGREGATES_temp['PRO_Oil'].plot()
-# COMBINED_AGGREGATES_temp[(COMBINED_AGGREGATES_temp['PRO_Pad'] == 'A') &
-#                          (COMBINED_AGGREGATES_temp['PRO_Oil'] > 0)]['PRO_Oil'].plot()
-# COMBINED_AGGREGATES_temp[(COMBINED_AGGREGATES_temp['PRO_Pad'] == 'B') &
-#                          (COMBINED_AGGREGATES_temp['PRO_Oil'] > 0)]['PRO_Oil'].plot()
+_ = """
+####################################
+###########  WEIGHT EDA ############
+####################################
+"""
+for pad in available_pads_transformed:
+    plot_weights_eda(COMBINED_AGGREGATES, groupby_val=pad, groupby_col='PRO_Pad', time_col='Date', weight_col='weight')
+for pwell in available_pwells_transformed:
+    plot_weights_eda(COMBINED_AGGREGATES_PWELL, groupby_val=pwell,
+                     groupby_col='PRO_Well', time_col='Date', weight_col='weight')
 
 COMBINED_AGGREGATES_PWELL.to_csv('Data/combined_ipc_aggregates_PWELL.csv')
 COMBINED_AGGREGATES.to_csv('Data/combined_ipc_aggregates.csv')
