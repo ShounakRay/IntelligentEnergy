@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 01-Apr-2021 15:04:53:538  GMT-0600
+# @Last modified time: 01-Apr-2021 15:04:79:798  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -1413,11 +1413,8 @@ with suppress_stdout():
                     TOP_MODELS=30, order_by='Rel. Val. RMSE')
 
 # get_aml_objects(project_names_pad)[1].model_correlation_heatmap(pad_relationship_validation['B'])
-#
 # h2o.get_model('GBM_1_AutoML_20210401_124725').shap_summary_plot(pad_relationship_validation['B'])
-# plt.figure(figsize=(30, 30))
 # h2o.get_model('GBM_1_AutoML_20210401_124725').pd_plot(pad_relationship_validation['B'], 'PRO_Toe_Temp')
-#
 # h2o.get_model('GBM_1_AutoML_20210401_124725').ice_plot(pad_relationship_validation['B'], 'PRO_Casing_Pressure')
 
 
