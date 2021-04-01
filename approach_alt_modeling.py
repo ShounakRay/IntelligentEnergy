@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 31-Mar-2021 19:03:84:841  GMT-0600
+# @Last modified time: 01-Apr-2021 10:04:17:179  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -35,6 +35,8 @@ from matplotlib.patches import Rectangle
 
 # from h2o.estimators import H2OTargetEncoderEstimator
 
+# TODO: Drop old values (check that they're not here)
+# TODO: Check correct validation datasets
 
 _ = """
 #######################################################################################################################
@@ -72,9 +74,9 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 600                                      # The longest that the experiment will run (seconds)
+MAX_EXP_RUNTIME: Final = 60                                       # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                      # To ensure reproducibility of experiments (caveats*)
-EVAL_METRIC: Final = 'deviance'                                   # The evaluation metric to discontinue model training
+EVAL_METRIC: Final = 'rmse'                                       # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'rmse'                                       # Leaderboard ranking metric after all trainings
 CV_FOLDS: Final = 5
 STOPPING_ROUNDS: Final = 3
@@ -461,7 +463,7 @@ def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN)
 
 
 @analytics
-def run_experiment(data, groupby_options, responder,
+def run_experiment(data, groupby_options, responder, validation_frames_dict,
                    MAX_EXP_RUNTIME=MAX_EXP_RUNTIME, EVAL_METRIC=EVAL_METRIC, RANK_METRIC=RANK_METRIC,
                    RANDOM_SEED=RANDOM_SEED, WEIGHTS_COLUMNS=WEIGHTS_COLUMN, CV_FOLDS=CV_FOLDS,
                    STOPPING_ROUNDS=STOPPING_ROUNDS, EXPLOIT_RATIO=EXPLOIT_RATIO, MODELING_PLAN=MODELING_PLAN,
@@ -512,6 +514,7 @@ def run_experiment(data, groupby_options, responder,
     _expected_type_args = {'data': None,
                            'groupby_options': [str],
                            'responder': [dict],
+                           'validation_frames_dict': [dict],
                            'MAX_EXP_RUNTIME': [dict],
                            'EVAL_METRIC': [list, type(None)],
                            'RANK_METRIC': [list, type(None)],
@@ -525,6 +528,7 @@ def run_experiment(data, groupby_options, responder,
     _expected_value_args = {'data': None,
                             'groupby_options': None,
                             'responder': None,
+                            'validation_frames_dict': None,
                             'MAX_EXP_RUNTIME': [1, 10000],
                             'EVAL_METRIC': None,
                             'RANK_METRIC': None,
@@ -539,11 +543,11 @@ def run_experiment(data, groupby_options, responder,
     util_data_range_sanitation(_provided_args, _expected_value_args, name)
     """END OF DATA SANITATION"""
 
-    # Determined the categorical variable to be dropped (should only be the groupby)
+    # Determined the categorical variable to be dropped in TRAINING SET (should only be the groupby)
     tb_dropped = data.as_data_frame().select_dtypes(object).columns
     if not (len(tb_dropped) == 1):
-        raise RuntimeError('Only and exactly one categorical variable was expected in the provided data. However, ' +
-                           f'{len(tb_dropped)} were provided.')
+        raise RuntimeError('Only and exactly one categorical variable was expected in the provided TRAIN data.' +
+                           'However, ' + f'{len(tb_dropped)} were provided.')
     else:
         tb_dropped = tb_dropped[0]
 
@@ -552,6 +556,17 @@ def run_experiment(data, groupby_options, responder,
     initialized_projects = []
     for group in groupby_options:
         print(Fore.GREEN + 'STATUS: Experiment -> Production Pad {}\n'.format(group) + Style.RESET_ALL)
+
+        validation_frame_groupby = validation_frames_dict[group]
+        # Determined the categorical variable to be dropped in VALIDATION SET (should only be the groupby)
+        tb_dropped_val = validation_frame_groupby.as_data_frame().select_dtypes(object).columns
+        if not (len(tb_dropped_val) == 1):
+            raise RuntimeError('Only and exactly one categorical variable was expected in the provided VALID. data.' +
+                               'However, ' + f'{len(tb_dropped_val)} were provided.')
+        else:
+            tb_dropped_val = tb_dropped_val[0]
+        validation_frame_groupby = validation_frame_groupby.drop(tb_dropped_val, axis=1)
+
         # Configure the experiment
         project_name = "IPC_MacroPadModeling__{RESP}__{PPAD}".format(RESP=responder, PPAD=group)
         aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,     # How long should the experiment run for?
@@ -570,7 +585,8 @@ def run_experiment(data, groupby_options, responder,
         MODEL_DATA = MODEL_DATA.drop(tb_dropped, axis=1)
         aml_obj.train(y=responder,                                # A single responder
                       weights_column=WEIGHTS_COLUMN,              # What is the weights column in the H2O frame?
-                      training_frame=MODEL_DATA)                  # All the data is used for training, cross-validation
+                      training_frame=MODEL_DATA,                  # All the data is used for training, cross-validation
+                      validation_frame=validation_frame_groupby)  # The validation dataset used to assess performance
 
     print(Fore.GREEN + 'STATUS: Completed experiments\n\n' + Style.RESET_ALL)
 
@@ -1054,8 +1070,8 @@ def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, rank
 
 
 @representation
-def validate_models(perf_data, training_data, benchline, validation_data, order_by='Rel. RMSE', RUN_TAG=RUN_TAG,
-                    TOP_MODELS=TOP_MODELS):
+def validate_models(perf_data, training_data_dict, benchline, validation_data_dict, order_by='Rel. RMSE',
+                    RUN_TAG=RUN_TAG, TOP_MODELS=TOP_MODELS):
     FIG_SCALAR = 5.33333333333333
 
     perf_data.sort_values(order_by, inplace=True)
@@ -1081,10 +1097,16 @@ def validate_models(perf_data, training_data, benchline, validation_data, order_
     for top_model in all_model_RMSE_H_to_L:
         # Extracting Model Configurations
         model_name = [c for c in list(perf_data.index) if top_model.key in c][0]
+        model_group = model_name.split('___GROUP-')[1]
         model_type = top_model.algo
         model_position = ax[all_model_RMSE_H_to_L.index(top_model)]
         models_iterated.append(model_name)
         RMSE_resp = f'{order_by}: ' + str(int(perf_data[perf_data.index == model_name][order_by][0]))
+
+        training_data = training_data_dict.get(model_group)
+        validation_data = validation_data_dict.get(model_group)
+
+        # print(model_group)
 
         # Determining training and validation predictions
         prediction_on_training = top_model.predict(training_data).as_data_frame().infer_objects()
@@ -1177,17 +1199,46 @@ for path in [DATA_PATH_PAD, DATA_PATH_WELL]:
 
 # Import the data from the file
 # data_well = h2o.import_file(DATA_PATH_WELL)
-data_pad_complete = h2o.import_file(DATA_PATH_PAD)
-data_pad, data_pad_validation = [h2o.H2OFrame(dat.reset_index(drop=True).infer_objects())
-                                 for dat in np.split(data_pad_complete.as_data_frame(),
-                                                     [int(TRAIN_VAL_SPLIT * len(data_pad_complete))])]
+# data_pad_complete = h2o.import_file(DATA_PATH_PAD)
+# data_pad, data_pad_validation = [h2o.H2OFrame(dat.reset_index(drop=True).infer_objects())
+#                                  for dat in np.split(data_pad_complete.as_data_frame(),
+#                                                      [int(TRAIN_VAL_SPLIT * len(data_pad_complete))])]
 
-# __TEMP_PD_PAD = pd.read_csv(DATA_PATH_PAD)
-# split_date = __TEMP_PD_PAD[__TEMP_PD_PAD.index == data_pad_validation.as_data_frame()['C1'][0]
-#                            ].reset_index()['Date'][0]
-# last_date = __TEMP_PD_PAD['Date'].values[-1]
-#
-# delta = (datetime.datetime.strptime(last_date, "%Y-%m-%d") - datetime.datetime.strptime(split_date, "%Y-%m-%d")).days
+_ = """
+####################################
+#######  VALIDATION SPLITING #######
+####################################
+"""
+# Split into train/test (CV) and holdout set (per each class of grouping)
+pd_data_pad = pd.read_csv(DATA_PATH_PAD).drop('Unnamed: 0', axis=1)
+unique_pads = list(pd_data_pad['PRO_Pad'].unique())
+grouped_data_split = {}
+for u_pad in unique_pads:
+    filtered_by_group = pd_data_pad[pd_data_pad['PRO_Pad'] == u_pad].sort_values('Date').reset_index(drop=True)
+    data_pad_loop, data_pad_validation_loop = [dat.reset_index(drop=True).infer_objects()
+                                               for dat in np.split(filtered_by_group,
+                                                                   [int(TRAIN_VAL_SPLIT * len(filtered_by_group))])]
+    grouped_data_split[u_pad] = (data_pad_loop, data_pad_validation_loop)
+# Holdout and validation reformatting
+data_pad = pd.concat([v[0] for k, v in grouped_data_split.items()]).reset_index(drop=True).infer_objects()
+data_pad = h2o.H2OFrame(data_pad)
+data_pad_validation = pd.concat([v[1] for k, v in grouped_data_split.items()]).reset_index(drop=True).infer_objects()
+data_pad_validation = h2o.H2OFrame(data_pad_validation)
+
+# Create pad validation relationships
+pad_relationship_validation = {}
+for u_pad in unique_pads:
+    df_loop = data_pad_validation.as_data_frame()
+    df_loop = df_loop[df_loop['PRO_Pad'] == u_pad].drop(['Date'], axis=1).infer_objects().reset_index(drop=True)
+    df_loop = h2o.H2OFrame(df_loop)
+    pad_relationship_validation[u_pad] = df_loop
+# Create pad training relationships
+pad_relationship_training = {}
+for u_pad in unique_pads:
+    df_loop = data_pad.as_data_frame()
+    df_loop = df_loop[df_loop['PRO_Pad'] == u_pad].drop(['PRO_Pad'], axis=1).infer_objects().reset_index(drop=True)
+    df_loop = h2o.H2OFrame(df_loop)
+    pad_relationship_training[u_pad] = df_loop
 
 print(Fore.GREEN + 'STATUS: Server initialized and data imported.' + Style.RESET_ALL)
 print(OUT_BLOCK)
@@ -1204,6 +1255,8 @@ _ = """
 RESPONDER = 'PRO_Adj_Alloc_Oil'  # 'PRO_Alloc_Oil'
 
 EXCLUDE = ['C1', 'PRO_Alloc_Water', 'Bin_1', 'Bin_5', 'Date']
+EXCLUDE.extend(['PRO_Alloc_Oil', 'PRO_Pump_Speed'])
+
 data_pad, groupby_options_pad, PREDICTORS = data_refinement(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
 # data_well, groupby_options_well, PREDICTORS = data_refinement(data_well, 'PRO_Well', EXCLUDE, RESPONDER)
 
@@ -1251,7 +1304,8 @@ print(Fore.GREEN + '\t* Responder\t\t-> ', RESPONDER,
 #     raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
 
 # Run the experiment
-project_names_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER)
+project_names_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER,
+                                   validation_frames_dict=pad_relationship_validation)
 
 _ = os.system("say Done Training")
 
@@ -1344,10 +1398,11 @@ _ = """
 
 # aml_objects_pad = dict(zip(project_names_pad, get_aml_objects(project_names_pad)))
 # leaderboard_pad = aml_objects_pad.get('IPC_MacroPadModeling__PRO_Adj_Alloc_Oil__A').leaderboard.as_data_frame(0)
-_ = os.system("say Validating Models")
+# _ = os.system("say Validating Models")
+
 
 with suppress_stdout():
-    validate_models(perf_pad, data_pad, benchline_pad, data_pad_validation, TOP_MODELS=-25)
+    validate_models(perf_pad, pad_relationship_training, benchline_pad, pad_relationship_validation, TOP_MODELS=25)
 
 
 _ = """
