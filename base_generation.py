@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 31-Mar-2021 15:03:77:779  GMT-0600
+# @Last modified time: 06-Apr-2021 14:04:41:414  GMT-0600
 # @License: [Private IP]
 
 
@@ -167,6 +167,8 @@ df = pd.merge(df, well_test, how='left', on=['Date', 'PRO_Well'])
 # df[df['PRO_Well'] == 'AP3'].sort_values('Date')['PRO_Pump_Speed'].plot()
 #
 # Counter(df[df['PRO_Well'] == 'AP3'].sort_values('Date')['PRO_Pump_Efficiency'])
+
+df = df.dropna(subset=['PRO_Well', 'PRO_UWI'], how='any').reset_index(drop=True)
 
 df = df.infer_objects()
 

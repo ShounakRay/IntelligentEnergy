@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 01-Apr-2021 10:04:58:586  GMT-0600
+# @Last modified time: 06-Apr-2021 15:04:58:582  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -78,8 +78,9 @@ _ = """
 """
 
 
-def filter_negatives(df, columns):
+def filter_negatives(df, columns, out=True, placeholder=0):
     """Filter out all the rows in the DataFrame whose rows contain negatives.
+    TODO: PENDING!!!! Groupby when finding means
 
     Parameters
     ----------
@@ -87,6 +88,10 @@ def filter_negatives(df, columns):
         The intitial, unfiltered DataFrame.
     columns : pandas Index, or any iterable
         Which columns to consider.
+    out : boolean
+        Whether the "negative rows" should be deleted from the DataFrame.
+    placeholder : int OR str
+        The value or strategy used in "treating" the "negative rows."
 
     Returns
     -------
@@ -95,7 +100,18 @@ def filter_negatives(df, columns):
 
     """
     for num_col in columns:
-        df = df[~(df[num_col] < 0)].reset_index(drop=True)
+        if(out):
+            df = df[~(df[num_col] < 0)].reset_index(drop=True)
+        else:
+            if(placeholder == 'mean'):
+                placeholder = df[num_col].mean()
+            elif(placeholder == 'median'):
+                placeholder = df[num_col].median()
+            elif(type(placeholder) == int or type(placeholder) == float):
+                pass
+            else:
+                raise ValueError(f'Incompatible argument entered for `placeholder`: {placeholder}')
+            df.loc[df[num_col] < 0, num_col] = placeholder
     return df
 
 
@@ -333,7 +349,7 @@ _ = """
 FINALE['PRO_Pad'] = FINALE['PRO_Well'].apply(lambda x: PRO_PAD_KEYS.get(x))
 FINALE = FINALE.dropna(subset=['PRO_Well']).reset_index(drop=True)
 
-FINALE = filter_negatives(FINALE, FINALE.select_dtypes(float))
+FINALE = filter_negatives(FINALE, FINALE.select_dtypes(float), out=False, placeholder=0)
 FINALE.drop(FINALE.columns[0], axis=1, inplace=True)
 
 _ = """
@@ -347,9 +363,9 @@ TEMP = FINALE.copy()
 TEMP.columns = list(TEMP.columns.str.lower())
 col_reference = dict(zip(TEMP.columns, FINALE.columns))
 
-all_continuous_columns = TEMP.select_dtypes(float).columns
+all_continuous_columns = TEMP.select_dtypes(np.number).columns
 all_prod_wells = list(FINALE['PRO_Well'].unique())
-lc_injectors = [k for k, v in col_reference.items() if 'I' in v][1:]
+lc_injectors = [k for k, v in col_reference.items() if 'I' in v][:]
 
 # Conduct Anomaly Detection
 cumulative_tagged = []          # Stores the outputs from the customized, anomaly detection function
@@ -368,7 +384,7 @@ for cont_col in all_continuous_columns:
     process_final = datetime.now()
     temporal_benchmarks.append((cont_col, (process_final - process_init).total_seconds()))
     print('> STATUS: {} % progress with `{}`'.format(
-        round(100.0 * list(all_continuous_columns).index(cont_col) / len(all_continuous_columns), 3), cont_col))
+        round(100.0 * (list(all_continuous_columns).index(cont_col) + 1) / len(all_continuous_columns), 3), cont_col))
 
 # Save benchmarking materials
 fig, ax = plt.subplots(figsize=(12, 8))
@@ -383,14 +399,7 @@ anomaly_tag_tracker = pd.concat(cumulative_tagged).reset_index(drop=True)       
 sole_injector_data = anomaly_tag_tracker[anomaly_tag_tracker['feature'].isin(   # Only the injector data
     lc_injectors)].reset_index(drop=True).drop('group', axis=1)
 
-# NOTE: Do not consider old pump speed and allocated oil value in the weighting transformations
-_temp_OLD_DUPLICATES = [c.lower() for c in OLD_DUPLICATES]
-anomaly_tag_tracker = anomaly_tag_tracker[
-    ~anomaly_tag_tracker['feature'].isin(_temp_OLD_DUPLICATES)].reset_index(drop=True)
-anomaly_tag_tracker.drop(['selection', 'detection_iter', 'anomaly'], axis=1, inplace=True)
-
-
-# Duplicate the data for all available producer wells
+# Duplicate the injector data for all available producer wells
 rep_tracker = []
 for pwell in all_prod_wells:
     sole_injector_data['group'] = pwell
@@ -398,6 +407,12 @@ for pwell in all_prod_wells:
 sole_injector_data_rep = pd.concat(rep_tracker).reset_index(drop=True)
 sole_injector_data_rep['feature'] = sole_injector_data_rep['feature'].apply(lambda x: col_reference.get(x))
 sole_injector_data_rep.drop(['selection', 'detection_iter', 'anomaly'], axis=1, inplace=True)
+
+# NOTE: Do not consider old pump speed and allocated oil value in the weighting transformations
+_temp_OLD_DUPLICATES = [c.lower() for c in OLD_DUPLICATES]
+anomaly_tag_tracker = anomaly_tag_tracker[
+    ~anomaly_tag_tracker['feature'].isin(_temp_OLD_DUPLICATES)].reset_index(drop=True)
+anomaly_tag_tracker.drop(['selection', 'detection_iter', 'anomaly'], axis=1, inplace=True)
 
 # Concatenate the non-injector and the duplicated-injector tables together
 cumulative_anomalies = pd.concat([sole_injector_data_rep, anomaly_tag_tracker], axis=0).reset_index(drop=True)
@@ -407,10 +422,11 @@ reformatted_anomalies = cumulative_anomalies.groupby(['group', 'date'])[['update
 reformatted_anomalies.columns = ['PRO_Well', 'Date', 'weight']
 reformatted_anomalies = reformatted_anomalies.infer_objects()
 
+# Date Formatting (just to be sure)
 FINALE['Date'] = pd.to_datetime(FINALE['Date'])
 reformatted_anomalies['Date'] = pd.to_datetime(reformatted_anomalies['Date'])
 
-# Merge this data into the original, highest-resolution base table
+# Merge this anomaly data into the original, highest-resolution base table
 FINALE = pd.merge(FINALE.infer_objects(), reformatted_anomalies, 'inner', on=['Date', 'PRO_Well'])
 
 # # Exploratory Analysis on the weights
