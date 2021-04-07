@@ -10,369 +10,41 @@ IntelligentEnergy/
 │   └── util_traversal.cpython-38.pyc
 ├── _context_managers.py
 ├── Approach 1/
+│   ├── .DS_Store
 │   ├── AUTO-IPC_Real_Manipulation.py
+│   ├── CrossCorrelation/
+│   │   ├── .DS_Store
+│   │   ├── Injector Cross Correlation.png
+│   │   ├── selective_matrix.pdf
+│   │   ├── selective_matrix.png
+│   │   ├── test copy.mp4
+│   │   ├── test.mp4
+│   │   ├── WELL-ALL_PRODUCTION_TARGET-UNSPECIFIED.png
+│   │   └── WELL-ALL_PRODUCTION_TARGET-UNSPECIFIED_TIMED-True.png
+│   ├── Exploratory Data Analysis/
+│   │   ├── report_DATA_INJECTION_PRESS.html
+│   │   ├── report_DATA_INJECTION_STEAM.html
+│   │   ├── report_DATA_PRODUCTION.html
+│   │   ├── report_DATA_TEST.html
+│   │   ├── report_FIBER_DATA.html
+│   │   ├── report_FINALE.html
+│   │   ├── report_PRODUCTION_WELL_INTER.html
+│   │   └── report_PRODUCTION_WELL_WSENSOR.html
 │   ├── heatmap_anitest.py
-│   └── MAIN_COPY.py
-├── approach_alt_modeling.py
-├── approach_alternative.py
-├── base_generation.py
-├── CrossCorrelation/
-│   ├── .DS_Store
-│   ├── Injector Cross Correlation.png
-│   ├── selective_matrix.pdf
-│   ├── selective_matrix.png
-│   ├── test copy.mp4
-│   ├── test.mp4
-│   ├── WELL-ALL_PRODUCTION_TARGET-UNSPECIFIED.png
-│   └── WELL-ALL_PRODUCTION_TARGET-UNSPECIFIED_TIMED-True.png
-├── Data/
-│   ├── .DS_Store
-│   ├── aggregate_fiber.csv
-│   ├── combined_ipc.csv
-│   ├── combined_ipc_aggregates.csv
-│   ├── combined_ipc_aggregates_PWELL.csv
-│   ├── combined_ipc_engineered.csv
-│   ├── DTS/
-│   │   ├── .DS_Store
-│   │   ├── AP2/
-│   │   │   └── AP2THERM.xlsx
-│   │   ├── AP3/
-│   │   │   ├── AP31DTS.csv
-│   │   │   ├── AP32DTS.csv
-│   │   │   ├── AP33DTS.csv
-│   │   │   ├── AP34DTS.csv
-│   │   │   ├── AP35DTS.csv
-│   │   │   ├── AP36DTS.csv
-│   │   │   ├── AP37DTS.csv
-│   │   │   └── AP3DTS.csv
-│   │   ├── AP4/
-│   │   │   ├── AP41DTS.csv
-│   │   │   ├── AP42DTS.csv
-│   │   │   ├── AP43DTS.csv
-│   │   │   ├── AP44DTS.csv
-│   │   │   ├── AP45DTS.csv
-│   │   │   ├── AP46DTS.csv
-│   │   │   ├── AP47DTS.csv
-│   │   │   └── AP4DTS.csv
-│   │   ├── AP5/
-│   │   │   ├── AP51DTS.csv
-│   │   │   ├── AP52DTS.csv
-│   │   │   ├── AP53DTS.csv
-│   │   │   ├── AP54DTS.csv
-│   │   │   ├── AP55DTS.csv
-│   │   │   ├── AP56DTS.csv
-│   │   │   ├── AP57DTS.csv
-│   │   │   ├── AP58DTS.csv
-│   │   │   └── AP5DTS.csv
-│   │   ├── AP6/
-│   │   │   ├── AP61DTS.csv
-│   │   │   ├── AP62DTS.csv
-│   │   │   ├── AP63DTS.csv
-│   │   │   ├── AP64DTS.csv
-│   │   │   ├── AP65DTS.csv
-│   │   │   ├── AP66DTS.csv
-│   │   │   ├── AP67DTS.csv
-│   │   │   ├── AP68DTS.csv
-│   │   │   └── AP6DTS.csv
-│   │   ├── AP7/
-│   │   │   ├── AP71DTS.csv
-│   │   │   ├── AP72DTS.csv
-│   │   │   ├── AP73DTS.csv
-│   │   │   ├── AP74DTS.csv
-│   │   │   ├── AP75DTS.csv
-│   │   │   ├── AP76DTS.csv
-│   │   │   ├── AP77DTS.csv
-│   │   │   ├── AP78DTS.csv
-│   │   │   └── AP7DTS.csv
-│   │   ├── AP8/
-│   │   │   ├── AP81DTS.csv
-│   │   │   ├── AP82DTS.csv
-│   │   │   ├── AP83DTS.csv
-│   │   │   ├── AP84DTS.csv
-│   │   │   ├── AP85DTS.csv
-│   │   │   ├── AP86DTS.csv
-│   │   │   ├── AP87DTS.csv
-│   │   │   └── AP8DTS.csv
-│   │   ├── BP1/
-│   │   │   ├── BP11DTS.csv
-│   │   │   ├── BP12DTS.csv
-│   │   │   ├── BP13DTS.csv
-│   │   │   ├── BP14DTS.csv
-│   │   │   ├── BP15DTS.csv
-│   │   │   ├── BP16DTS.csv
-│   │   │   ├── BP17DTS.csv
-│   │   │   └── BP1DTS.csv
-│   │   ├── BP2/
-│   │   │   ├── BP21DTS.csv
-│   │   │   ├── BP22DTS.csv
-│   │   │   ├── BP23DTS.csv
-│   │   │   ├── BP24DTS.csv
-│   │   │   ├── BP25DTS.csv
-│   │   │   └── BP2DTS.csv
-│   │   ├── BP3/
-│   │   │   ├── BP31DTS.csv
-│   │   │   ├── BP32DTS.csv
-│   │   │   ├── BP33DTS.csv
-│   │   │   ├── BP34DTS.csv
-│   │   │   ├── BP35DTS.csv
-│   │   │   ├── BP36DTS.csv
-│   │   │   ├── BP37DTS.csv
-│   │   │   └── BP3DTS.csv
-│   │   ├── BP4/
-│   │   │   ├── BP41DTS.csv
-│   │   │   ├── BP42DTS.csv
-│   │   │   ├── BP43DTS.csv
-│   │   │   ├── BP44DTS.csv
-│   │   │   ├── BP45DTS.csv
-│   │   │   ├── BP46DTS.csv
-│   │   │   └── BP4DTS.csv
-│   │   ├── BP5/
-│   │   │   ├── BP51DTS.csv
-│   │   │   ├── BP52DTS.csv
-│   │   │   ├── BP53DTS.csv
-│   │   │   ├── BP54DTS.csv
-│   │   │   ├── BP55DTS.csv
-│   │   │   ├── BP56DTS.csv
-│   │   │   ├── BP57DTS.csv
-│   │   │   └── BP5DTS.csv
-│   │   └── BP6/
-│   │       ├── BP61DTS.csv
-│   │       ├── BP62DTS.csv
-│   │       ├── BP63DTS.csv
-│   │       ├── BP64DTS.csv
-│   │       ├── BP65DTS.csv
-│   │       ├── BP66DTS.csv
-│   │       ├── BP67DTS.csv
-│   │       └── BP6DTS.csv
-│   ├── DTS.zip
-│   ├── final_cumulative_varimps_well.pkl
-│   ├── FINALE.csv
-│   ├── FINALE_INTERP.csv
-│   ├── Isolated/
-│   │   ├── OLT injection data.xlsx
-│   │   ├── OLT production data (rev 1).xlsx
-│   │   ├── OLT production data.xlsx
-│   │   └── OLT well test data.xlsx
-│   ├── Isolated.zip
-│   └── Pickles/
-│       ├── DATA_INJECTION_ORIG.pkl
-│       ├── DATA_INJECTION_PRESS.pkl
-│       ├── DATA_INJECTION_STEAM.pkl
-│       ├── DATA_PRODUCTION.pkl
-│       ├── DATA_PRODUCTION_ORIG.pkl
-│       ├── DATA_TEST.pkl
-│       ├── DATA_TEST_ORIG.pkl
-│       ├── FIBER_DATA.pkl
-│       ├── FINALE.pkl
-│       ├── PRODUCTION_WELL_INTER.pkl
-│       └── PRODUCTION_WELL_WSENSOR.pkl
-├── defs.py
-├── Exploratory Data Analysis/
-│   ├── report_DATA_INJECTION_PRESS.html
-│   ├── report_DATA_INJECTION_STEAM.html
-│   ├── report_DATA_PRODUCTION.html
-│   ├── report_DATA_TEST.html
-│   ├── report_FIBER_DATA.html
-│   ├── report_FINALE.html
-│   ├── report_PRODUCTION_WELL_INTER.html
-│   └── report_PRODUCTION_WELL_WSENSOR.html
-├── feature_engineering.py
-├── FILE_STRUCTURE.txt
-├── HTML/
-│   ├── just_foref.html
-│   ├── nx_visjs.html
-│   └── nx_visjs_TAILOR.html
-├── IPC_Real_Manipulation.py
-├── IPC_Real_Modeling.py
-├── LICENSE
-├── Manipulation Reference Files/
-│   ├── .DS_Store
-│   ├── Benchmarking Anomaly Detection.png
-│   ├── JUPYTER-IPC_Real_Modeling.ipynb
-│   ├── Producer-Injector Overlap.png
-│   ├── Schematic 1/
-│   │   ├── .DS_Store
-│   │   ├── File_IO_Error_log.png
-│   │   ├── injection.png
-│   │   ├── IPC Layout.pdf
-│   │   ├── IPC_BASE.html.zip
-│   │   ├── IPC_BASE.png
-│   │   ├── IPC_BASE.svg
-│   │   ├── production.png
-│   │   ├── target.png
-│   │   ├── testing.png
-│   │   └── well_example.png
-│   ├── Schematic 2/
-│   │   ├── .DS_Store
-│   │   ├── DATA_INJECTION.png
-│   │   ├── DATA_INJECTION_PRESS.png
-│   │   ├── DATA_INJECTION_STEAM.png
-│   │   ├── DATA_PRODUCTION.png
-│   │   ├── DATA_TEST.png
-│   │   ├── FIBER_DATA.png
-│   │   ├── FINALE.png
-│   │   ├── IPC Layout-1.png
-│   │   ├── IPC Layout.pdf
-│   │   ├── IPC_BASE.png
-│   │   ├── PRODUCTION_WELL_INTER.png
-│   │   ├── PRODUCTION_WELL_WSENSOR.png
-│   │   └── target.png
-│   ├── Schematic 3/
-│   │   ├── IPC_BASE.png
-│   │   └── IPC_BASE.svg
-│   ├── Schematic 4/
-│   │   ├── Screen Shot 2021-03-22 at 3.26.28 PM (2).png
-│   │   └── Screen Shot 2021-03-22 at 3.26.31 PM (2).png
-│   ├── Weight TS PRO_Pad = A.png
-│   ├── Weight TS PRO_Pad = B.png
-│   ├── Weight TS PRO_Well = AP2.png
-│   ├── Weight TS PRO_Well = AP3.png
-│   ├── Weight TS PRO_Well = AP4.png
-│   ├── Weight TS PRO_Well = AP5.png
-│   ├── Weight TS PRO_Well = AP6.png
-│   ├── Weight TS PRO_Well = AP7.png
-│   ├── Weight TS PRO_Well = AP8.png
-│   ├── Weight TS PRO_Well = BP1.png
-│   ├── Weight TS PRO_Well = BP2.png
-│   ├── Weight TS PRO_Well = BP3.png
-│   ├── Weight TS PRO_Well = BP4.png
-│   ├── Weight TS PRO_Well = BP5.png
-│   └── Weight TS PRO_Well = BP6.png
-├── Manipulation Validation/
-│   ├── IPC_Validation_initial.pdf
-│   └── IPC_Validation_revised.pdf
-├── Modeling Pickles/
-│   ├── anomaly_tag_tracker.html
-│   ├── final_cumulative_varimps.pkl
-│   └── model_novarimps.pkl
-├── Modeling Reference Files/
-│   ├── (SPURIOUS) R_Pad, All Features/
-│   │   ├── macropad_varimps.pdf
-│   │   ├── model_performance.pdf
-│   │   └── select_var_corrs.pdf
-│   ├── .DS_Store
-│   ├── Candidate Selection/
-│   │   ├── Producer-Injector Overlap for A.png
-│   │   ├── Producer-Injector Overlap for AP3.png
-│   │   ├── Producer-Injector Overlap for AP4.png
-│   │   ├── Producer-Injector Overlap for AP5.png
-│   │   ├── Producer-Injector Overlap for AP6.png
-│   │   ├── Producer-Injector Overlap for AP7.png
-│   │   ├── Producer-Injector Overlap for AP8.png
-│   │   ├── Producer-Injector Overlap for B.png
-│   │   ├── Producer-Injector Overlap for BP1.png
-│   │   ├── Producer-Injector Overlap for BP2.png
-│   │   ├── Producer-Injector Overlap for BP3.png
-│   │   ├── Producer-Injector Overlap for BP4.png
-│   │   ├── Producer-Injector Overlap for BP5.png
-│   │   └── Producer-Injector Overlap for BP6.png
-│   ├── inj_pads_ts.png
-│   ├── Oil Proxy/
-│   ├── OilProxy_NoFiber/
-│   │   ├── Averaged Variable Importance Distributions.pdf
-│   │   ├── oilproxy_correlation_AP3.pdf
-│   │   ├── oilproxy_correlation_AP4.pdf
-│   │   ├── oilproxy_correlation_AP5.pdf
-│   │   ├── oilproxy_correlation_AP6.pdf
-│   │   ├── oilproxy_correlation_AP7.pdf
-│   │   ├── oilproxy_correlation_AP8.pdf
-│   │   ├── oilproxy_correlation_BP1.pdf
-│   │   ├── oilproxy_correlation_BP2.pdf
-│   │   ├── oilproxy_correlation_BP3.pdf
-│   │   ├── oilproxy_correlation_BP4.pdf
-│   │   ├── oilproxy_correlation_BP5.pdf
-│   │   ├── oilproxy_correlation_BP6.pdf
-│   │   ├── oilproxy_variable_importance_AP3.pdf
-│   │   ├── oilproxy_variable_importance_AP4.pdf
-│   │   ├── oilproxy_variable_importance_AP5.pdf
-│   │   ├── oilproxy_variable_importance_AP6.pdf
-│   │   ├── oilproxy_variable_importance_AP7.pdf
-│   │   ├── oilproxy_variable_importance_AP8.pdf
-│   │   ├── oilproxy_variable_importance_BP1.pdf
-│   │   ├── oilproxy_variable_importance_BP2.pdf
-│   │   ├── oilproxy_variable_importance_BP3.pdf
-│   │   ├── oilproxy_variable_importance_BP4.pdf
-│   │   ├── oilproxy_variable_importance_BP5.pdf
-│   │   ├── oilproxy_variable_importance_BP6.pdf
-│   │   └── Variable Importance Distributions.pdf
-│   ├── PredictProxy/
-│   ├── Producer-Injector Overlap for BP6.png
-│   ├── R_PAD, !End-Bins, Weighted/
-│   │   ├── cross-correlations_PAD5158.pdf
-│   │   ├── hyperparams.txt
-│   │   ├── model_analytics_5158.pdf
-│   │   ├── model_analytics_5158_top-25.png
-│   │   ├── model_analytics_5158_top15.pdf
-│   │   ├── model_performance_PAD5158.pdf
-│   │   └── variable_importances_PAD5158.pdf
-│   ├── R_PAD, !End-Bins, Weighted, Eng./
-│   │   ├── cross-correlations_PAD4152.pdf
-│   │   ├── hyperparams.txt
-│   │   ├── model_analytics_4152_top-25.png
-│   │   ├── model_performance_PAD4152.pdf
-│   │   └── variable_importances_PAD4152.pdf
-│   ├── R_PAD, !SPM/
-│   │   ├── macropad_varimps_2449.pdf
-│   │   ├── model_performance_2449.pdf
-│   │   └── select_var_corrs_2449.pdf
-│   ├── R_Pad, !SPM, !Bins/
-│   │   ├── macropad_varimps_6575.pdf
-│   │   ├── model_performance_6575.pdf
-│   │   └── select_var_corrs_6575.pdf
-│   ├── R_PAD, Base Features/
-│   │   ├── macropad_varimps_920.pdf
-│   │   ├── model_performance_920.pdf
-│   │   └── select_var_corrs.920.pdf
-│   ├── R_PAD, Quo, Weighted, RAPID/
-│   │   ├── cross-correlations_PAD8117.pdf
-│   │   ├── hyperparams.txt
-│   │   ├── model_analytics_8117_top-25.png
-│   │   ├── model_analytics_8117_top-35.png
-│   │   ├── model_analytics_8117_top25.png
-│   │   ├── model_analytics_8117_topNone.png
-│   │   ├── model_performance_PAD8117.pdf
-│   │   └── variable_importances_PAD8117.pdf
-│   ├── R_WELL, !End-Bins/
-│   │   ├── macropad_varimps_PWELL7153.pdf
-│   │   ├── model_performance_PWELL7153.pdf
-│   │   └── select_var_corrs_PWELL7153.pdf
-│   ├── R_WELL, !SPM, !End-Bins/
-│   │   ├── macropad_varimps_PWELL770.pdf
-│   │   ├── model_performance_PWELL770.pdf
-│   │   └── select_var_corrs_PWELL770.pdf
-│   ├── Round 6867/
-│   │   └── hyperparams.txt
-│   └── Round, No SPM, End-bins/
-│       ├── macropad_varimps_6187.pdf
-│       ├── model_performance_6187.pdf
-│       └── select_var_corrs_6187.pdf
-├── pro_pads_cols_ts.png
-├── R&D References/
-│   ├── Adaptive TS SVM.pdf
-│   ├── Anomaly Detection.pdf
-│   ├── Feature Selection.pdf
-│   ├── ND Phase Space.pdf
-│   ├── Plan 1, Anomaly Detection.pdf
-│   ├── SAGD Math.pdf
-│   ├── SAGD Vertical Injection Wells.pdf
-│   ├── TS ND OCSVM.pdf
-│   ├── TS Phase Space Theoretical.pdf
-│   └── TS Phase Space.pdf
-├── README.md
-├── Statis Code/
-│   ├── extracontent.py
-│   ├── mds_example.py
-│   ├── pool_error_log.txt
-│   └── run_remote.py
-├── testeronly.html
-├── util_traversal.py
-└── vis/
-    ├── .babelrc
-    ├── .codeclimate.yml
-    ├── .csslintrc
-    ├── .DS_Store
-    ├── .eslintrc
-    ├── .github/
-    │   ├── ISSUE_TEMPLATE.md
-    │   └── PULL_REQUEST_TEMPLATE.md
-    
+│   ├── HTML/
+│   │   ├── just_foref.html
+│   │   ├── nx_visjs.html
+│   │   └── nx_visjs_TAILOR.html
+│   ├── IPC_Real_Manipulation.py
+│   ├── IPC_Real_Modeling.py
+│   ├── MAIN_COPY.py
+│   └── vis/
+│       ├── .babelrc
+│       ├── .codeclimate.yml
+│       ├── .csslintrc
+│       ├── .DS_Store
+│       ├── .eslintrc
+│       ├── .github/
+│       │   ├── ISSUE_TEMPLATE.md
+│       │   └── PULL_REQUEST_TEMPLATE.md
+│       

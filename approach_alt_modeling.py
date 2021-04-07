@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 01-Apr-2021 15:04:75:755  GMT-0600
+# @Last modified time: 06-Apr-2021 16:04:21:218  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -431,7 +431,7 @@ def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN)
     _expected_value_args = {'data': None,
                             'groupby': None,
                             'dropcols': None,
-                            'responder': ['PRO_Alloc_Oil', 'PRO_Adj_Alloc_Oil'],
+                            'responder': ['PRO_Alloc_Oil', 'PRO_Adj_Alloc_Oil', 'PRO_Total_Fluid'],
                             'FOLD_COLUMN': None}
     util_data_type_sanitation(_provided_args, _expected_type_args, name)
     util_data_range_sanitation(_provided_args, _expected_value_args, name)
@@ -1257,12 +1257,10 @@ _ = """
 """
 # Table diagnostics
 # data_pad = util_conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water'])
-# data_pad = util_conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed'])
-# data_pad = util_conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water', 'PRO_Pump_Speed', 'Bin_1', 'Bin_5'])
-RESPONDER = 'PRO_Adj_Alloc_Oil'  # 'PRO_Alloc_Oil'
+RESPONDER = 'PRO_Total_Fluid'  # 'PRO_Alloc_Oil'
 
-EXCLUDE = ['C1', 'PRO_Alloc_Water', 'Bin_1', 'Bin_5', 'Date']
-EXCLUDE.extend(['PRO_Alloc_Oil', 'PRO_Pump_Speed'])
+EXCLUDE = ['C1', 'Bin_1', 'Bin_5', 'Date']
+EXCLUDE.extend(['PRO_Alloc_Oil', 'PRO_Pump_Speed', 'PRO_Adj_Alloc_Oil', 'PRO_Alloc_Oil'])
 
 data_pad, groupby_options_pad, PREDICTORS = data_refinement(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
 # data_well, groupby_options_well, PREDICTORS = data_refinement(data_well, 'PRO_Well', EXCLUDE, RESPONDER)

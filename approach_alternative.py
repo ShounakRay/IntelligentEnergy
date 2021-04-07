@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 06-Apr-2021 15:04:58:582  GMT-0600
+# @Last modified time: 06-Apr-2021 16:04:27:272  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -352,6 +352,8 @@ FINALE = FINALE.dropna(subset=['PRO_Well']).reset_index(drop=True)
 FINALE = filter_negatives(FINALE, FINALE.select_dtypes(float), out=False, placeholder=0)
 FINALE.drop(FINALE.columns[0], axis=1, inplace=True)
 
+list(FINALE.columns)
+
 _ = """
 #######################################################################################################################
 ################################################   ANOMALY DETECTION   ################################################
@@ -365,7 +367,7 @@ col_reference = dict(zip(TEMP.columns, FINALE.columns))
 
 all_continuous_columns = TEMP.select_dtypes(np.number).columns
 all_prod_wells = list(FINALE['PRO_Well'].unique())
-lc_injectors = [k for k, v in col_reference.items() if 'I' in v][:]
+lc_injectors = [k for k, v in col_reference.items() if 'I' in v]
 
 # Conduct Anomaly Detection
 cumulative_tagged = []          # Stores the outputs from the customized, anomaly detection function
@@ -429,43 +431,12 @@ reformatted_anomalies['Date'] = pd.to_datetime(reformatted_anomalies['Date'])
 # Merge this anomaly data into the original, highest-resolution base table
 FINALE = pd.merge(FINALE.infer_objects(), reformatted_anomalies, 'inner', on=['Date', 'PRO_Well'])
 
-# # Exploratory Analysis on the weights
-# fig, ax = plt.subplots(figsize=(20, 13))
-# temp_one = cumulative_anomalies[cumulative_anomalies['group'] == 'AP5'
-#                                 ][['feature', 'updated_score', 'date']
-#                                   ].sort_values('date').reset_index(drop=True)
-# temp_one.index = temp_one.index / max(temp_one.index)
-# temp_one[['updated_score']].plot(ax=ax, lw=0.05)
-#
-# # fig, ax = plt.subplots(figsize=(24, 16))
-# temp_two = reformatted_anomalies[reformatted_anomalies['PRO_Well'] == 'AP5'
-#                                  ][['weight', 'Date']
-#                                    ].sort_values('Date').reset_index(drop=True)
-# temp_two.index = temp_two.index / max(temp_two.index)
-# temp_two[['weight']].plot(ax=ax, lw=1)
 
 _ = """
 #######################################################################################################################
 ########################################   INJECTOR > RELATIVE REPRESENTATION   #######################################
 #######################################################################################################################
 """
-# # Injector wells to producer well overlaps (only those spanning different producer pads)
-# INJ_well_to_pad_overlaps = {'I16': ['AP3', 'BP1'],
-#                             'I21': ['AP3', 'BP1'],
-#                             'I27': ['AP3', 'BP1'],
-#                             'I37': ['FP1', 'BP6'],
-#                             'I72': ['FP1', 'BP6'],
-#                             'I47': ['CP2', 'EP2'],
-#                             'I44': ['CP3', 'EP2'],
-#                             'I42': ['CP6', 'EP2'],
-#                             'CI7': ['CP7', 'EP2'],
-#                             'CI8': ['CP8', 'EP2']}
-# PRO_injpad_to_well = {'E3': ['EP2', 'EP3', 'EP4', 'EP5', 'EP6', 'EP7'],
-#                       'E2': ['EP2', 'EP3', 'EP4', 'EP5', 'EP6', 'EP7'],
-#                       'E1': ['EP2', 'EP3', 'EP4', 'EP5', 'EP6', 'EP7'],
-#                       'A': ['AP4', 'AP5', 'AP6', 'AP7', 'A8'],
-#                       '15-05': ['AP4', 'AP6', 'AP7'],
-#                       '16-05': ['AP2', 'AP3', 'AP4', 'AP5', 'AP6', 'AP7']}
 
 INJ_relcoords = {}
 INJ_relcoords = {'I02': '(757, 534)',
@@ -635,7 +606,7 @@ _ = """
 unique_pro_pads = list(FINALE['PRO_Pad'].unique())
 all_pro_data = ['PRO_Well',
                 'PRO_Adj_Pump_Speed',
-                'PRO_Pump_Speed',
+                # 'PRO_Pump_Speed',
                 # 'PRO_Time_On',
                 'PRO_Casing_Pressure',
                 'PRO_Heel_Pressure',
@@ -646,6 +617,7 @@ all_pro_data = ['PRO_Well',
                 # 'PRO_Duration',
                 'PRO_Adj_Alloc_Oil',
                 'PRO_Alloc_Oil',
+                'PRO_Total_Fluid',
                 # 'PRO_Alloc_Water',
                 'Bin_1',
                 'Bin_2',
@@ -657,7 +629,7 @@ FINALE_pro = FINALE[all_pro_data + ['Date', 'weight']]
 FINALE_pro, dropped_cols = drop_singles(FINALE_pro)
 
 aggregation_dict = {'PRO_Adj_Pump_Speed': 'mean',
-                    'PRO_Pump_Speed': 'sum',
+                    # 'PRO_Pump_Speed': 'sum',
                     # 'PRO_Time_On': 'mean',
                     'PRO_Casing_Pressure': 'mean',
                     'PRO_Heel_Pressure': 'mean',
@@ -667,6 +639,7 @@ aggregation_dict = {'PRO_Adj_Pump_Speed': 'mean',
                     'PRO_Adj_Alloc_Oil': 'sum',
                     # 'PRO_Duration': 'mean',
                     'PRO_Alloc_Oil': 'sum',
+                    'PRO_Total_Fluid': 'sum',
                     # 'PRO_Alloc_Water': 'sum',
                     'Bin_1': 'mean',
                     'Bin_2': 'mean',
@@ -733,20 +706,6 @@ _ = """
 """
 INJECTOR_AGGREGATES_PWELL = produce_injector_aggregates(candidates_by_prodwell, FINALE_inj, 'PRO_Well')
 
-if(plot_eda):
-    # FIGURE PLOTTING (INJECTION PAD-LEVEL STATISTICS)
-    unique_inj_pads = list(FINALE_agg_inj['INJ_Pad'].unique())
-    fig, ax = plt.subplots(nrows=len(unique_inj_pads), figsize=(15, 80))
-    for pad in unique_inj_pads:
-        subp = ax[unique_inj_pads.index(pad)]
-        temp = FINALE_agg_inj[FINALE_agg_inj['INJ_Pad'] == pad].sort_values('Date').reset_index(drop=True)
-        d_1 = list(temp['Date'])[0]
-        d_n = list(temp['Date'])[-1]
-        subp.plot(temp['Steam'], label='Injector ' + pad + '\n{} > {}'.format(d_1, d_n))
-        subp.legend()
-        plt.tight_layout()
-
-    plt.savefig('inj_pads_ts.png')
 
 _ = """
 #######################################################################################################################

@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 30-Mar-2021 18:03:38:389  GMT-0600
+# @Last modified time: 06-Apr-2021 16:04:23:230  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -424,3 +424,19 @@
 #     FINALE_agg_inj['PRO_Pad'] = propad
 #     INJECTOR_AGGREGATES[propad] = FINALE_agg_inj
 # INJECTOR_AGGREGATES = pd.concat(INJECTOR_AGGREGATES.values()).reset_index(drop=True)
+
+# INJECTOR EDA PLOTTING
+# if(plot_eda):
+#     # FIGURE PLOTTING (INJECTION PAD-LEVEL STATISTICS)
+#     unique_inj_pads = list(FINALE_agg_inj['INJ_Pad'].unique())
+#     fig, ax = plt.subplots(nrows=len(unique_inj_pads), figsize=(15, 80))
+#     for pad in unique_inj_pads:
+#         subp = ax[unique_inj_pads.index(pad)]
+#         temp = FINALE_agg_inj[FINALE_agg_inj['INJ_Pad'] == pad].sort_values('Date').reset_index(drop=True)
+#         d_1 = list(temp['Date'])[0]
+#         d_n = list(temp['Date'])[-1]
+#         subp.plot(temp['Steam'], label='Injector ' + pad + '\n{} > {}'.format(d_1, d_n))
+#         subp.legend()
+#         plt.tight_layout()
+#
+#     plt.savefig('inj_pads_ts.png')
