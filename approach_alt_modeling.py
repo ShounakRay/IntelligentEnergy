@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 06-Apr-2021 16:04:21:218  GMT-0600
+# @Last modified time: 07-Apr-2021 12:04:61:619  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -503,9 +503,8 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict,
 
     Returns
     -------
-    pandas.core.DataFrame, h2o.automl.autoh2o.H2OAutoML
-        `final_cumulative_varimps` -> The data with aggregated variable importances per model in all groups provided.
-        `aml_obj` ->  The H2O object with information for all the experiments
+    list
+        The names of the projects which were completed
 
     """
     """DATA SANITATION"""
