@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 07-Apr-2021 12:04:43:439  GMT-0600
+# @Last modified time: 08-Apr-2021 13:04:44:445  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -50,6 +50,8 @@ POS_BR = (1439, 1008)
 x_delta = POS_TL[0] | POS_BL[0]
 y_delta = POS_TR[0] | POS_BR[0]
 
+MAX = 150.0
+
 OLD_DUPLICATES = ['PRO_Alloc_Oil', 'PRO_Pump_Speed']
 
 _ = """
@@ -58,7 +60,7 @@ _ = """
 #######################################################################################################################
 """
 
-FINALE = pd.read_csv('Data/combined_ipc_engineered.csv').infer_objects()
+FINALE = pd.read_csv('Data/combined_ipc_engineered_phys.csv').infer_objects()
 DATA_INJECTION_ORIG = pd.read_pickle('Data/Pickles/DATA_INJECTION_ORIG.pkl')
 DATA_PRODUCTION_ORIG = pd.read_pickle('Data/Pickles/DATA_PRODUCTION_ORIG.pkl')
 
@@ -67,9 +69,6 @@ INJ_PAD_KEYS = dict(zip(DATA_INJECTION_ORIG['Well'], DATA_INJECTION_ORIG['Pad'])
 
 available_pads_transformed = ['A', 'B']
 available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in available_pads_transformed]
-
-UPSCALAR = 100
-BASE_UPSCALED = 0
 
 _ = """
 #######################################################################################################################
@@ -325,7 +324,7 @@ def plot_weights_eda(df, groupby_val, groupby_col, time_col='Date', weight_col='
     # Plot all features (normalized to 100 max)
     for col in [c for c in iter_cols if c not in ['Date', 'PRO_Pad', 'PRO_Well', 'weight', 'PRO_Alloc_Oil']]:
         __temp = _temp[['Date', col]].copy().fillna(_temp[col].mean())
-        __temp[col] = 100.0 * __temp[col] / (100 if max(__temp[col]) is np.nan else max(__temp[col]))
+        __temp[col] = MAX * __temp[col] / (MAX if max(__temp[col]) is np.nan else max(__temp[col]))
         # plt.hist(__temp[col], bins=100)
         if(col in ['PRO_Adj_Alloc_Oil', 'Steam', 'PRO_Adj_Pump_Speed']):
             lw = 0.75

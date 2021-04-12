@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: ft_eng_math.py
 # @Last modified by:   Ray
-# @Last modified time: 07-Apr-2021 16:04:20:201  GMT-0600
+# @Last modified time: 08-Apr-2021 13:04:55:552  GMT-0600
 # @License: [Private IP]
 
 import itertools
@@ -36,6 +36,9 @@ TOP_F = 5
 # IMPORTS
 df = pd.read_csv('Data/combined_ipc_aggregates.csv').drop('Unnamed: 0', 1)
 df = df.sort_values('Date').reset_index(drop=True)
+df.drop(['PRO_Adj_Alloc_Oil', 'PRO_Alloc_Oil'], 1, inplace=True)
+
+CORE_FEATURES = list(df.columns).copy()
 
 # FEATURE ENGINEERING
 groupers = df['PRO_Pad'].unique()
@@ -67,9 +70,9 @@ for group in groupers:
     msk = np.random.rand(len(SOURCE_DF)) < TRAIN_PCT
 
     TRAIN = SOURCE_DF[msk].reset_index(drop=True)
-    TEST = SOURCE_DF[~msk].reset_index(drop=True)
-    TRAIN_X, TRAIN_Y = TRAIN[[c for c in SOURCE_DF.columns if c not in [RESPONDER]]], TRAIN[[RESPONDER]]
-    TEST_X, TEST_Y = TEST[[c for c in SOURCE_DF.columns if c not in [RESPONDER]]], TEST[[RESPONDER]]
+    # TEST = SOURCE_DF[~msk].reset_index(drop=True)
+    TRAIN_X, TRAIN_Y = SOURCE_DF[[c for c in SOURCE_DF.columns if c not in [RESPONDER]]], SOURCE_DF[[RESPONDER]]
+    # TEST_X, TEST_Y = TEST[[c for c in SOURCE_DF.columns if c not in [RESPONDER]]], TEST[[RESPONDER]]
 
     model_feateng = AutoFeatRegressor(feateng_steps=2, verbose=3)
     feateng_X_TRAIN = model_feateng.fit_transform(TRAIN_X, TRAIN_Y)
@@ -78,6 +81,21 @@ for group in groupers:
 
 # REFORMATTING
 all_new_fts = list(itertools.chain.from_iterable([tup[1] for tup in new_ft.values()]))
+all_new_dfs = pd.concat([tup[0].assign(PRO_Pad=key) for key, tup in new_ft.items()], 0).reset_index(drop=True)
+all_new_dfs = all_new_dfs.T.drop_duplicates().T
+all_new_dfs.reset_index(drop=False, inplace=True)
+
+NEW_FEATURES = [c for c in all_new_dfs.columns if c not in CORE_FEATURES]
+
+df.reset_index(drop=False, inplace=True)
+concatenated = pd.merge(df, all_new_dfs[NEW_FEATURES], on='index', how='inner').drop('index', 1)
+concatenated = concatenated.T.drop_duplicates().T
+
+concatenated.to_csv('Data/combined_ipc_engineered_math.csv')
+
+
+""""""""""""""""""""""""""""""""""""""""""""" PLOTTING """""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""__"""""""""""""""""""""""""""""""""""""""""""""""""
 
 # TOP FORMULAS
 _temp = pd.DataFrame(Counter(all_new_fts).most_common()[:5], columns=['Transformation', 'Frequency'])
@@ -89,7 +107,8 @@ plt.title(f'Top {TOP_F} Engineered Features')
 
 # REMOVE DUPLICATES
 all_new_fts = list(set(all_new_fts))
-all_new_fts_ltx = [sympy.latex(sympy.sympify(e.replace('_', '')), mul_symbol='dot') for e in all_new_fts]
+all_new_fts_ltx = [sympy.latex(sympy.sympify(e.replace('_', '').replace('PRO', '')),
+                               mul_symbol='dot') for e in all_new_fts]
 
 """
 # PLOTTING ALL GENERATED EQUATIONS
@@ -103,9 +122,9 @@ for i in divisors:
     divisors.remove(divided) if divided in divisors else None
     track[(divided, i)] = abs(divided - i)
 
-nrows, ncols = sorted(track, reverse=False)[0]
+nrows, ncols = sorted(sorted(track, reverse=False)[0], reverse=True)
 
-fig, ax = plt.subplots(figsize=(1.5 * nrows, 1.5 * ncols), nrows=nrows, ncols=ncols)
+fig, ax = plt.subplots(figsize=(2 * nrows, 2 * ncols), nrows=nrows, ncols=ncols)
 relation = np.arange(0, total_cells).reshape(nrows, ncols).tolist()
 for row in relation:
     row_pos = relation.index(row)
@@ -121,34 +140,13 @@ for row in relation:
         axis_now.spines['left'].set_visible(False)
         axis_now.spines['bottom'].set_visible(False)
         plt.tight_layout()
+    plt.tight_layout()
 plt.show()
+fig.savefig('Manipulation Reference Files/Engineered Features.png', dpi=500,
+            facecolor='white', bbox_inches='tight')
 """
 END
 """
-
-axis_now.axes
-
-# SYMBOL INITIALIZATION
-for c in df.select_dtypes(np.number).columns:
-    exec(f'{c} = sympy.Symbol("{c}")')
-
-# SQRT/EXP SYMPY COMPATIBILITY
-for i in range(len(all_new_fts)):
-    all_new_fts[i] = all_new_fts[i].replace('sqrt', 'sympy.sqrt').replace('exp', 'sympy.exp')
-
-_ = eval(all_new_fts[0])
-
-sympy.init_printing(quiet=True, use_latex=True)
-
-print(_, file=open('test.txt', 'wb'))
-
-
-all_new_fts[0]
-
-# RENDERING
-equ =
-sympy.preview(all_new_fts[0], viewer='file', filename='output.png')
-sympy.utilities.misc.find_executable('latex')
 
 
 # EOF

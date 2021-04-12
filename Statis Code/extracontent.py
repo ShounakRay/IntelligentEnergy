@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 06-Apr-2021 16:04:23:230  GMT-0600
+# @Last modified time: 08-Apr-2021 12:04:64:647  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -440,3 +440,25 @@
 #         plt.tight_layout()
 #
 #     plt.savefig('inj_pads_ts.png')
+
+
+# # SYMBOL INITIALIZATION
+# for c in df.select_dtypes(np.number).columns:
+#     exec(f'{c} = sympy.Symbol("{c}")')
+#
+# # SQRT/EXP SYMPY COMPATIBILITY
+# for i in range(len(all_new_fts)):
+#     all_new_fts[i] = all_new_fts[i].replace('sqrt', 'sympy.sqrt').replace('exp', 'sympy.exp')
+#
+# _ = eval(all_new_fts[0])
+#
+# sympy.init_printing(quiet=True, use_latex=True)
+#
+# print(_, file=open('test.txt', 'wb'))
+#
+# all_new_fts[0]
+#
+# # RENDERING
+# equ =
+# sympy.preview(all_new_fts[0], viewer='file', filename='output.png')
+# sympy.utilities.misc.find_executable('latex')

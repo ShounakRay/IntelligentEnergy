@@ -3,13 +3,13 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: defs.py
 # @Last modified by:   Ray
-# @Last modified time: 06-Apr-2021 13:04:54:548  GMT-0600
+# @Last modified time: 08-Apr-2021 13:04:92:927  GMT-0600
 # @License: [Private IP]
 
 import sys
 import warnings
 
-BASE_UPSCALED = 0
+BASE_UPSCALED = 50
 UPSCALAR = 100
 
 

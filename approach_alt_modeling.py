@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 07-Apr-2021 12:04:61:619  GMT-0600
+# @Last modified time: 12-Apr-2021 14:04:05:058  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -38,6 +38,8 @@ from matplotlib.patches import Rectangle
 # TODO: Drop old values (check that they're not here)
 # TODO: Check correct validation datasets
 
+test_df = pd.read_csv('Data/combined_ipc_engineered_math.csv')
+
 _ = """
 #######################################################################################################################
 #########################################   VERIFY VERSIONS OF DEPENDENCIES   #########################################
@@ -64,7 +66,7 @@ _ = """
 #######################################################################################################################
 """
 # Data Ingestion Constants
-DATA_PATH_PAD: Final = 'Data/combined_ipc_aggregates.csv'         # Where the client-specific pad data is located
+DATA_PATH_PAD: Final = 'Data/combined_ipc_engineered_math.csv'    # Where the client-specific pad data is located
 DATA_PATH_WELL: Final = 'Data/combined_ipc_aggregates_PWELL.csv'  # Where the client-specific well data is located
 
 # H2O Server Constants
@@ -513,7 +515,7 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict,
     _expected_type_args = {'data': None,
                            'groupby_options': [str],
                            'responder': [dict],
-                           'validation_frames_dict': [dict],
+                           'validation_frames_dict': [dict, type(None)],
                            'MAX_EXP_RUNTIME': [dict],
                            'EVAL_METRIC': [list, type(None)],
                            'RANK_METRIC': [list, type(None)],
@@ -556,15 +558,18 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict,
     for group in groupby_options:
         print(Fore.GREEN + 'STATUS: Experiment -> Production Pad {}\n'.format(group) + Style.RESET_ALL)
 
-        validation_frame_groupby = validation_frames_dict[group]
-        # Determined the categorical variable to be dropped in VALIDATION SET (should only be the groupby)
-        tb_dropped_val = validation_frame_groupby.as_data_frame().select_dtypes(object).columns
-        if not (len(tb_dropped_val) == 1):
-            raise RuntimeError('Only and exactly one categorical variable was expected in the provided VALID. data.' +
-                               'However, ' + f'{len(tb_dropped_val)} were provided.')
+        if(validation_frames_dict is not None):
+            validation_frame_groupby = validation_frames_dict[group]
+            # Determined the categorical variable to be dropped in VALIDATION SET (should only be the groupby)
+            tb_dropped_val = validation_frame_groupby.as_data_frame().select_dtypes(object).columns
+            if not (len(tb_dropped_val) == 1):
+                raise RuntimeError('Only and exactly one categorical variable was expected in the provided VALID. data.' +
+                                   'However, ' + f'{len(tb_dropped_val)} were provided.')
+            else:
+                tb_dropped_val = tb_dropped_val[0]
+            validation_frame_groupby = validation_frame_groupby.drop(tb_dropped_val, axis=1)
         else:
-            tb_dropped_val = tb_dropped_val[0]
-        validation_frame_groupby = validation_frame_groupby.drop(tb_dropped_val, axis=1)
+            validation_frame_groupby = None
 
         # Configure the experiment
         project_name = "IPC_MacroPadModeling__{RESP}__{PPAD}".format(RESP=responder, PPAD=group)
@@ -582,6 +587,7 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict,
         # Filter the complete, provided source data to only include info for the current group
         MODEL_DATA = data[data[tb_dropped] == group]
         MODEL_DATA = MODEL_DATA.drop(tb_dropped, axis=1)
+        print(MODEL_DATA)
         aml_obj.train(y=responder,                                # A single responder
                       weights_column=WEIGHTS_COLUMN,              # What is the weights column in the H2O frame?
                       training_frame=MODEL_DATA,                  # All the data is used for training, cross-validation
@@ -1137,7 +1143,7 @@ def validate_models(perf_data, training_data_dict, benchline, validation_data_di
         # perf_plot = [0] * len(scoring_history)
         # axis.plot(scoring_history['timestamp'], perf_plot)
         # RMSE PRESENTATIONS
-        axis.text(0.5, 0.5, model_type + '\n' + RMSE_resp + f'\nValidation {order_by}: {rel_val_rmse}' +
+        axis.text(0.5, 0.5, model_type + f" {model_group}" + '\n' + RMSE_resp + f'\nValidation {order_by}: {rel_val_rmse}' +
                   f'\nAllowable RMSE: {allowable_rmse}',
                   horizontalalignment='center', verticalalignment='center',
                   transform=axis.transAxes, fontsize=24)
@@ -1227,24 +1233,32 @@ for u_pad in unique_pads:
     grouped_data_split[u_pad] = (data_pad_loop, data_pad_validation_loop)
 # Holdout and validation reformatting
 data_pad = pd.concat([v[0] for k, v in grouped_data_split.items()]).reset_index(drop=True).infer_objects()
-data_pad = h2o.H2OFrame(data_pad)
+wanted_types = {k: 'real' if v == float or v == int else 'enum' for k, v in dict(data_pad.dtypes).items()}
+data_pad = h2o.H2OFrame(data_pad, column_types=wanted_types)
 data_pad_validation = pd.concat([v[1] for k, v in grouped_data_split.items()]).reset_index(drop=True).infer_objects()
-data_pad_validation = h2o.H2OFrame(data_pad_validation)
+data_pad_validation = h2o.H2OFrame(data_pad_validation, column_types=wanted_types)
 
 # Create pad validation relationships
 pad_relationship_validation = {}
 for u_pad in unique_pads:
     df_loop = data_pad_validation.as_data_frame()
     df_loop = df_loop[df_loop['PRO_Pad'] == u_pad].drop(['Date'], axis=1).infer_objects().reset_index(drop=True)
-    df_loop = h2o.H2OFrame(df_loop)
+    local_wanted_types = {k: v for k, v in wanted_types.items() if k in df_loop.columns}
+    df_loop = h2o.H2OFrame(df_loop, column_types=local_wanted_types)
     pad_relationship_validation[u_pad] = df_loop
 # Create pad training relationships
 pad_relationship_training = {}
 for u_pad in unique_pads:
     df_loop = data_pad.as_data_frame()
     df_loop = df_loop[df_loop['PRO_Pad'] == u_pad].drop(['PRO_Pad'], axis=1).infer_objects().reset_index(drop=True)
-    df_loop = h2o.H2OFrame(df_loop)
+    local_wanted_types = {k: v for k, v in wanted_types.items() if k in df_loop.columns}
+    df_loop = h2o.H2OFrame(df_loop, column_types=local_wanted_types)
     pad_relationship_training[u_pad] = df_loop
+
+# Ensure matching data types across validation and training datasets
+# data_pad_validation.types
+# wanted_types = data_pad.types
+# h2o.H2OFrame(pad_relationship_validation['A'].as_data_frame().infer_objects(), column_types=wanted_types).types
 
 print(Fore.GREEN + 'STATUS: Server initialized and data imported.' + Style.RESET_ALL)
 print(OUT_BLOCK)
@@ -1309,7 +1323,7 @@ print(Fore.GREEN + '\t* Responder\t\t-> ', RESPONDER,
 
 # Run the experiment
 project_names_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER,
-                                   validation_frames_dict=pad_relationship_validation)
+                                   validation_frames_dict=pad_relationship_validation)  # pad_relationship_validation
 
 _ = os.system("say Done Training")
 
@@ -1364,7 +1378,7 @@ _ = """
 # h2o.get_model('GBM_3_AutoML_20210326_170904').shap_summary_plot(data_pad)
 _ = os.system("say determining model performance")
 
-data_pad_pd = pd.read_csv(DATA_PATH_PAD)
+data_pad_pd = pd_data_pad.copy()  # pd.read_csv(DATA_PATH_PAD)
 benchline_pad = list(data_pad_pd[data_pad_pd[RESPONDER] > 0].groupby(
     ['Date', 'PRO_Pad'])[RESPONDER].sum().reset_index().groupby('PRO_Pad').median().to_dict().values())[0]
 benchline_pad.update((x, y * PREFERRED_TOLERANCE) for x, y in benchline_pad.items())
@@ -1393,7 +1407,6 @@ with suppress_stdout():
 #                        annot_size=6,
 #                        FIGSIZE=(10, 10))
 
-
 _ = """
 #######################################################################################################################
 ##################################   EVALUATE MODEL PERFORMANCE | HOLDOUT   ###########################################
@@ -1408,6 +1421,7 @@ _ = """
 with suppress_stdout():
     validate_models(perf_pad, pad_relationship_training, benchline_pad, pad_relationship_validation,
                     TOP_MODELS=30, order_by='Rel. Val. RMSE')
+
 
 # get_aml_objects(project_names_pad)[1].model_correlation_heatmap(pad_relationship_validation['B'])
 # h2o.get_model('GBM_1_AutoML_20210401_124725').shap_summary_plot(pad_relationship_validation['B'])
