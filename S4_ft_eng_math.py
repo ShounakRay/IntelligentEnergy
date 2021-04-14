@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: ft_eng_math.py
 # @Last modified by:   Ray
-# @Last modified time: 12-Apr-2021 16:04:99:996  GMT-0600
+# @Last modified time: 14-Apr-2021 10:04:49:496  GMT-0600
 # @License: [Private IP]
 
 import itertools
@@ -37,7 +37,6 @@ TOP_F = 5
 # IMPORTS
 df = pd.read_csv('Data/combined_ipc_aggregates.csv').drop('Unnamed: 0', 1)
 df = df.sort_values('Date').reset_index(drop=True)
-df.drop(['PRO_Alloc_Oil'], 1, inplace=True)
 
 CORE_FEATURES = list(df.columns).copy()
 

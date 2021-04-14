@@ -3,11 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-<<<<<<< HEAD
-# @Last modified time: 14-Apr-2021 08:04:96:961  GMT-0600
-=======
-# @Last modified time: 13-Apr-2021 12:04:20:201  GMT-0600
->>>>>>> 464966588ac284f962423cbe1127011db1ce920f
+# @Last modified time: 14-Apr-2021 13:04:57:579  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -80,24 +76,16 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-<<<<<<< HEAD
-MAX_EXP_RUNTIME: Final = 100                                  # The longest that the experiment will run (seconds)
-=======
 MAX_EXP_RUNTIME: Final = 600                                  # The longest that the experiment will run (seconds)
->>>>>>> 464966588ac284f962423cbe1127011db1ce920f
 RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments (caveats*)
 EVAL_METRIC: Final = 'rmse'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'rmse'                                   # Leaderboard ranking metric after all trainings
 CV_FOLDS: Final = 5                                           # Number of cross validation folds
 STOPPING_ROUNDS: Final = 3                                    # How many rounds to proceed until stopping_metric stops
-WEIGHTS_COLUMN: Final = None                                  # Name of the weights column
-<<<<<<< HEAD
-EXPLOIT_RATIO: Final = 0.2                                    # Exploit/Eploration ratio, see NOTES
-=======
-EXPLOIT_RATIO: Final = 0                                      # Exploit/Eploration ratio, see NOTES
->>>>>>> 464966588ac284f962423cbe1127011db1ce920f
+WEIGHTS_COLUMN: Final = 'weight'                              # Name of the weights column
+EXPLOIT_RATIO: Final = 0.0                                    # Exploit/Eploration ratio, see NOTES
 MODELING_PLAN: Final = None                                   # Custom Modeling Plan
-TRAIN_VAL_SPLIT: Final = 0.85                                 # Train test split proportion
+TRAIN_VAL_SPLIT: Final = 0.95                                 # Train test split proportion
 
 # Feature Engineering Constants
 FOLD_COLUMN: Final = "kfold_column"                           # Target encoding, must be consistent throughout training
@@ -1283,7 +1271,7 @@ _ = """
 # Table diagnostics
 RESPONDER = 'PRO_Adj_Alloc_Oil'  # OR 'PRO_Total_Fluid'
 
-EXCLUDE = ['C1', 'Bin_1', 'Bin_5', 'Date', 'weight']
+EXCLUDE = ['C1', 'Bin_1', 'Bin_8', 'Date']
 EXCLUDE.extend(['PRO_Alloc_Oil', 'PRO_Pump_Speed', 'PRO_Alloc_Oil', 'PRO_Adj_Pump_Speed'])
 
 data_pad, groupby_options_pad, PREDICTORS = data_refinement(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
@@ -1350,18 +1338,10 @@ ranked_names_pad, ranked_steam_pad = varimp_heatmap(varimps_pad,
                                                     annot=False)
 
 # OPTIONAL VISUALIZATION: Plot predictor/regressor correlation matrix
-<<<<<<< HEAD
 # with suppress_stdout():
 #     correlation_matrix(varimps_pad,
 #                        EXP_NAME='Aggregated Experiment Results - Pad-Level',
 #                        FPATH='Modeling Reference Files/Round {tag}/cross-correlations_PAD{tag}.pdf'.format(tag=RUN_TAG))
-=======
-with suppress_stdout():
-    correlation_matrix(varimps_pad,
-                       EXP_NAME='Aggregated Experiment Results - Pad-Level',
-                       FPATH='Modeling Reference Files/Round {tag}/cross-correlations_PAD{tag}.pdf'.format(tag=RUN_TAG))
-
->>>>>>> 464966588ac284f962423cbe1127011db1ce920f
 
 _ = os.system("say done variable importances")
 
@@ -1384,7 +1364,6 @@ benchline_pad.update((x, y * PREFERRED_TOLERANCE) for x, y in benchline_pad.item
 perf_pad = model_performance(varimps_pad, benchline_pad, sort_by='Rel. RMSE')
 
 # OPTIONAL VISUALIZATION: Plot model performance metrics
-<<<<<<< HEAD
 # with suppress_stdout():
 #     plot_model_performance(perf_pad.select_dtypes(float),
 #                            'Modeling Reference Files/Round {tag}/model_performance_PAD{tag}.pdf'.format(tag=RUN_TAG),
@@ -1393,17 +1372,6 @@ perf_pad = model_performance(varimps_pad, benchline_pad, sort_by='Rel. RMSE')
 #                            annot=True,
 #                            annot_size=6,
 #                            FIGSIZE=(10, 1))
-=======
-with suppress_stdout():
-    plot_model_performance(perf_pad.select_dtypes(float),
-                           'Modeling Reference Files/Round {tag}/model_performance_PAD{tag}.pdf'.format(tag=RUN_TAG),
-                           MODEL_CMAPS, HMAP_CENTERS, ranked_names_pad, ranked_steam_pad,
-                           highlight=False,
-                           annot=True,
-                           annot_size=6,
-                           FIGSIZE=(10, 1))
->>>>>>> 464966588ac284f962423cbe1127011db1ce920f
-
 
 _ = """
 #######################################################################################################################
@@ -1417,7 +1385,6 @@ _ = os.system("say Validating Models")
 with suppress_stdout():
     validate_models(perf_pad, pad_relationship_training, benchline_pad, pad_relationship_validation,
                     TOP_MODELS=30, order_by='Rel. Val. RMSE')
-
 
 _ = """
 #######################################################################################################################

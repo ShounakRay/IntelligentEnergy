@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: feature_engineering.py
 # @Last modified by:   Ray
-# @Last modified time: 08-Apr-2021 12:04:30:309  GMT-0600
+# @Last modified time: 14-Apr-2021 09:04:31:312  GMT-0600
 # @License: [Private IP]
 
 import numpy as np
@@ -51,5 +51,5 @@ theoretical_df.drop(['PRO_Pump_Efficiency', 'PRO_Engineering_Approved', 'PRO_All
                      'PRO_Chlorides', 'PRO_Gas', 'PRO_Oil', 'PRO_Fluid', 'PRO_Time_On', 'PRO_Duration', 'PRO_Water',
                      'PRO_Pad', 'PRO_Alloc_Water'],
                     axis=1, inplace=True)
-
+list(theoretical_df.columns)
 theoretical_df.to_csv('Data/combined_ipc_engineered_phys.csv')

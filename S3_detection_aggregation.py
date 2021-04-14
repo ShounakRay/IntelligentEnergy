@@ -3,11 +3,12 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 13-Apr-2021 12:04:36:360  GMT-0600
+# @Last modified time: 14-Apr-2021 10:04:33:334  GMT-0600
 # @License: [Private IP]
 
 import math
 import os
+import pickle
 import re
 import sys
 from datetime import datetime
@@ -26,7 +27,6 @@ except Exception:
     from Anomaly_Detection_PKG import *
 
 import warnings
-from io import StringIO
 
 import defs
 
@@ -353,7 +353,6 @@ FINALE = FINALE.dropna(subset=['PRO_Well']).reset_index(drop=True)
 FINALE = filter_negatives(FINALE, FINALE.select_dtypes(float), out=False, placeholder=0)
 FINALE.drop(FINALE.columns[0], axis=1, inplace=True)
 
-
 _ = """
 #######################################################################################################################
 ################################################   ANOMALY DETECTION   ################################################
@@ -432,6 +431,8 @@ reformatted_anomalies['Date'] = pd.to_datetime(reformatted_anomalies['Date'])
 FINALE = pd.merge(FINALE.infer_objects(), reformatted_anomalies, 'inner', on=['Date', 'PRO_Well'])
 
 
+os.system('say finished anomaly detection')
+
 _ = """
 #######################################################################################################################
 ########################################   INJECTOR > RELATIVE REPRESENTATION   #######################################
@@ -500,63 +501,63 @@ _ = """
 """
 
 # NORTHING AND EASTING INPUTS
-all_file_paths = [f for f in sorted(
-    ['Data/Coordinates/' + c for c in list(os.walk('Data/Coordinates'))[0][2]]) if '.txt' in f]
-all_wells = list(FINALE['PRO_Well'].unique())
-all_pads = list(FINALE['PRO_Pad'].unique())
-
-liner_bounds = pd.read_excel('Data/Coordinates/Liner Depths (measured depth).xlsx').infer_objects()
-
-all_files = {}
-all_positions = {}
-for file_path in all_file_paths:
-    well_group = str([group for group in all_wells + ['I2'] if group in file_path][0])
-    lines = open(file_path, 'r', errors='ignore').readlines()
-    all_files[file_path] = lines
-
-    try:
-        data_line = [line.split('\n') for line in ''.join(
-            map(str, lines)).split('\n\n') if 'Local Coordinates' in line][0]
-        data_line = [line.split('\t') for line in data_line if line != '']
-    except Exception:
-        data_line = [line[0].split('\t') for line in data_line if line != '']
-    data_start_index = sorted([data_line.index(line) for line in data_line if '0.0' in line[0]])[0]
-    data_string = data_line[data_start_index:]
-    data_string = [re.sub(' +', ' ', line[0].strip()) + '\n' for line in data_string]
-    dummy_columns = ''.join(map(str, ['col_' + str(i) + ' ' for i in range(len(data_string[0].split(' ')))])) + '\n'
-    str_obj_input = StringIO(dummy_columns + ''.join(map(str, data_string)))
-    df = pd.read_csv(str_obj_input, sep=' ', error_bad_lines=False).dropna(1).infer_objects()
-    df = df.select_dtypes(np.number)
-    df.columns = ['Depth', 'Incl', 'Azim', 'SubSea_Depth', 'Vertical_Depth', 'Local_Northing', 'Local_Easting',
-                  'UTM_Northing', 'UTM_Easting', 'Vertical_Section', 'Dogleg']
-    # df = df[['UTM_Easting', 'UTM_Northing']]
-
-    start_bound = float(liner_bounds[liner_bounds['Well'] == well_group]['Liner Start (mD)'])
-    end_bound = float(liner_bounds[liner_bounds['Well'] == well_group]['Liner End (mD)'])
-    final_df = df[(df['Depth'] > start_bound) & (df['Depth'] < end_bound)]
-    all_positions[well_group] = final_df.sort_values('Depth').reset_index(drop=True)
-
-fig, ax = plt.subplots(nrows=len(all_positions.keys()), ncols=2, figsize=(15, 40))
-for well in all_positions.keys():
-    group_df = all_positions[well]  # /all_positions[well].max()
-    axes_1 = ax[list(all_positions.keys()).index(well)][0]
-    axes_1.plot(group_df['UTM_Easting'], group_df['UTM_Northing'])
-    axes_1.set_xlabel('UTM Easting')
-    axes_1.set_ylabel('UTM Northing')
-    axes_1.set_title(well + ' UTM Coordinates')
-    # axes_1.set_ylim(1000000 + 3.963 * 10**6, 1000000 + 5.963 * 10**6)
-
-    axes_2 = ax[list(all_positions.keys()).index(well)][1]
-    axes_2.plot(group_df['Local_Easting'], group_df['Local_Northing'])
-    axes_1.set_xlabel('Local Easting')
-    axes_1.set_xlabel('Local Northing')
-    axes_2.set_title(well + ' Local Coordinates')
-    axes_2.set_ylim(0, 225)
-plt.tight_layout()
-fig.suptitle('Coordinates Bounded by Provided Liner Depths XLSX File')
-plt.savefig('Modeling Reference Files/Candidate Selection Images/provided_coordinate_plots.png',
-            bbox_inches='tight')
-
+# all_file_paths = [f for f in sorted(
+#     ['Data/Coordinates/' + c for c in list(os.walk('Data/Coordinates'))[0][2]]) if '.txt' in f]
+# all_wells = list(FINALE['PRO_Well'].unique())
+# all_pads = list(FINALE['PRO_Pad'].unique())
+#
+# liner_bounds = pd.read_excel('Data/Coordinates/Liner Depths (measured depth).xlsx').infer_objects()
+#
+# all_files = {}
+# all_positions = {}
+# for file_path in all_file_paths:
+#     well_group = str([group for group in all_wells + ['I2'] if group in file_path][0])
+#     lines = open(file_path, 'r', errors='ignore').readlines()
+#     all_files[file_path] = lines
+#
+#     try:
+#         data_line = [line.split('\n') for line in ''.join(
+#             map(str, lines)).split('\n\n') if 'Local Coordinates' in line][0]
+#         data_line = [line.split('\t') for line in data_line if line != '']
+#     except Exception:
+#         data_line = [line[0].split('\t') for line in data_line if line != '']
+#     data_start_index = sorted([data_line.index(line) for line in data_line if '0.0' in line[0]])[0]
+#     data_string = data_line[data_start_index:]
+#     data_string = [re.sub(' +', ' ', line[0].strip()) + '\n' for line in data_string]
+#     dummy_columns = ''.join(map(str, ['col_' + str(i) + ' ' for i in range(len(data_string[0].split(' ')))])) + '\n'
+#     str_obj_input = StringIO(dummy_columns + ''.join(map(str, data_string)))
+#     df = pd.read_csv(str_obj_input, sep=' ', error_bad_lines=False).dropna(1).infer_objects()
+#     df = df.select_dtypes(np.number)
+#     df.columns = ['Depth', 'Incl', 'Azim', 'SubSea_Depth', 'Vertical_Depth', 'Local_Northing', 'Local_Easting',
+#                   'UTM_Northing', 'UTM_Easting', 'Vertical_Section', 'Dogleg']
+#     # df = df[['UTM_Easting', 'UTM_Northing']]
+#
+#     start_bound = float(liner_bounds[liner_bounds['Well'] == well_group]['Liner Start (mD)'])
+#     end_bound = float(liner_bounds[liner_bounds['Well'] == well_group]['Liner End (mD)'])
+#     final_df = df[(df['Depth'] > start_bound) & (df['Depth'] < end_bound)]
+#     all_positions[well_group] = final_df.sort_values('Depth').reset_index(drop=True)
+#
+# fig, ax = plt.subplots(nrows=len(all_positions.keys()), ncols=2, figsize=(15, 40))
+# for well in all_positions.keys():
+#     group_df = all_positions[well]  # /all_positions[well].max()
+#     axes_1 = ax[list(all_positions.keys()).index(well)][0]
+#     axes_1.plot(group_df['UTM_Easting'], group_df['UTM_Northing'])
+#     axes_1.set_xlabel('UTM Easting')
+#     axes_1.set_ylabel('UTM Northing')
+#     axes_1.set_title(well + ' UTM Coordinates')
+#     # axes_1.set_ylim(1000000 + 3.963 * 10**6, 1000000 + 5.963 * 10**6)
+#
+#     axes_2 = ax[list(all_positions.keys()).index(well)][1]
+#     axes_2.plot(group_df['Local_Easting'], group_df['Local_Northing'])
+#     axes_1.set_xlabel('Local Easting')
+#     axes_1.set_xlabel('Local Northing')
+#     axes_2.set_title(well + ' Local Coordinates')
+#     axes_2.set_ylim(0, 225)
+# plt.tight_layout()
+# fig.suptitle('Coordinates Bounded by Provided Liner Depths XLSX File')
+# plt.savefig('Modeling Reference Files/Candidate Selection Images/provided_coordinate_plots.png',
+#             bbox_inches='tight')
+#
 
 PRO_relcoords = {}
 PRO_relcoords = {'AP2': '(616, 512) <> (683, 557) <> (995, 551)',
@@ -632,6 +633,14 @@ for pwell in available_pwells_transformed:
 if(plot_geo):
     plot_geo_candidates(candidates_by_prodwell, 'BP6', PRO_finalcoords, INJ_relcoords)
 
+with open('Data/candidates_by_prodpad.pkl', 'wb') as fp:
+    pickle.dump(candidates_by_prodpad, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
+with open('Data/candidates_by_prodwell.pkl', 'wb') as fp:
+    pickle.dump(candidates_by_prodwell, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
+os.system('say finished candidate selection')
+
 _ = """
 #######################################################################################################################
 ########################################   PRODUCER/INJECTOR DISTANCE MATRIX    #######################################
@@ -651,6 +660,10 @@ for injector in INJ_relcoords.keys():
         dist_store = np.mean(point_distances) if operat == 'mean' else min(point_distances)
         inj_specific_distances.append(dist_store)
     pro_inj_distance[injector] = inj_specific_distances
+
+pro_inj_distance.infer_objects().to_pickle('Data/injector_producer_dist_matrix.pkl')
+
+os.system('say finished distance matrix')
 
 _ = """
 #######################################################################################################################
@@ -675,14 +688,17 @@ all_pro_data = ['PRO_Well',
                 'PRO_Pad',
                 # 'PRO_Duration',
                 'PRO_Adj_Alloc_Oil',
-                'PRO_Alloc_Oil',
+                # 'PRO_Alloc_Oil',
                 'PRO_Total_Fluid',
                 # 'PRO_Alloc_Water',
                 'Bin_1',
                 'Bin_2',
                 'Bin_3',
                 'Bin_4',
-                'Bin_5']
+                'Bin_5',
+                'Bin_6',
+                'Bin_7',
+                'Bin_8']
 
 FINALE_pro = FINALE[all_pro_data + ['Date', 'weight']]
 FINALE_pro, dropped_cols = drop_singles(FINALE_pro)
@@ -697,7 +713,7 @@ aggregation_dict = {'PRO_Adj_Pump_Speed': 'mean',
                     'PRO_Toe_Temp': 'mean',
                     'PRO_Adj_Alloc_Oil': 'sum',
                     # 'PRO_Duration': 'mean',
-                    'PRO_Alloc_Oil': 'sum',
+                    # 'PRO_Alloc_Oil': 'sum',
                     'PRO_Total_Fluid': 'sum',
                     # 'PRO_Alloc_Water': 'sum',
                     'Bin_1': 'mean',
@@ -705,6 +721,9 @@ aggregation_dict = {'PRO_Adj_Pump_Speed': 'mean',
                     'Bin_3': 'mean',
                     'Bin_4': 'mean',
                     'Bin_5': 'mean',
+                    'Bin_6': 'mean',
+                    'Bin_7': 'mean',
+                    'Bin_8': 'mean',
                     'weight': 'mean'}
 
 FINALE_agg_pro = FINALE_pro.groupby(by=['Date', 'PRO_Pad'], axis=0,
@@ -733,6 +752,8 @@ if(plot_eda):
         plt.tight_layout()
 
     plt.savefig('pro_pads_cols_ts.png')
+
+os.system('say finished producer pad aggregation')
 
 _ = """
 ####################################
@@ -765,6 +786,7 @@ _ = """
 """
 INJECTOR_AGGREGATES_PWELL = produce_injector_aggregates(candidates_by_prodwell, FINALE_inj, 'PRO_Well')
 
+os.system('say finished injector aggregation')
 
 _ = """
 #######################################################################################################################
@@ -790,13 +812,17 @@ COMBINED_AGGREGATES_PWELL = pd.merge(PRODUCER_AGGREGATES_PWELL, INJECTOR_AGGREGA
                                      how='inner', on=['Date', 'PRO_Well'])
 COMBINED_AGGREGATES_PWELL, dropped_pwell = drop_singles(COMBINED_AGGREGATES_PWELL)
 
+os.system('say finished producer aggregation')
+
 _ = """
 ####################################
 #########  AGGREGATION EDA #########
 ####################################
 """
-plot_aggregation_eda(COMBINED_AGGREGATES_PWELL, 'PRO_Adj_Alloc_Oil', 'PRO_Alloc_Oil',
+plot_aggregation_eda(COMBINED_AGGREGATES_PWELL, 'PRO_Adj_Alloc_Oil', 'weight',
                      available_pwells_transformed[:7], 'A')
+
+os.system('say finished plotting aggregation')
 
 _ = """
 ####################################
@@ -809,9 +835,12 @@ for pwell in available_pwells_transformed:
     plot_weights_eda(COMBINED_AGGREGATES_PWELL, groupby_val=pwell,
                      groupby_col='PRO_Well', time_col='Date', weight_col='weight')
 
+os.system('say finished weight exploratory analysis')
+
 COMBINED_AGGREGATES_PWELL.to_csv('Data/combined_ipc_aggregates_PWELL.csv')
 COMBINED_AGGREGATES.to_csv('Data/combined_ipc_aggregates.csv')
 
+os.system('say saved files to csv')
 
 # plt.figure(figsize=(10, 100))
 # sns.heatmap(COMBINED_AGGREGATES.sort_values(['PRO_Pad']).select_dtypes(float))
