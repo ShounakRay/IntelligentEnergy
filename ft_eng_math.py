@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: ft_eng_math.py
 # @Last modified by:   Ray
-# @Last modified time: 08-Apr-2021 13:04:55:552  GMT-0600
+# @Last modified time: 12-Apr-2021 16:04:99:996  GMT-0600
 # @License: [Private IP]
 
 import itertools
@@ -13,6 +13,7 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import sympy
 from autofeat import AutoFeatRegressor
 
@@ -36,7 +37,7 @@ TOP_F = 5
 # IMPORTS
 df = pd.read_csv('Data/combined_ipc_aggregates.csv').drop('Unnamed: 0', 1)
 df = df.sort_values('Date').reset_index(drop=True)
-df.drop(['PRO_Adj_Alloc_Oil', 'PRO_Alloc_Oil'], 1, inplace=True)
+df.drop(['PRO_Alloc_Oil'], 1, inplace=True)
 
 CORE_FEATURES = list(df.columns).copy()
 
@@ -89,13 +90,17 @@ NEW_FEATURES = [c for c in all_new_dfs.columns if c not in CORE_FEATURES]
 
 df.reset_index(drop=False, inplace=True)
 concatenated = pd.merge(df, all_new_dfs[NEW_FEATURES], on='index', how='inner').drop('index', 1)
-concatenated = concatenated.T.drop_duplicates().T
+concatenated = concatenated.T.drop_duplicates().T.infer_objects()
 
 concatenated.to_csv('Data/combined_ipc_engineered_math.csv')
 
 
 """"""""""""""""""""""""""""""""""""""""""""" PLOTTING """""""""""""""""""""""""""""""""""""""""""""
 """""""""""""""""""""""""""""""""""""""""""""""""__"""""""""""""""""""""""""""""""""""""""""""""""""
+
+plt.figure(figsize=(25, 25))
+sns.heatmap(concatenated.select_dtypes(np.number).corr())
+plt.savefig('Manipulation Reference Files/ft_end_correlations.png', bbox_inches='tight')
 
 # TOP FORMULAS
 _temp = pd.DataFrame(Counter(all_new_fts).most_common()[:5], columns=['Transformation', 'Frequency'])

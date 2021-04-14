@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 12-Apr-2021 14:04:05:058  GMT-0600
+# @Last modified time: 13-Apr-2021 12:04:20:201  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -62,7 +62,7 @@ print(OUT_BLOCK)
 
 _ = """
 #######################################################################################################################
-#########################################   DEFINITIONS AND HYPERPARAMTERS   ##########################################
+############################################  ASSIGNING HYPERPARAMTERS   ##############################################
 #######################################################################################################################
 """
 # Data Ingestion Constants
@@ -76,20 +76,20 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 600                                      # The longest that the experiment will run (seconds)
-RANDOM_SEED: Final = 2381125                                      # To ensure reproducibility of experiments (caveats*)
-EVAL_METRIC: Final = 'rmse'                                       # The evaluation metric to discontinue model training
-RANK_METRIC: Final = 'rmse'                                       # Leaderboard ranking metric after all trainings
-CV_FOLDS: Final = 5
-STOPPING_ROUNDS: Final = 3
-WEIGHTS_COLUMN: Final = 'weight'
-EXPLOIT_RATIO: Final = 0
-MODELING_PLAN: Final = None
-TRAIN_VAL_SPLIT: Final = 0.8
+MAX_EXP_RUNTIME: Final = 600                                  # The longest that the experiment will run (seconds)
+RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments (caveats*)
+EVAL_METRIC: Final = 'rmse'                                   # The evaluation metric to discontinue model training
+RANK_METRIC: Final = 'rmse'                                   # Leaderboard ranking metric after all trainings
+CV_FOLDS: Final = 5                                           # Number of cross validation folds
+STOPPING_ROUNDS: Final = 3                                    # How many rounds to proceed until stopping_metric stops
+WEIGHTS_COLUMN: Final = None                                  # Name of the weights column
+EXPLOIT_RATIO: Final = 0                                      # Exploit/Eploration ratio, see NOTES
+MODELING_PLAN: Final = None                                   # Custom Modeling Plan
+TRAIN_VAL_SPLIT: Final = 0.85                                 # Train test split proportion
 
 # Feature Engineering Constants
 FOLD_COLUMN: Final = "kfold_column"                           # Target encoding, must be consistent throughout training
-TOP_MODELS = 15                                               # The top n number of models which should be filtered.
+TOP_MODELS = 15                                               # The top n number of models which should be filtered
 PREFERRED_TOLERANCE = 0.1                                     # Tolerance applied on RMSE for allowable responders
 TRAINING_VERBOSITY = 'warn'                                   # Verbosity of training (None, 'debug', 'info', d'warn')
 
@@ -101,14 +101,20 @@ MODEL_CMAPS = {'R^2': sns.color_palette('rocket_r', as_cmap=True),
                'RMSE': sns.color_palette("coolwarm", as_cmap=True),
                'Rel. RMSE': sns.color_palette("coolwarm", as_cmap=True),
                'RMSLE': sns.color_palette("coolwarm", as_cmap=True),
-               'MAE': sns.color_palette("coolwarm", as_cmap=True)}
+               'MAE': sns.color_palette("coolwarm", as_cmap=True)}  # For heatmap visualization
 HMAP_CENTERS = {'R^2': None,
                 'MSE': 400,
                 'RMSE': 20,
                 'Rel. RMSE': 0,
                 'RMSLE': None,
-                'MAE': None}
-CELL_RATIO = 4.666666666666667
+                'MAE': None}                                        # For heatmap visualization
+CELL_RATIO = 4.666666666666667                                       # Scaling for visualizations
+
+_ = """
+#######################################################################################################################
+##############################################   SAVING HYPERPARAMTERS   ##############################################
+#######################################################################################################################
+"""
 
 # Ensure overwriting does not occur while making identifying experiment directory.
 while os.path.isdir(f'Modeling Reference Files/Round {RUN_TAG}'):
@@ -158,6 +164,12 @@ print(Fore.GREEN + 'STATUS: Directory created for Round {}'.format(RUN_TAG) + St
 
 # Print file structure for reference every time this program is run
 util_traversal.print_tree_to_txt(skip_git=True)
+
+_ = """
+#######################################################################################################################
+##############################################   FUNCTION DEFINITIONS   ###############################################
+#######################################################################################################################
+"""
 
 
 @contextmanager
@@ -520,7 +532,7 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict,
                            'EVAL_METRIC': [list, type(None)],
                            'RANK_METRIC': [list, type(None)],
                            'RANDOM_SEED': [int, float],
-                           'WEIGHTS_COLUMNS': [str],
+                           'WEIGHTS_COLUMNS': [str, type(None)],
                            'CV_FOLDS': [int],
                            'STOPPING_ROUNDS': [int],
                            'EXPLOIT_RATIO': [float],
@@ -1194,7 +1206,6 @@ _ = """
 ##########################################   INITIALIZE SERVER AND SETUP   ############################################
 #######################################################################################################################
 """
-
 # Initialize the cluster
 h2o.init(https=SECURED,
          ip=IP_LINK,
@@ -1208,13 +1219,6 @@ process_log = snapshot(h2o.cluster(), show=False)
 for path in [DATA_PATH_PAD, DATA_PATH_WELL]:
     if not (os.path.isfile(path)):
         raise ValueError('ERROR: {data} does not exist in the specificied location.'.format(data=path))
-
-# Import the data from the file
-# data_well = h2o.import_file(DATA_PATH_WELL)
-# data_pad_complete = h2o.import_file(DATA_PATH_PAD)
-# data_pad, data_pad_validation = [h2o.H2OFrame(dat.reset_index(drop=True).infer_objects())
-#                                  for dat in np.split(data_pad_complete.as_data_frame(),
-#                                                      [int(TRAIN_VAL_SPLIT * len(data_pad_complete))])]
 
 _ = """
 ####################################
@@ -1231,6 +1235,7 @@ for u_pad in unique_pads:
                                                for dat in np.split(filtered_by_group,
                                                                    [int(TRAIN_VAL_SPLIT * len(filtered_by_group))])]
     grouped_data_split[u_pad] = (data_pad_loop, data_pad_validation_loop)
+
 # Holdout and validation reformatting
 data_pad = pd.concat([v[0] for k, v in grouped_data_split.items()]).reset_index(drop=True).infer_objects()
 wanted_types = {k: 'real' if v == float or v == int else 'enum' for k, v in dict(data_pad.dtypes).items()}
@@ -1255,11 +1260,6 @@ for u_pad in unique_pads:
     df_loop = h2o.H2OFrame(df_loop, column_types=local_wanted_types)
     pad_relationship_training[u_pad] = df_loop
 
-# Ensure matching data types across validation and training datasets
-# data_pad_validation.types
-# wanted_types = data_pad.types
-# h2o.H2OFrame(pad_relationship_validation['A'].as_data_frame().infer_objects(), column_types=wanted_types).types
-
 print(Fore.GREEN + 'STATUS: Server initialized and data imported.' + Style.RESET_ALL)
 print(OUT_BLOCK)
 
@@ -1269,19 +1269,20 @@ _ = """
 #######################################################################################################################
 """
 # Table diagnostics
-# data_pad = util_conditional_drop(data_pad, ['C1', 'PRO_Alloc_Water'])
-RESPONDER = 'PRO_Total_Fluid'  # 'PRO_Alloc_Oil'
+RESPONDER = 'PRO_Adj_Alloc_Oil'  # OR 'PRO_Total_Fluid'
 
-EXCLUDE = ['C1', 'Bin_1', 'Bin_5', 'Date']
-EXCLUDE.extend(['PRO_Alloc_Oil', 'PRO_Pump_Speed', 'PRO_Adj_Alloc_Oil', 'PRO_Alloc_Oil'])
+EXCLUDE = ['C1', 'Bin_1', 'Bin_5', 'Date', 'weight']
+EXCLUDE.extend(['PRO_Alloc_Oil', 'PRO_Pump_Speed', 'PRO_Alloc_Oil', 'PRO_Adj_Pump_Speed'])
 
 data_pad, groupby_options_pad, PREDICTORS = data_refinement(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
-# data_well, groupby_options_well, PREDICTORS = data_refinement(data_well, 'PRO_Well', EXCLUDE, RESPONDER)
 
 with open(f'Modeling Reference Files/Round {RUN_TAG}/hyperparams.txt', 'a') as out:
     print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
     print('PREDICTORS', file=out)
     pprint(PREDICTORS, stream=out)
+    print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+    print('RESPONDER', file=out)
+    pprint(RESPONDER, stream=out)
 
 _ = """
 #######################################################################################################################
@@ -1316,9 +1317,7 @@ print(Fore.GREEN + '\t* Predictors\t\t-> ', PREDICTORS,
 print(Fore.GREEN + '\t* Responder\t\t-> ', RESPONDER,
       Fore.GREEN + '\tThis is what is being predicted.\n' + Style.RESET_ALL)
 
-# if(input('Proceed with given hyperparameters? (Y/N)') == 'Y'):
-#     pass
-# else:
+# if(input('Proceed with given hyperparameters? (Y/N)') != 'Y'):
 #     raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
 
 # Run the experiment
@@ -1327,12 +1326,10 @@ project_names_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER,
 
 _ = os.system("say Done Training")
 
-# Calculate Variable Importance
+# Calculate Variable Importance (also stores the model object)
 varimps_pad = varimps(project_names_pad)
-# Configure filtering for variable importance
-# mask_pad = (varimps_pad.mean(axis=1) > 0.2) & (varimps_pad.mean(axis=1) < 1.0)
-# selective_varimps_pad = varimps_pad[mask_pad]
-# Create variable importance heatmap
+
+# OPTIONAL VISUALIZATION: Configure filtering for variable importance
 ranked_names_pad, ranked_steam_pad = varimp_heatmap(varimps_pad,
                                                     'Modeling Reference Files/Round ' +
                                                     '{tag}/variable_importances_PAD{tag}.pdf'.format(tag=RUN_TAG),
@@ -1340,42 +1337,24 @@ ranked_names_pad, ranked_steam_pad = varimp_heatmap(varimps_pad,
                                                     highlight=False,
                                                     annot=False)
 
-# Plot predictor/regressor correlation matrix
+# OPTIONAL VISUALIZATION: Plot predictor/regressor correlation matrix
 with suppress_stdout():
     correlation_matrix(varimps_pad,
                        EXP_NAME='Aggregated Experiment Results - Pad-Level',
                        FPATH='Modeling Reference Files/Round {tag}/cross-correlations_PAD{tag}.pdf'.format(tag=RUN_TAG))
 
-# project_names_well = run_experiment(data_well, groupby_options_well, RESPONDER)
-# varimps_well = varimps(project_names_well)
-# mask_well = (varimps_well.mean(axis=1) > 0.0) & (varimps_well.mean(axis=1) < 1.0)
-# selective_varimps_well = varimps_well[mask_well]
-# ranked_names_well, ranked_steam_well = varimp_heatmap(selective_varimps_well,
-#                                                            'Modeling Reference Files/Round ' +
-#                                                            '{tag}/variable_importance_WELL{tag}.pdf'.format(tag=RUN_TAG),
-#                                                            FIGSIZE=(10, 100),
-#                                                            highlight=False,
-#                                                            annot=False)
-# with suppress_stdout():
-#     correlation_matrix(selective_varimps_well,
-#                        EXP_NAME='Aggregated Experiment Results - Well-Level',
-#                        FPATH='Modeling Reference Files/Round {tag}/correlations_WELL{tag}.pdf'.format(tag=RUN_TAG))
 
 _ = os.system("say done variable importances")
-
 
 print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
 print(OUT_BLOCK)
 
 _ = """
 #######################################################################################################################
-###############################   EVALUATE MODEL PERFORMANCE | CROSS-VALIDATION   #####################################
+#########################################   EVALUATE MODEL PERFORMANCE   ##############################################
 #######################################################################################################################
 """
 
-# get_aml_objects(project_names_pad)[1].leaderboard
-# dir(h2o.get_model('GBM_3_AutoML_20210326_170904'))
-# h2o.get_model('GBM_3_AutoML_20210326_170904').shap_summary_plot(data_pad)
 _ = os.system("say determining model performance")
 
 data_pad_pd = pd_data_pad.copy()  # pd.read_csv(DATA_PATH_PAD)
@@ -1384,7 +1363,8 @@ benchline_pad = list(data_pad_pd[data_pad_pd[RESPONDER] > 0].groupby(
 benchline_pad.update((x, y * PREFERRED_TOLERANCE) for x, y in benchline_pad.items())
 # Calculate model performance metrics
 perf_pad = model_performance(varimps_pad, benchline_pad, sort_by='Rel. RMSE')
-# Plot model performance metrics
+
+# OPTIONAL VISUALIZATION: Plot model performance metrics
 with suppress_stdout():
     plot_model_performance(perf_pad.select_dtypes(float),
                            'Modeling Reference Files/Round {tag}/model_performance_PAD{tag}.pdf'.format(tag=RUN_TAG),
@@ -1394,39 +1374,19 @@ with suppress_stdout():
                            annot_size=6,
                            FIGSIZE=(10, 1))
 
-# data_well_pd = pd.read_csv(DATA_PATH_WELL)
-# benchline_well = list(data_well_pd[data_well_pd[RESPONDER] > 0].groupby(
-#     ['Date', 'PRO_Well'])[RESPONDER].sum().reset_index().groupby('PRO_Well').median().to_dict().values())[0]
-# benchline_well.update((x, y * PREFERRED_TOLERANCE) for x, y in benchline_well.items())
-# perf_well = model_performance(varimps_well)
-# plot_model_performance(perf_well.select_dtypes(float),
-#                        'Modeling Reference Files/Round {tag}/model_performance_PWELL{tag}.pdf'.format(tag=RUN_TAG),
-#                        MODEL_CMAPS, HMAP_CENTERS, ranked_names_well, ranked_steam_well,
-#                        highlight=False,
-#                        annot=True,
-#                        annot_size=6,
-#                        FIGSIZE=(10, 10))
 
 _ = """
 #######################################################################################################################
-##################################   EVALUATE MODEL PERFORMANCE | HOLDOUT   ###########################################
+###############################   EVALUATE MODEL PERFORMANCE | VIZUALIZATION   ########################################
 #######################################################################################################################
 """
 
-# aml_objects_pad = dict(zip(project_names_pad, get_aml_objects(project_names_pad)))
-# leaderboard_pad = aml_objects_pad.get('IPC_MacroPadModeling__PRO_Adj_Alloc_Oil__A').leaderboard.as_data_frame(0)
-# _ = os.system("say Validating Models")
+_ = os.system("say Validating Models")
 
-# Validation metrics
+# OPTIONAL VISUALIZATION: Validation metrics
 with suppress_stdout():
     validate_models(perf_pad, pad_relationship_training, benchline_pad, pad_relationship_validation,
                     TOP_MODELS=30, order_by='Rel. Val. RMSE')
-
-
-# get_aml_objects(project_names_pad)[1].model_correlation_heatmap(pad_relationship_validation['B'])
-# h2o.get_model('GBM_1_AutoML_20210401_124725').shap_summary_plot(pad_relationship_validation['B'])
-# h2o.get_model('GBM_1_AutoML_20210401_124725').pd_plot(pad_relationship_validation['B'], 'PRO_Toe_Temp')
-# h2o.get_model('GBM_1_AutoML_20210401_124725').ice_plot(pad_relationship_validation['B'], 'PRO_Casing_Pressure')
 
 
 _ = """
@@ -1436,6 +1396,9 @@ _ = """
 """
 
 _ = os.system("say Finished")
+
+# _temp = data_pad.as_data_frame()
+# _temp['weight'].plot(figsize=(10, 5))
 
 # if(input('Shutdown Cluster? (Y/N)') == 'Y'):
 #     shutdown_confirm(h2o)
