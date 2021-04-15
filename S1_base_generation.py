@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Apr-2021 13:04:06:066  GMT-0600
+# @Last modified time: 14-Apr-2021 20:04:95:951  GMT-0600
 # @License: [Private IP]
 
 
@@ -74,17 +74,17 @@ for producer in producer_wells[1:]:
 aggregated_fiber = pd.concat(aggregated_fiber)
 aggregated_fiber = aggregated_fiber.dropna(how='all', axis=1)
 
-# # Processing for AP2 which is thermocouple and in different format
-# AP2_df = pd.read_excel('Data/DTS//AP2/AP2THERM.xlsx')
-# AP2_df.columns = ['Date', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5', 'Bin_6', 'Bin_7', 'Bin_8']
-# AP2_df.drop([0, 1], axis=0, inplace=True)
-# AP2_df.index = AP2_df['Date']
-# AP2_df.drop('Date', axis=1, inplace=True)
-# AP2_df['PRO_Well'] = 'AP2'
-# AP2_df.index = pd.to_datetime(AP2_df.index)
-#
-# # Concatenating aggregated fiber and AP2 data
-# aggregated_fiber = pd.concat([aggregated_fiber, AP2_df.infer_objects()])
+# Processing for AP2 which is thermocouple and in different format
+AP2_df = pd.read_excel('Data/DTS//AP2/AP2THERM.xlsx')
+AP2_df.columns = ['Date', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5', 'Bin_6', 'Bin_7', 'Bin_8']
+AP2_df.drop([0, 1], axis=0, inplace=True)
+AP2_df.index = AP2_df['Date']
+AP2_df.drop('Date', axis=1, inplace=True)
+AP2_df['PRO_Well'] = 'AP2'
+AP2_df.index = pd.to_datetime(AP2_df.index)
+
+# Concatenating aggregated fiber and AP2 data
+aggregated_fiber = pd.concat([aggregated_fiber, AP2_df.infer_objects()])
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # WELL TEST FORMATTING

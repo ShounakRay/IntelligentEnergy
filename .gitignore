@@ -14,12 +14,12 @@ Data
 *.xls
 *.xlsx
 *.pkl
-*.svg
-*.pdf
+# *.svg
+# *.pdf
 *.html
 *.gexf
 *.json
-*.png
+# *.png
 *.mp4
 
 # Ignore JS Libraris

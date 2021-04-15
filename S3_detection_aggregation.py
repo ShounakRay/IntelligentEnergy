@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Apr-2021 15:04:15:154  GMT-0600
+# @Last modified time: 15-Apr-2021 09:04:81:813  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -429,7 +429,6 @@ reformatted_anomalies['Date'] = pd.to_datetime(reformatted_anomalies['Date'])
 # Merge this anomaly data into the original, highest-resolution base table
 FINALE = pd.merge(FINALE.infer_objects(), reformatted_anomalies, 'inner', on=['Date', 'PRO_Well'])
 
-
 os.system('say finished anomaly detection')
 
 _ = """
@@ -754,13 +753,13 @@ if(plot_eda):
 
 os.system('say finished producer pad aggregation')
 
-_ = """
-####################################
-#####  WELL-LEVEL AGGREGATION ######
-####################################
-"""
-FINALE_agg_pro_pwell = FINALE_pro.groupby(by=['Date', 'PRO_Well'], axis=0,
-                                          sort=False, as_index=False).agg(aggregation_dict)
+# _ = """
+# ####################################
+# #####  WELL-LEVEL AGGREGATION ######
+# ####################################
+# """
+# FINALE_agg_pro_pwell = FINALE_pro.groupby(by=['Date', 'PRO_Well'], axis=0,
+#                                           sort=False, as_index=False).agg(aggregation_dict)
 
 _ = """
 #######################################################################################################################
@@ -778,12 +777,12 @@ _ = """
 """
 INJECTOR_AGGREGATES = produce_injector_aggregates(candidates_by_prodpad, FINALE_inj, 'PRO_Pad')
 
-_ = """
-####################################
-#####  WELL-LEVEL AGGREGATION ######
-####################################
-"""
-INJECTOR_AGGREGATES_PWELL = produce_injector_aggregates(candidates_by_prodwell, FINALE_inj, 'PRO_Well')
+# _ = """
+# ####################################
+# #####  WELL-LEVEL AGGREGATION ######
+# ####################################
+# """
+# INJECTOR_AGGREGATES_PWELL = produce_injector_aggregates(candidates_by_prodwell, FINALE_inj, 'PRO_Well')
 
 os.system('say finished injector aggregation')
 
@@ -801,27 +800,33 @@ PRODUCER_AGGREGATES = FINALE_agg_pro[FINALE_agg_pro['PRO_Pad'].isin(available_pa
 COMBINED_AGGREGATES = pd.merge(PRODUCER_AGGREGATES, INJECTOR_AGGREGATES,
                                how='inner', on=['Date', 'PRO_Pad'])
 COMBINED_AGGREGATES, dropped = drop_singles(COMBINED_AGGREGATES)
-_ = """
-####################################
-########  WELL-LEVEL MERGING #######
-####################################
-"""
-PRODUCER_AGGREGATES_PWELL = FINALE_agg_pro_pwell[FINALE_agg_pro_pwell['PRO_Well'].isin(available_pwells_transformed)]
-COMBINED_AGGREGATES_PWELL = pd.merge(PRODUCER_AGGREGATES_PWELL, INJECTOR_AGGREGATES_PWELL,
-                                     how='inner', on=['Date', 'PRO_Well'])
-COMBINED_AGGREGATES_PWELL, dropped_pwell = drop_singles(COMBINED_AGGREGATES_PWELL)
 
 os.system('say finished producer aggregation')
 
-_ = """
-####################################
-#########  AGGREGATION EDA #########
-####################################
-"""
-plot_aggregation_eda(COMBINED_AGGREGATES_PWELL, 'PRO_Adj_Alloc_Oil', 'weight',
-                     available_pwells_transformed[:7], 'A')
+COMBINED_AGGREGATES.infer_objects().to_csv('Data/combined_ipc_aggregates.csv')
 
-os.system('say finished plotting aggregation')
+os.system('say saved files to csv')
+
+# _ = """
+# ####################################
+# ########  WELL-LEVEL MERGING #######
+# ####################################
+# """
+# PRODUCER_AGGREGATES_PWELL = FINALE_agg_pro_pwell[FINALE_agg_pro_pwell['PRO_Well'].isin(available_pwells_transformed)]
+# COMBINED_AGGREGATES_PWELL = pd.merge(PRODUCER_AGGREGATES_PWELL, INJECTOR_AGGREGATES_PWELL,
+#                                      how='inner', on=['Date', 'PRO_Well'])
+# COMBINED_AGGREGATES_PWELL, dropped_pwell = drop_singles(COMBINED_AGGREGATES_PWELL)
+# COMBINED_AGGREGATES_PWELL.infer_objects().to_csv('Data/combined_ipc_aggregates_PWELL.csv')
+
+# _ = """
+# ####################################
+# ##  AGGREGATION EDA – WELL LEVEL ###
+# ####################################
+# """
+# plot_aggregation_eda(COMBINED_AGGREGATES, 'PRO_Adj_Alloc_Oil', 'weight',
+#                      available_pwells_transformed[:7], 'A')
+#
+# os.system('say finished plotting aggregation')
 
 _ = """
 ####################################
@@ -830,16 +835,13 @@ _ = """
 """
 for pad in available_pads_transformed:
     plot_weights_eda(COMBINED_AGGREGATES, groupby_val=pad, groupby_col='PRO_Pad', time_col='Date', weight_col='weight')
-for pwell in available_pwells_transformed:
-    plot_weights_eda(COMBINED_AGGREGATES_PWELL, groupby_val=pwell,
-                     groupby_col='PRO_Well', time_col='Date', weight_col='weight')
+
+# for pwell in available_pwells_transformed:
+#     plot_weights_eda(COMBINED_AGGREGATES_PWELL, groupby_val=pwell,
+#                      groupby_col='PRO_Well', time_col='Date', weight_col='weight')
 
 os.system('say finished weight exploratory analysis')
 
-COMBINED_AGGREGATES_PWELL.infer_objects().to_csv('Data/combined_ipc_aggregates_PWELL.csv')
-COMBINED_AGGREGATES.infer_objects().to_csv('Data/combined_ipc_aggregates.csv')
-
-os.system('say saved files to csv')
 
 # plt.figure(figsize=(10, 100))
 # sns.heatmap(COMBINED_AGGREGATES.sort_values(['PRO_Pad']).select_dtypes(float))

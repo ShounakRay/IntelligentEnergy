@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Apr-2021 15:04:29:290  GMT-0600
+# @Last modified time: 15-Apr-2021 11:04:37:376  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -38,8 +38,6 @@ from matplotlib.patches import Rectangle
 # TODO: Drop old values (check that they're not here)
 # TODO: Check correct validation datasets
 
-test_df = pd.read_csv('Data/combined_ipc_engineered_math.csv')
-
 _ = """
 #######################################################################################################################
 #########################################   VERIFY VERSIONS OF DEPENDENCIES   #########################################
@@ -68,6 +66,7 @@ _ = """
 # Data Ingestion Constants
 DATA_PATH_PAD: Final = 'Data/combined_ipc_engineered_math.csv'    # Where the client-specific pad data is located
 DATA_PATH_WELL: Final = 'Data/combined_ipc_aggregates_PWELL.csv'  # Where the client-specific well data is located
+DATA_PATH_PAD_vanilla = 'Data/combined_ipc_aggregates.csv'        # No feature engineering
 
 # H2O Server Constants
 IP_LINK: Final = 'localhost'                                  # Initializing the server on the local host (temporary)
@@ -1216,7 +1215,7 @@ h2o.init(https=SECURED,
 process_log = snapshot(h2o.cluster(), show=False)
 
 # Confirm that the data path leads to an actual file
-for path in [DATA_PATH_PAD, DATA_PATH_WELL]:
+for path in [DATA_PATH_PAD, DATA_PATH_WELL, DATA_PATH_PAD_vanilla]:
     if not (os.path.isfile(path)):
         raise ValueError('ERROR: {data} does not exist in the specificied location.'.format(data=path))
 
@@ -1226,7 +1225,8 @@ _ = """
 ####################################
 """
 # Split into train/test (CV) and holdout set (per each class of grouping)
-pd_data_pad = pd.read_csv(DATA_PATH_PAD).drop('Unnamed: 0', axis=1)
+# pd_data_pad = pd.read_csv(DATA_PATH_PAD).drop('Unnamed: 0', axis=1)
+pd_data_pad = pd.read_csv(DATA_PATH_PAD_vanilla).drop('Unnamed: 0', axis=1)
 unique_pads = list(pd_data_pad['PRO_Pad'].unique())
 grouped_data_split = {}
 for u_pad in unique_pads:
@@ -1269,7 +1269,7 @@ _ = """
 #######################################################################################################################
 """
 # Table diagnostics
-RESPONDER = 'PRO_Adj_Alloc_Oil'  # OR 'PRO_Total_Fluid'
+RESPONDER = 'PRO_Total_Fluid'  # OR 'PRO_Adj_Alloc_Oil'
 
 EXCLUDE = ['C1', 'Bin_1', 'Bin_8', 'Date']
 EXCLUDE.extend(['PRO_Alloc_Oil', 'PRO_Pump_Speed', 'PRO_Alloc_Oil', 'PRO_Adj_Pump_Speed'])
@@ -1356,7 +1356,7 @@ _ = """
 
 _ = os.system("say determining model performance")
 
-data_pad_pd = pd_data_pad.copy()  # pd.read_csv(DATA_PATH_PAD)
+data_pad_pd = pd_data_pad.copy()
 benchline_pad = list(data_pad_pd[data_pad_pd[RESPONDER] > 0].groupby(
     ['Date', 'PRO_Pad'])[RESPONDER].sum().reset_index().groupby('PRO_Pad').median().to_dict().values())[0]
 benchline_pad.update((x, y * PREFERRED_TOLERANCE) for x, y in benchline_pad.items())

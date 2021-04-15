@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: ft_eng_math.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Apr-2021 20:04:78:780  GMT-0600
+# @Last modified time: 15-Apr-2021 09:04:95:958  GMT-0600
 # @License: [Private IP]
 
 import itertools
@@ -103,7 +103,7 @@ sns.heatmap(concatenated.select_dtypes(np.number).corr())
 plt.savefig('Manipulation Reference Files/ft_end_correlations.png', bbox_inches='tight')
 
 # TOP FORMULAS
-_temp = pd.DataFrame(Counter(all_new_fts).most_common()[:5], columns=['Transformation', 'Frequency'])
+_temp = pd.DataFrame(Counter(all_new_fts).most_common()[:TOP_F], columns=['Transformation', 'Frequency'])
 _temp.index = _temp['Transformation']
 _temp = _temp.drop('Transformation', 1)
 plt.xticks(rotation='vertical')
