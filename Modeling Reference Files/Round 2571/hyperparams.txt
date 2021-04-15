@@ -1,6 +1,6 @@
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
-JOB INITIALIZED:  2021-04-15 11:02:29.244413
-RUN ID: 6914
+JOB INITIALIZED:  2021-04-15 11:25:41.334037
+RUN ID: 2571
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 SERVER HYPERPARAMETERS:
@@ -34,12 +34,12 @@ MISCELLANEOUS HYPERPARAMETRS:
                   'RMSLE': None,
                   'R^2': None,
                   'Rel. RMSE': 0},
- 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x116db7790>,
-                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x116db7790>,
-                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x116db7790>,
-                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x116db7790>,
-                 'R^2': <matplotlib.colors.ListedColormap object at 0x125ceeaf0>,
-                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x116db7790>}}
+ 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x1224447f0>,
+                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x1224447f0>,
+                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x1224447f0>,
+                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x1224447f0>,
+                 'R^2': <matplotlib.colors.ListedColormap object at 0x1313b3b50>,
+                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x1224447f0>}}
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 PREDICTORS
@@ -49,7 +49,6 @@ PREDICTORS
  'PRO_Toe_Pressure',
  'PRO_Heel_Temp',
  'PRO_Toe_Temp',
- 'PRO_Adj_Alloc_Oil',
  'Bin_2',
  'Bin_3',
  'Bin_4',

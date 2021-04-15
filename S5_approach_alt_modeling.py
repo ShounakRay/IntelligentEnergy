@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 15-Apr-2021 11:04:37:376  GMT-0600
+# @Last modified time: 15-Apr-2021 11:04:93:939  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -1272,7 +1272,7 @@ _ = """
 RESPONDER = 'PRO_Total_Fluid'  # OR 'PRO_Adj_Alloc_Oil'
 
 EXCLUDE = ['C1', 'Bin_1', 'Bin_8', 'Date']
-EXCLUDE.extend(['PRO_Alloc_Oil', 'PRO_Pump_Speed', 'PRO_Alloc_Oil', 'PRO_Adj_Pump_Speed'])
+EXCLUDE.extend(['PRO_Alloc_Oil', 'PRO_Pump_Speed', 'PRO_Alloc_Oil', 'PRO_Adj_Pump_Speed', 'PRO_Adj_Alloc_Oil'])
 
 data_pad, groupby_options_pad, PREDICTORS = data_refinement(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
 
