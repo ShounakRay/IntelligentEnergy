@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Apr-2021 13:04:57:579  GMT-0600
+# @Last modified time: 14-Apr-2021 15:04:29:290  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -80,8 +80,8 @@ MAX_EXP_RUNTIME: Final = 600                                  # The longest that
 RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments (caveats*)
 EVAL_METRIC: Final = 'rmse'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'rmse'                                   # Leaderboard ranking metric after all trainings
-CV_FOLDS: Final = 5                                           # Number of cross validation folds
-STOPPING_ROUNDS: Final = 3                                    # How many rounds to proceed until stopping_metric stops
+CV_FOLDS: Final = 50                                          # Number of cross validation folds
+STOPPING_ROUNDS: Final = 4                                    # How many rounds to proceed until stopping_metric stops
 WEIGHTS_COLUMN: Final = 'weight'                              # Name of the weights column
 EXPLOIT_RATIO: Final = 0.0                                    # Exploit/Eploration ratio, see NOTES
 MODELING_PLAN: Final = None                                   # Custom Modeling Plan
@@ -547,7 +547,7 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict,
                             'RANK_METRIC': None,
                             'RANDOM_SEED': [0, np.inf],
                             'WEIGHTS_COLUMNS': None,
-                            'CV_FOLDS': list(range(1, 10 + 1)),
+                            'CV_FOLDS': list(range(1, 100 + 1)),
                             'STOPPING_ROUNDS': list(range(1, 10 + 1)),
                             'EXPLOIT_RATIO': [0.0, 1.0],
                             'MODELING_PLAN': None,

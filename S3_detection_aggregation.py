@@ -3,13 +3,12 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Apr-2021 10:04:33:334  GMT-0600
+# @Last modified time: 14-Apr-2021 15:04:15:154  GMT-0600
 # @License: [Private IP]
 
 import math
 import os
 import pickle
-import re
 import sys
 from datetime import datetime
 from itertools import chain
@@ -837,8 +836,8 @@ for pwell in available_pwells_transformed:
 
 os.system('say finished weight exploratory analysis')
 
-COMBINED_AGGREGATES_PWELL.to_csv('Data/combined_ipc_aggregates_PWELL.csv')
-COMBINED_AGGREGATES.to_csv('Data/combined_ipc_aggregates.csv')
+COMBINED_AGGREGATES_PWELL.infer_objects().to_csv('Data/combined_ipc_aggregates_PWELL.csv')
+COMBINED_AGGREGATES.infer_objects().to_csv('Data/combined_ipc_aggregates.csv')
 
 os.system('say saved files to csv')
 

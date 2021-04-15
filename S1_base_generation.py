@@ -3,15 +3,13 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Apr-2021 09:04:79:795  GMT-0600
+# @Last modified time: 14-Apr-2021 13:04:06:066  GMT-0600
 # @License: [Private IP]
 
 
 import os
-from collections import Counter
 
 import pandas as pd
-from matplotlib import pyplot as plt
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # SOURCE INGESTION
@@ -181,6 +179,4 @@ df = pd.merge(df, well_test, how='left', on=['Date', 'PRO_Well'])
 
 df = df.dropna(subset=['PRO_Well', 'PRO_UWI'], how='any').reset_index(drop=True)
 
-df = df.infer_objects()
-
-df.to_csv('Data/combined_ipc.csv', index=False)
+df.infer_objects().to_csv('Data/combined_ipc.csv', index=False)

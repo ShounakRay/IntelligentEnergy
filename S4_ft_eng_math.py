@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: ft_eng_math.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Apr-2021 10:04:49:496  GMT-0600
+# @Last modified time: 14-Apr-2021 20:04:78:780  GMT-0600
 # @License: [Private IP]
 
 import itertools
@@ -78,6 +78,7 @@ for group in groupers:
     feateng_X_TRAIN = model_feateng.fit_transform(TRAIN_X, TRAIN_Y)
 
     new_ft[group] = (feateng_X_TRAIN, model_feateng.new_feat_cols_)
+
 
 # REFORMATTING
 all_new_fts = list(itertools.chain.from_iterable([tup[1] for tup in new_ft.values()]))

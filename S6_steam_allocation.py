@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Apr-2021 13:04:88:884  GMT-0600
+# @Last modified time: 14-Apr-2021 20:04:72:721  GMT-0600
 # @License: [Private IP]
 
 import pickle
@@ -27,7 +27,7 @@ pwell_allocation = {well_name: random.randint(100, 200) for well_name in pwells}
 dist_matrix = pd.read_pickle('Data/injector_producer_dist_matrix.pkl').infer_objects()
 all_injs = list(dist_matrix.columns)[1:]
 # NOTE: Load in producer well candidates
-candidates_by_prodpad = pickle.load(open('Data/candidates_by_prodpad.pkl', 'rb'))
+# candidates_by_prodpad = pickle.load(open('Data/candidates_by_prodpad.pkl', 'rb'))
 candidates_by_prodwell = pickle.load(open('Data/candidates_by_prodwell.pkl', 'rb'))
 
 # NOTE: Get sliced row from distance matrix for the specific producer well
