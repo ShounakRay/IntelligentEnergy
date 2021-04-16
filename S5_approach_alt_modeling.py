@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 15-Apr-2021 11:04:93:939  GMT-0600
+# @Last modified time: 15-Apr-2021 15:04:34:347  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -1225,8 +1225,8 @@ _ = """
 ####################################
 """
 # Split into train/test (CV) and holdout set (per each class of grouping)
-# pd_data_pad = pd.read_csv(DATA_PATH_PAD).drop('Unnamed: 0', axis=1)
-pd_data_pad = pd.read_csv(DATA_PATH_PAD_vanilla).drop('Unnamed: 0', axis=1)
+pd_data_pad = pd.read_csv(DATA_PATH_PAD).drop('Unnamed: 0', axis=1)
+# pd_data_pad = pd.read_csv(DATA_PATH_PAD_vanilla).drop('Unnamed: 0', axis=1)
 unique_pads = list(pd_data_pad['PRO_Pad'].unique())
 grouped_data_split = {}
 for u_pad in unique_pads:
@@ -1401,6 +1401,14 @@ _ = os.system("say Finished")
 #     shutdown_confirm(h2o)
 shutdown_confirm(h2o)
 print(OUT_BLOCK)
+
+# CSOR
+# Chlorides total pad
+# Constriants
+# 7200 cubes/day water
+# 305 cubes/hour
+# 288 cubes/hour
+# 14000 barells/day
 
 # EOF
 

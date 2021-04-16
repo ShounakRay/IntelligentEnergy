@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Apr-2021 20:04:95:951  GMT-0600
+# @Last modified time: 16-Apr-2021 13:04:75:750  GMT-0600
 # @License: [Private IP]
 
 
@@ -22,6 +22,8 @@ well_test = pd.read_excel(data_dir + "OLT well test data.xlsx")
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # DATA TRANSOFOMATION FUNCTIONS
+
+producer = 'AP3'
 
 
 def combine_data(producer):
