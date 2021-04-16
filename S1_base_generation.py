@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 16-Apr-2021 13:04:75:750  GMT-0600
+# @Last modified time: 16-Apr-2021 15:04:61:612  GMT-0600
 # @License: [Private IP]
 
 
@@ -22,8 +22,6 @@ well_test = pd.read_excel(data_dir + "OLT well test data.xlsx")
 
 # # # # # # # # # # # # # # # # # # # # # # # #
 # DATA TRANSOFOMATION FUNCTIONS
-
-producer = 'AP3'
 
 
 def combine_data(producer):
@@ -182,3 +180,5 @@ df = pd.merge(df, well_test, how='left', on=['Date', 'PRO_Well'])
 df = df.dropna(subset=['PRO_Well', 'PRO_UWI'], how='any').reset_index(drop=True)
 
 df.infer_objects().to_csv('Data/combined_ipc.csv', index=False)
+
+# EOF
