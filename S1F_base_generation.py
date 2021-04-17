@@ -3,11 +3,12 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S1F_base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 16-Apr-2021 15:04:82:828  GMT-0600
+# @Last modified time: 17-Apr-2021 00:04:61:610  GMT-0600
 # @License: [Private IP]
 
 import datetime
 import os
+from itertools import chain
 from typing import Final
 
 import pandas as pd
@@ -108,10 +109,11 @@ class Ingestion():
             condensed = condensed.sort_values('Date').set_index('Date')
 
         import_configs = get_default_args(self.ingest)
-        batch_1 = {k: v for k, v in kw_paths.items() if k in ['INJECTION', 'PRODUCTION', 'PRODUCTION_TEST']}
-        batch_2 = {k: v for k, v in kw_paths.items() if k in ['FIBER']}
+        batch_1 = {k: [v] if (k in ['INJECTION', 'PRODUCTION', 'PRODUCTION_TEST', 'FIBER'] and type(v) != list)
+                   else v for k, v in kw_paths.items()}
+        # batch_2 = {k: v for k, v in kw_paths.items() if k in ['FIBER']}
 
-        if (not batch_1) and (not batch_2):
+        if (not batch_1):
             raise ValueError('Nothing to import. `kwargs` are either improperly entered or ' +
                              'ingestion of unexpected files through `kwargs` was attempted.')
 
@@ -119,40 +121,46 @@ class Ingestion():
             fiber_tracker = []
             pwell_fiber = {}
             last_pwell = None
-            for kw, path in batch_1.items():
-                if(path.endswith('.csv')):
-                    try:
-                        print(f'> Importing {kw}...')
-                        imported_file = pd.read_csv(path, **import_configs)
-                    except Exception:
-                        raise ImportError(f'Fatally failed to ingest {path}. Check import configs and data source.')
-                elif(path.endswith(('.xlsx', '.xls', '.xlsm', '.xlsb', '.odf', '.ods', '.odt'))):
-                    import_configs = {}
-                    try:
-                        print(f'> Importing {kw}...')
-                        imported_file = pd.read_excel(path, **import_configs)
-                    except Exception:
-                        raise ImportError(f'Fatally failed to ingest {path}. Check import configs and data source.')
-                else:
-                    raise ImportError(f'Incompatible file extention. Cannot ingest {path}.')
+            for kw, path_s in batch_1.items():
+                for path in path_s:
+                    if(path.endswith('.csv')):
+                        try:
+                            print(f'> Importing {kw} – ' + path.split('/')[-1] + '...')
+                            imported_file = pd.read_csv(path, **import_configs)
+                        except Exception:
+                            raise ImportError(
+                                f'Fatally failed to ingest {path}. Check import configs and data source.')
+                    elif(path.endswith(('.xlsx', '.xls', '.xlsm', '.xlsb', '.odf', '.ods', '.odt'))):
+                        import_configs = {}
+                        try:
+                            print(f'> Importing {kw} – ' + path.split('/')[-1] + '...')
+                            imported_file = pd.read_excel(path, **import_configs)
+                        except Exception:
+                            raise ImportError(
+                                f'Fatally failed to ingest {path}. Check import configs and data source.')
+                    else:
+                        raise ImportError(f'Incompatible file extention. Cannot ingest {path}.')
 
-                if(kw == 'FIBER'):
-                    pwell = path.split('/')[2]
-                    if(pwell != last_pwell):
-                        pwell_fiber[pwell] = fiber_aggregation(pd.concat(fiber_tracker).reset_index(drop=True))
-                    last_pwell = pwell
-                    fiber_tracker.append(imported_file.T.iloc[1:])
-                    continue
+                    if(kw == 'FIBER'):
+                        pwell = path.split('/')[2]
+                        fiber_tracker.append(imported_file.T.iloc[1:])
+                        if(pwell != last_pwell):
+                            pwell_fiber_data = fiber_aggregation(pd.concat(fiber_tracker).reset_index(drop=True))
+                            pwell_fiber_data['PRO_Well'] = pwell
+                            pwell_fiber[pwell] = pwell_fiber_data
+                            fiber_tracker.clear()
+                        last_pwell = pwell
+                        continue
 
-                imported_file.columns = Ingestion.FORMAT_COLUMNS[kw]
-                self.datasets[kw] = imported_file.infer_objects()
+                    imported_file = imported_file.infer_objects()
+                    imported_file.columns = Ingestion.FORMAT_COLUMNS[kw]
 
-        if not batch_2:
-            for kw, path in batch_2.items():
-                if type(path) is not list:
-                    raise ValueError('Expected list of lists for FIBER data path entry.')
-                else:
-                    print(f'> Importing {kw}...')
+                    self.healthy_data(imported_file)
+                    self.datasets[kw] = imported_file
+            if('FIBER' in batch_1.keys()):
+                fiber_aggregate = pd.concat(list(pwell_fiber.values())).dropna(how='all', axis=1).infer_objects()
+                self.healthy_data(fiber_aggregate)
+                self.datasets['FIBER'] = fiber_aggregate
 
     def cleanup(self, data_group='ALL'):
         data_group = list(self.datasets.keys()) if data_group == 'ALL' else data_group
@@ -184,14 +192,16 @@ class Ingestion():
 def core_ingestion():
     ingestion = Ingestion()
 
+    FIBER_PRODUCERS = sorted([p for p in os.listdir('Data/DTS/') if p[0] != '.'])
+    FIBER_PATHS = list(chain.from_iterable([['Data/DTS/' + pwell + '/' + x for x in os.listdir('Data/DTS/' + pwell)]
+                                            for pwell in FIBER_PRODUCERS]))
+
     ingestion.ingest(INJECTION='Data/Isolated/OLT injection data.xlsx',
                      PRODUCTION='Data/Isolated/OLT production data (rev 1).xlsx',
-                     PRODUCTION_TEST='Data/Isolated/OLT well test data.xlsx')
+                     PRODUCTION_TEST='Data/Isolated/OLT well test data.xlsx',
+                     FIBER=FIBER_PATHS)
 
-    FIBER_PRODUCERS = sorted([p for p in os.listdir('Data/DTS/') if p[0] != '.'])
-    FIBER_PATHS = [['Data/DTS/' + pwell + '/' + x for x in os.listdir('Data/DTS/' + pwell)]
-                   for pwell in FIBER_PRODUCERS]
+    ingestion.ingest()
 
-    ingestion.ingest(FIBER=FIBER_PATHS)
 
 # EOF
