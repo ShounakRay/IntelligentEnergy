@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 19-Apr-2021 16:04:11:114  GMT-0600
+# @Last modified time: 19-Apr-2021 16:04:87:878  GMT-0600
 # @License: [Private IP]
 
 
@@ -64,7 +64,7 @@ def filter_out(datasets, FORMAT=FORMAT_COLUMNS, CHOICE=CHOICE_COLUMNS):
         _temp = df.copy()
         _temp.columns = FORMAT.get(name)
         _temp = _temp[CHOICE.get(name)]
-        df['name'] = _temp.infer_objects()
+        datasets[name] = _temp.infer_objects()
 
 
 def aggregate_fiber(producer_wells, **kwargs):
@@ -111,12 +111,14 @@ def aggregate_fiber(producer_wells, **kwargs):
     AP2_df.columns = ['Date', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5', 'Bin_6', 'Bin_7', 'Bin_8']
     AP2_df.drop([0, 1], axis=0, inplace=True)
     AP2_df.index = AP2_df['Date']
-    AP2_df.drop('Date', axis=1, inplace=True)
     AP2_df['PRO_Well'] = 'AP2'
-    AP2_df.index = pd.to_datetime(AP2_df.index)
+    AP2_df['Date'] = pd.to_datetime(AP2_df.index)
+    AP2_df.reset_index(drop=True)
 
     # Concatenating aggregated fiber and AP2 data
     aggregated_fiber = pd.concat([aggregated_fiber, AP2_df.infer_objects()]).reset_index(drop=True)
+
+    return aggregated_fiber
 
 
 def finalize_all(datasets, skip=['FIBER'], coerce_date=True):
@@ -124,13 +126,15 @@ def finalize_all(datasets, skip=['FIBER'], coerce_date=True):
         _temp = df.infer_objects()
         if(coerce_date):
             _temp['Date'] = pd.to_datetime(_temp['Date'])
-        datasets['name'] = _temp
+        datasets[name] = _temp
 
 
 def merge(datasets):
     df = pd.merge(datasets['PRODUCTION'], datasets['FIBER'], how='outer', on=['Date', 'PRO_Well'])
     df = pd.merge(df, datasets['INJECTION_TABLE'], how='outer', on=['Date'])
     df = pd.merge(df, datasets['PRODUCTION_TEST'], how='left', on=['Date', 'PRO_Well'])
+
+    df = df.dropna(subset=['PRO_Well', 'PRO_UWI'], how='any').reset_index(drop=True)
 
     return df
 
@@ -148,28 +152,25 @@ def _INGESTION():
                  data_dir + "OLT production data (rev 1).xlsx",
                  data_dir + "OLT well test data.xlsx"]
     with Pool(os.cpu_count() - 1) as pool:
-        inj, pro, protest = pool.starmap(_acessories.retrieve_local_data_file, filepaths)
+        inj, pro, protest = pool.map(_acessories.retrieve_local_data_file, filepaths)
     DATASETS = {'INJECTION': inj, 'PRODUCTION': pro, 'PRODUCTION_TEST': protest}
+
+    filter_out(DATASETS)
 
     _acessories._print('Ingesting and transforming FIBER data...')
     producer_wells = [p for p in os.listdir(fiber_dir) if p[0] != '.']
     DATASETS['FIBER'] = aggregate_fiber([i for i in producer_wells if i != 'AP2'], ap2_path=ap2_path)
 
-    _acessories._print('Ingesting and transforming FIBER data...')
+    _acessories._print('Transforming and filtering...')
     _temp = DATASETS['PRODUCTION']
     DATASETS['PRODUCTION'] = _temp[_temp['PRO_Well'].isin(producer_wells)]
-
     DATASETS['INJECTION_TABLE'] = pd.pivot_table(DATASETS['INJECTION'], values='INJ_Meter_Steam',
                                                  index='Date', columns='INJ_Well').reset_index()
 
-    merged_df = merge(DATASETS)
-
     finalize_all(DATASETS, skip=['FIBER'])
 
-    merged_df = merged_df.dropna(subset=['PRO_Well', 'PRO_UWI'], how='any').reset_index(drop=True)
+    merged_df = merge(DATASETS)
 
-    _acessories.save_local_data_file
-
-    df.infer_objects().to_csv('Data/combined_ipc.csv', index=False)
+    _acessories.save_local_data_file(merged_df, 'Data/combined_ipc.csv')
 
 # EOF

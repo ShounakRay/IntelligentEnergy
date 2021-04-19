@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 19-Apr-2021 15:04:22:221  GMT-0600
+# @Last modified time: 19-Apr-2021 16:04:33:334  GMT-0600
 # @License: [Private IP]
 
 import pandas as pd
@@ -35,7 +35,7 @@ def _print(txt: str, color: str = 'LIGHTGREEN_EX') -> None:
     exec(output)
 
 
-def retrieve_local_data_file(filedir, *args):
+def retrieve_local_data_file(filedir):
     data = None
     filename = filedir.split('/')[-1:][0]
     try:
