@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 19-Apr-2021 15:04:85:855  GMT-0600
+# @Last modified time: 19-Apr-2021 15:04:22:221  GMT-0600
 # @License: [Private IP]
 
 import pandas as pd
@@ -41,18 +41,15 @@ def retrieve_local_data_file(filedir, *args):
     try:
         if(filename.endswith('.csv')):
             _print(f'> Importing "{filename}"...', color='GREEN')
-            data = pd.read_csv(filedir, error_bad_lines=False, warn_bad_lines=False).T.iloc[1:].T
+            data = pd.read_csv(filedir, error_bad_lines=False, warn_bad_lines=False)
         elif(filename.endswith(('.xlsx', '.xls', '.xlsm', '.xlsb', '.odf', '.ods', '.odt'))):
             _print(f'> Importing "{filename}"...', color='GREEN')
-            data = pd.read_excel(filedir).T.iloc[1:].T
+            data = pd.read_excel(filedir)
         if(data is None):
             raise Exception
     except Exception as e:
         _print('Unable to retrieve local data', color='RED')
         raise e
-    print(args)
-    if(args[0] is True):
-        data = data.T.iloc[1:]
     return data.infer_objects()
 
 

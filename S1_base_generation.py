@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 19-Apr-2021 15:04:05:059  GMT-0600
+# @Last modified time: 19-Apr-2021 16:04:11:114  GMT-0600
 # @License: [Private IP]
 
 
@@ -72,15 +72,11 @@ def aggregate_fiber(producer_wells, **kwargs):
         def combine_data(producer):
             filedir = fiber_dir + producer + "/"
             files = os.listdir(filedir)
-            combined = []
-            for f in files:
-                print(f)
-                try:
-                    fiber_data = pd.read_csv(filedir + f, error_bad_lines=False).T.iloc[1:]
-                except Exception:
-                    fiber_data = pd.read_excel(filedir + f).T.iloc[1:]
-                combined.append(fiber_data)
-            return pd.concat(combined)
+            with Pool(os.cpu_count() - 1) as pool:
+                args = [filedir + f for f in files]
+                combined = pool.map(_acessories.retrieve_local_data_file, args)
+                combined = [df.T.iloc[1:] for df in combined]
+            return pd.concat(combined).infer_objects()
         combined = combine_data(producer)
         combined = combined.iloc[:, 9:]
         combined = combined.apply(pd.to_numeric)
@@ -111,13 +107,13 @@ def aggregate_fiber(producer_wells, **kwargs):
     aggregated_fiber = aggregated_fiber.dropna(how='all', axis=1)
 
     # Processing for AP2 which is thermocouple and in different format
-    AP2_df = pd.read_excel(ap2_path)
+    AP2_df = _acessories.retrieve_local_data_file(kwargs.get('ap2_path'))
     AP2_df.columns = ['Date', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5', 'Bin_6', 'Bin_7', 'Bin_8']
     AP2_df.drop([0, 1], axis=0, inplace=True)
     AP2_df.index = AP2_df['Date']
     AP2_df.drop('Date', axis=1, inplace=True)
     AP2_df['PRO_Well'] = 'AP2'
-    AP2_df.index = pd.to_datetime(kwargs.get(ap2_path).index)
+    AP2_df.index = pd.to_datetime(AP2_df.index)
 
     # Concatenating aggregated fiber and AP2 data
     aggregated_fiber = pd.concat([aggregated_fiber, AP2_df.infer_objects()]).reset_index(drop=True)
@@ -136,6 +132,8 @@ def merge(datasets):
     df = pd.merge(df, datasets['INJECTION_TABLE'], how='outer', on=['Date'])
     df = pd.merge(df, datasets['PRODUCTION_TEST'], how='left', on=['Date', 'PRO_Well'])
 
+    return df
+
 
 _ = """
 #######################################################################################################################
@@ -145,18 +143,19 @@ _ = """
 
 
 def _INGESTION():
+    _acessories._print('Ingesting for INJECTION, PRODUCTION, and PRODUCTION_TEST datasets...')
     filepaths = [data_dir + "OLT injection data.xlsx",
                  data_dir + "OLT production data (rev 1).xlsx",
                  data_dir + "OLT well test data.xlsx"]
     with Pool(os.cpu_count() - 1) as pool:
-        inj, pro, protest = pool.starmap(_acessories.retrieve_local_data_file, list(zip(filepaths,
-                                                                                        [False] * len(filepaths))))
+        inj, pro, protest = pool.starmap(_acessories.retrieve_local_data_file, filepaths)
     DATASETS = {'INJECTION': inj, 'PRODUCTION': pro, 'PRODUCTION_TEST': protest}
 
+    _acessories._print('Ingesting and transforming FIBER data...')
     producer_wells = [p for p in os.listdir(fiber_dir) if p[0] != '.']
+    DATASETS['FIBER'] = aggregate_fiber([i for i in producer_wells if i != 'AP2'], ap2_path=ap2_path)
 
-    DATASETS['FIBER'] = aggregate_fiber([i for i in producer_wells if i != 'AP2'])
-
+    _acessories._print('Ingesting and transforming FIBER data...')
     _temp = DATASETS['PRODUCTION']
     DATASETS['PRODUCTION'] = _temp[_temp['PRO_Well'].isin(producer_wells)]
 
