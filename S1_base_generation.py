@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 19-Apr-2021 16:04:87:878  GMT-0600
+# @Last modified time: 19-Apr-2021 16:04:12:120  GMT-0600
 # @License: [Private IP]
 
 
@@ -172,5 +172,9 @@ def _INGESTION():
     merged_df = merge(DATASETS)
 
     _acessories.save_local_data_file(merged_df, 'Data/combined_ipc.csv')
+
+
+if __name__ == '__main__':
+    _INGESTION()
 
 # EOF
