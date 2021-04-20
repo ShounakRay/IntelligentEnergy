@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 16:04:94:944  GMT-0600
+# @Last modified time: 20-Apr-2021 16:04:64:643  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -487,3 +487,52 @@
 #         plt.tight_layout()
 #
 #     plt.savefig('pro_pads_cols_ts.png')
+
+# _ = """
+# ####################################
+# ########  WELL-LEVEL MERGING #######
+# ####################################
+# """
+# PRODUCER_AGGREGATES_PWELL = FINALE_agg_pro_pwell[FINALE_agg_pro_pwell['PRO_Well'].isin(available_pwells_transformed)]
+# COMBINED_AGGREGATES_PWELL = pd.merge(PRODUCER_AGGREGATES_PWELL, INJECTOR_AGGREGATES_PWELL,
+#                                      how='inner', on=['Date', 'PRO_Well'])
+# COMBINED_AGGREGATES_PWELL, dropped_pwell = drop_singles(COMBINED_AGGREGATES_PWELL)
+# COMBINED_AGGREGATES_PWELL.infer_objects().to_csv('Data/combined_ipc_aggregates_PWELL.csv')
+
+# _ = """
+# ####################################
+# ##  AGGREGATION EDA – WELL LEVEL ###
+# ####################################
+# """
+# def plot_aggregation_eda(df, resp_feature_1, resp_feature_2, wells_iterator, pad_val):
+#     fig, ax = plt.subplots(figsize=(50, 25), nrows=2, ncols=2)
+#     ax[0][0].set_title(f'Aggregation breakdown of {resp_feature_1}')
+#     for pwell in wells_iterator:
+#         _temp = df[df['PRO_Well'] == pwell][resp_feature_1].reset_index(drop=True)
+#         _temp.plot(ax=ax[0][0], linewidth=0.9)
+#     _temp = COMBINED_AGGREGATES[COMBINED_AGGREGATES['PRO_Pad'] == pad_val][resp_feature_1]
+#     (_temp / 1).plot(ax=ax[0][0], c='black')
+#
+#     ax[0][1].set_title(f'Histogram of {resp_feature_1}')
+#     ax[0][1].hist(_temp, bins=200)
+#
+#     ax[1][0].set_title(f'Aggregation breakdown of {resp_feature_2}')
+#     for pwell in wells_iterator:
+#         _temp = df[df['PRO_Well'] == pwell][resp_feature_2].reset_index(drop=True)
+#         _temp.plot(ax=ax[1][0], linewidth=0.9)
+#     _temp = COMBINED_AGGREGATES[COMBINED_AGGREGATES['PRO_Pad'] == pad_val][resp_feature_2]
+#     (_temp / 1).plot(ax=ax[1][0], c='black')
+#
+#     ax[1][1].set_title(f'Histogram of {resp_feature_2}')
+#     ax[1][1].hist(_temp, bins=200)
+# plot_aggregation_eda(COMBINED_AGGREGATES, 'PRO_Adj_Alloc_Oil', 'weight',
+#                      available_pwells_transformed[:7], 'A')
+#
+# os.system('say finished plotting aggregation')
+
+# def visualize_anomalies(ft):
+#     fig, ax = plt.subplots(figsize=(12, 7))
+#     ft[ft['anomaly'] == 'Yes'][['date', 'selection']].plot(
+#         x='date', y='selection', kind='scatter', c='red', s=3, ax=ax)
+#     ft[ft['anomaly'] == 'No'][['date', 'selection']].plot(x='date', y='selection', kind='line', ax=ax)
+#     plt.show()
