@@ -5,10 +5,23 @@ IntelligentEnergy/
 │   └── JUPYTER-IPC_Real_Modeling-checkpoint.ipynb
 ├── __init__.py
 ├── __pycache__/
+│   ├── _acessories.cpython-38.pyc
 │   ├── _context_managers.cpython-38.pyc
+│   ├── acessories.cpython-38.pyc
 │   ├── defs.cpython-38.pyc
 │   └── util_traversal.cpython-38.pyc
-├── _context_managers.py
+├── _configs/
+│   └── FILE_STRUCTURE.txt
+├── _references/
+│   ├── .DS_Store
+│   ├── __pycache__/
+│   │   ├── _accessories.cpython-38.pyc
+│   │   ├── _acessories.cpython-38.pyc
+│   │   ├── _context_managers.cpython-38.pyc
+│   │   └── _traversal.cpython-38.pyc
+│   ├── _accessories.py
+│   ├── _context_managers.py
+│   └── _traversal.py
 ├── Approach 1/
 │   ├── .DS_Store
 │   ├── AUTO-IPC_Real_Manipulation.py

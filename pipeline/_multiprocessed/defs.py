@@ -3,17 +3,29 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: defs.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Apr-2021 14:04:78:783  GMT-0600
+# @Last modified time: 20-Apr-2021 11:04:73:735  GMT-0600
 # @License: [Private IP]
 
 import sys
 import warnings
 
-BASE_UPSCALED = 50
-UPSCALAR = 100
+import numpy as np
 
 
-def process_local_anomalydetection(df, pwell, cont_col):
+def _theo_fluid(df, producer):
+    producer_df = df[df['PRO_Well'] == producer].reset_index(drop=True)
+    producer_df.loc[producer_df['PRO_Engineering_Approved'] == False, 'PRO_Water'] = np.nan
+    producer_df = producer_df.sort_values('Date').interpolate('linear')
+    producer_df['PRO_Theo_Fluid'] = (producer_df['PRO_Fluid'] / producer_df['PRO_Pump_Efficiency']
+                                     ) * (100 / producer_df['PRO_Adj_Pump_Speed'])
+    producer_df = producer_df.replace([np.inf, -np.inf], np.nan)
+    producer_df['PRO_Theo_Fluid'] = producer_df['PRO_Theo_Fluid'].dropna().median() * \
+        producer_df['PRO_Adj_Pump_Speed']
+
+    return producer_df
+
+
+def process_local_anomalydetection(df, pwell, cont_col, BASE_UPSCALED=50, UPSCALAR=100):
     try:
         import Anomaly_Detection_PKG
     except Exception:

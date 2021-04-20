@@ -3,27 +3,60 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 19-Apr-2021 16:04:12:120  GMT-0600
+# @Last modified time: 20-Apr-2021 13:04:06:065  GMT-0600
 # @License: [Private IP]
 
 
 import os
+import sys
 from multiprocessing import Pool
+from pathlib import Path
 from typing import Final
 
-import _acessories
 import pandas as pd
+
+
+def ensure_cwd(expected_parent):
+    init_cwd = os.getcwd()
+    sub_dir = init_cwd.split('/')[-1]
+
+    if(sub_dir != expected_parent):
+        new_cwd = init_cwd
+        print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
+              f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
+    else:
+        new_cwd = init_cwd.replace('/' + sub_dir, '')
+        print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
+        os.chdir(new_cwd)
+
+
+if __name__ == '__main__':
+    try:
+        _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
+    except Exception:
+        _EXPECTED_PARENT_NAME = 'pipeline'
+        print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
+              f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
+    ensure_cwd(_EXPECTED_PARENT_NAME)
+    sys.path.insert(1, os.getcwd() + '/_references')
+    sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
+    import _accessories
+    import _context_managers
+    import _traversal
+
+# print(_traversal.print_tree_to_txt)
 
 _ = """
 #######################################################################################################################
 #############################################   HYPERPARAMETER SETTINGS   #############################################
 #######################################################################################################################
 """
-# # # # # # # # # # # # # # # # # # # # # # # #
-# SOURCE INGESTION
 data_dir = 'Data/Isolated/'
 fiber_dir = 'Data/DTS/'
 ap2_path = fiber_dir + 'AP2/AP2THERM.xlsx'
+filepaths = [data_dir + "OLT injection data.xlsx",
+             data_dir + "OLT production data (rev 1).xlsx",
+             data_dir + "OLT well test data.xlsx"]
 
 FORMAT_COLUMNS: Final = {'INJECTION': ['Date', 'INJ_Pad', 'INJ_Well', 'INJ_UWI', 'INJ_Time_On', 'INJ_Alloc_Steam',
                                        'INJ_Meter_Steam', 'INJ_Casing_BHP', 'INJ_Tubing_Pressure', 'INJ_Reason',
@@ -67,14 +100,36 @@ def filter_out(datasets, FORMAT=FORMAT_COLUMNS, CHOICE=CHOICE_COLUMNS):
         datasets[name] = _temp.infer_objects()
 
 
-def aggregate_fiber(producer_wells, **kwargs):
+def merge(datasets):
+    df = pd.merge(datasets['PRODUCTION'], datasets['FIBER'], how='outer', on=['Date', 'PRO_Well'])
+    df = pd.merge(df, datasets['INJECTION_TABLE'], how='outer', on=['Date'])
+    df = pd.merge(df, datasets['PRODUCTION_TEST'], how='left', on=['Date', 'PRO_Well'])
+
+    df = df.dropna(subset=['PRO_Well', 'PRO_UWI'], how='any').reset_index(drop=True)
+
+    return df
+
+
+def get_fiber_pwells(fiber_dir):
+    return [p for p in os.listdir(fiber_dir) if p[0] != '.']
+
+
+def ingest_sources(filepaths):
+    with Pool(os.cpu_count() - 1) as pool:
+        inj, pro, protest = pool.map(_accessories.retrieve_local_data_file, filepaths)
+    DATASETS = {'INJECTION': inj, 'PRODUCTION': pro, 'PRODUCTION_TEST': protest}
+
+    return DATASETS
+
+
+def ingest_fiber(producer_wells, **kwargs):
     def get_fiber_data(producer, bins=8):
         def combine_data(producer):
             filedir = fiber_dir + producer + "/"
             files = os.listdir(filedir)
             with Pool(os.cpu_count() - 1) as pool:
                 args = [filedir + f for f in files]
-                combined = pool.map(_acessories.retrieve_local_data_file, args)
+                combined = pool.map(_accessories.retrieve_local_data_file, args)
                 combined = [df.T.iloc[1:] for df in combined]
             return pd.concat(combined).infer_objects()
         combined = combine_data(producer)
@@ -107,7 +162,7 @@ def aggregate_fiber(producer_wells, **kwargs):
     aggregated_fiber = aggregated_fiber.dropna(how='all', axis=1)
 
     # Processing for AP2 which is thermocouple and in different format
-    AP2_df = _acessories.retrieve_local_data_file(kwargs.get('ap2_path'))
+    AP2_df = _accessories.retrieve_local_data_file(kwargs.get('ap2_path'))
     AP2_df.columns = ['Date', 'Bin_1', 'Bin_2', 'Bin_3', 'Bin_4', 'Bin_5', 'Bin_6', 'Bin_7', 'Bin_8']
     AP2_df.drop([0, 1], axis=0, inplace=True)
     AP2_df.index = AP2_df['Date']
@@ -121,24 +176,6 @@ def aggregate_fiber(producer_wells, **kwargs):
     return aggregated_fiber
 
 
-def finalize_all(datasets, skip=['FIBER'], coerce_date=True):
-    for name, df in datasets.items():
-        _temp = df.infer_objects()
-        if(coerce_date):
-            _temp['Date'] = pd.to_datetime(_temp['Date'])
-        datasets[name] = _temp
-
-
-def merge(datasets):
-    df = pd.merge(datasets['PRODUCTION'], datasets['FIBER'], how='outer', on=['Date', 'PRO_Well'])
-    df = pd.merge(df, datasets['INJECTION_TABLE'], how='outer', on=['Date'])
-    df = pd.merge(df, datasets['PRODUCTION_TEST'], how='left', on=['Date', 'PRO_Well'])
-
-    df = df.dropna(subset=['PRO_Well', 'PRO_UWI'], how='any').reset_index(drop=True)
-
-    return df
-
-
 _ = """
 #######################################################################################################################
 ##################################################   CORE EXECUTION  ##################################################
@@ -147,31 +184,24 @@ _ = """
 
 
 def _INGESTION():
-    _acessories._print('Ingesting for INJECTION, PRODUCTION, and PRODUCTION_TEST datasets...')
-    filepaths = [data_dir + "OLT injection data.xlsx",
-                 data_dir + "OLT production data (rev 1).xlsx",
-                 data_dir + "OLT well test data.xlsx"]
-    with Pool(os.cpu_count() - 1) as pool:
-        inj, pro, protest = pool.map(_acessories.retrieve_local_data_file, filepaths)
-    DATASETS = {'INJECTION': inj, 'PRODUCTION': pro, 'PRODUCTION_TEST': protest}
-
+    _accessories._print('Ingesting INJECTION, PRODUCTION, and PRODUCTION_TEST data...')
+    DATASETS = ingest_sources(filepaths)
     filter_out(DATASETS)
 
-    _acessories._print('Ingesting and transforming FIBER data...')
-    producer_wells = [p for p in os.listdir(fiber_dir) if p[0] != '.']
-    DATASETS['FIBER'] = aggregate_fiber([i for i in producer_wells if i != 'AP2'], ap2_path=ap2_path)
+    _accessories._print('Ingesting and transforming FIBER data...')
+    producer_wells = get_fiber_pwells(fiber_dir)
+    DATASETS['FIBER'] = ingest_fiber([i for i in producer_wells if i != 'AP2'], ap2_path=ap2_path)
 
-    _acessories._print('Transforming and filtering...')
+    _accessories._print('Transforming and filtering...')
     _temp = DATASETS['PRODUCTION']
     DATASETS['PRODUCTION'] = _temp[_temp['PRO_Well'].isin(producer_wells)]
     DATASETS['INJECTION_TABLE'] = pd.pivot_table(DATASETS['INJECTION'], values='INJ_Meter_Steam',
                                                  index='Date', columns='INJ_Well').reset_index()
 
-    finalize_all(DATASETS, skip=['FIBER'])
-
+    _accessories._print('Merging and saving...')
+    _accessories.finalize_all(DATASETS, skip=['FIBER'])
     merged_df = merge(DATASETS)
-
-    _acessories.save_local_data_file(merged_df, 'Data/combined_ipc.csv')
+    _accessories.save_local_data_file(merged_df, 'Data/combined_ipc.csv')
 
 
 if __name__ == '__main__':
