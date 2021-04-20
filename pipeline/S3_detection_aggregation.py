@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 15:04:63:631  GMT-0600
+# @Last modified time: 20-Apr-2021 16:04:04:048  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -102,8 +102,8 @@ def _AGGREGATION():
 
 
 FINALE = _accessories.retrieve_local_data_file('Data/combined_ipc_engineered_phys.csv')
-PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/INJECTION_[Well, Pad].pkl')
-INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/PRODUCTION_[Well, Pad].pkl')
+INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/INJECTION_[Well, Pad].pkl')
+PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/PRODUCTION_[Well, Pad].pkl')
 
 available_pads_transformed = ['A', 'B']
 available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in available_pads_transformed]
@@ -468,34 +468,6 @@ def specialized_anomaly_detection(FINALE):
     return anom_original_merged
 
 
-_ = """
-#######################################################################################################################
-#############################################   MINOR DATA PRE-PROCESSING  ############################################
-#######################################################################################################################
-"""
-
-FINALE['PRO_Pad'] = FINALE['PRO_Well'].apply(lambda x: PRO_PAD_KEYS.get(x))
-FINALE = FINALE.dropna(subset=['PRO_Well']).reset_index(drop=True)
-
-FINALE = filter_negatives(FINALE, FINALE.select_dtypes(float), out=True)
-# FINALE.drop(FINALE.columns[0], axis=1, inplace=True)
-
-_ = """
-#######################################################################################################################
-################################################   ANOMALY DETECTION   ################################################
-#######################################################################################################################
-"""
-FINALE = specialized_anomaly_detection(FINALE)
-
-os.system('say finished anomaly detection')
-
-_ = """
-#######################################################################################################################
-########################################   INJECTOR > RELATIVE REPRESENTATION   #######################################
-#######################################################################################################################
-"""
-
-
 def get_injector_coordinates():
     INJ_relcoords = {}
     INJ_relcoords = {'I02': '(757, 534)',
@@ -554,73 +526,66 @@ def get_injector_coordinates():
     return INJ_relcoords
 
 
-_ = """
-#######################################################################################################################
-########################################   PRODUCER > RELATIVE REPRESENTATION   #######################################
-#######################################################################################################################
-"""
-
-# NORTHING AND EASTING INPUTS
-# all_file_paths = [f for f in sorted(
-#     ['Data/Coordinates/' + c for c in list(os.walk('Data/Coordinates'))[0][2]]) if '.txt' in f]
-# all_wells = list(FINALE['PRO_Well'].unique())
-# all_pads = list(FINALE['PRO_Pad'].unique())
-#
-# liner_bounds = pd.read_excel('Data/Coordinates/Liner Depths (measured depth).xlsx').infer_objects()
-#
-# all_files = {}
-# all_positions = {}
-# for file_path in all_file_paths:
-#     well_group = str([group for group in all_wells + ['I2'] if group in file_path][0])
-#     lines = open(file_path, 'r', errors='ignore').readlines()
-#     all_files[file_path] = lines
-#
-#     try:
-#         data_line = [line.split('\n') for line in ''.join(
-#             map(str, lines)).split('\n\n') if 'Local Coordinates' in line][0]
-#         data_line = [line.split('\t') for line in data_line if line != '']
-#     except Exception:
-#         data_line = [line[0].split('\t') for line in data_line if line != '']
-#     data_start_index = sorted([data_line.index(line) for line in data_line if '0.0' in line[0]])[0]
-#     data_string = data_line[data_start_index:]
-#     data_string = [re.sub(' +', ' ', line[0].strip()) + '\n' for line in data_string]
-#     dummy_columns = ''.join(map(str, ['col_' + str(i) + ' ' for i in range(len(data_string[0].split(' ')))])) + '\n'
-#     str_obj_input = StringIO(dummy_columns + ''.join(map(str, data_string)))
-#     df = pd.read_csv(str_obj_input, sep=' ', error_bad_lines=False).dropna(1).infer_objects()
-#     df = df.select_dtypes(np.number)
-#     df.columns = ['Depth', 'Incl', 'Azim', 'SubSea_Depth', 'Vertical_Depth', 'Local_Northing', 'Local_Easting',
-#                   'UTM_Northing', 'UTM_Easting', 'Vertical_Section', 'Dogleg']
-#     # df = df[['UTM_Easting', 'UTM_Northing']]
-#
-#     start_bound = float(liner_bounds[liner_bounds['Well'] == well_group]['Liner Start (mD)'])
-#     end_bound = float(liner_bounds[liner_bounds['Well'] == well_group]['Liner End (mD)'])
-#     final_df = df[(df['Depth'] > start_bound) & (df['Depth'] < end_bound)]
-#     all_positions[well_group] = final_df.sort_values('Depth').reset_index(drop=True)
-#
-# fig, ax = plt.subplots(nrows=len(all_positions.keys()), ncols=2, figsize=(15, 40))
-# for well in all_positions.keys():
-#     group_df = all_positions[well]  # /all_positions[well].max()
-#     axes_1 = ax[list(all_positions.keys()).index(well)][0]
-#     axes_1.plot(group_df['UTM_Easting'], group_df['UTM_Northing'])
-#     axes_1.set_xlabel('UTM Easting')
-#     axes_1.set_ylabel('UTM Northing')
-#     axes_1.set_title(well + ' UTM Coordinates')
-#     # axes_1.set_ylim(1000000 + 3.963 * 10**6, 1000000 + 5.963 * 10**6)
-#
-#     axes_2 = ax[list(all_positions.keys()).index(well)][1]
-#     axes_2.plot(group_df['Local_Easting'], group_df['Local_Northing'])
-#     axes_1.set_xlabel('Local Easting')
-#     axes_1.set_xlabel('Local Northing')
-#     axes_2.set_title(well + ' Local Coordinates')
-#     axes_2.set_ylim(0, 225)
-# plt.tight_layout()
-# fig.suptitle('Coordinates Bounded by Provided Liner Depths XLSX File')
-# plt.savefig('Modeling Reference Files/Candidate Selection Images/provided_coordinate_plots.png',
-#             bbox_inches='tight')
-#
-
-
-def get_injector_coordinates():
+def get_producer_coordinates():
+    # NORTHING AND EASTING INPUTS
+    # all_file_paths = [f for f in sorted(
+    #     ['Data/Coordinates/' + c for c in list(os.walk('Data/Coordinates'))[0][2]]) if '.txt' in f]
+    # all_wells = list(FINALE['PRO_Well'].unique())
+    # all_pads = list(FINALE['PRO_Pad'].unique())
+    #
+    # liner_bounds = pd.read_excel('Data/Coordinates/Liner Depths (measured depth).xlsx').infer_objects()
+    #
+    # all_files = {}
+    # all_positions = {}
+    # for file_path in all_file_paths:
+    #     well_group = str([group for group in all_wells + ['I2'] if group in file_path][0])
+    #     lines = open(file_path, 'r', errors='ignore').readlines()
+    #     all_files[file_path] = lines
+    #
+    #     try:
+    #         data_line = [line.split('\n') for line in ''.join(
+    #             map(str, lines)).split('\n\n') if 'Local Coordinates' in line][0]
+    #         data_line = [line.split('\t') for line in data_line if line != '']
+    #     except Exception:
+    #         data_line = [line[0].split('\t') for line in data_line if line != '']
+    #     data_start_index = sorted([data_line.index(line) for line in data_line if '0.0' in line[0]])[0]
+    #     data_string = data_line[data_start_index:]
+    #     data_string = [re.sub(' +', ' ', line[0].strip()) + '\n' for line in data_string]
+    #     dummy_columns = ''.join(map(str, ['col_' + str(i) + ' '
+    #                                       for i in range(len(data_string[0].split(' ')))])) + '\n'
+    #     str_obj_input = StringIO(dummy_columns + ''.join(map(str, data_string)))
+    #     df = pd.read_csv(str_obj_input, sep=' ', error_bad_lines=False).dropna(1).infer_objects()
+    #     df = df.select_dtypes(np.number)
+    #     df.columns = ['Depth', 'Incl', 'Azim', 'SubSea_Depth', 'Vertical_Depth', 'Local_Northing', 'Local_Easting',
+    #                   'UTM_Northing', 'UTM_Easting', 'Vertical_Section', 'Dogleg']
+    #     # df = df[['UTM_Easting', 'UTM_Northing']]
+    #
+    #     start_bound = float(liner_bounds[liner_bounds['Well'] == well_group]['Liner Start (mD)'])
+    #     end_bound = float(liner_bounds[liner_bounds['Well'] == well_group]['Liner End (mD)'])
+    #     final_df = df[(df['Depth'] > start_bound) & (df['Depth'] < end_bound)]
+    #     all_positions[well_group] = final_df.sort_values('Depth').reset_index(drop=True)
+    #
+    # fig, ax = plt.subplots(nrows=len(all_positions.keys()), ncols=2, figsize=(15, 40))
+    # for well in all_positions.keys():
+    #     group_df = all_positions[well]  # /all_positions[well].max()
+    #     axes_1 = ax[list(all_positions.keys()).index(well)][0]
+    #     axes_1.plot(group_df['UTM_Easting'], group_df['UTM_Northing'])
+    #     axes_1.set_xlabel('UTM Easting')
+    #     axes_1.set_ylabel('UTM Northing')
+    #     axes_1.set_title(well + ' UTM Coordinates')
+    #     # axes_1.set_ylim(1000000 + 3.963 * 10**6, 1000000 + 5.963 * 10**6)
+    #
+    #     axes_2 = ax[list(all_positions.keys()).index(well)][1]
+    #     axes_2.plot(group_df['Local_Easting'], group_df['Local_Northing'])
+    #     axes_1.set_xlabel('Local Easting')
+    #     axes_1.set_xlabel('Local Northing')
+    #     axes_2.set_title(well + ' Local Coordinates')
+    #     axes_2.set_ylim(0, 225)
+    # plt.tight_layout()
+    # fig.suptitle('Coordinates Bounded by Provided Liner Depths XLSX File')
+    # plt.savefig('Modeling Reference Files/Candidate Selection Images/provided_coordinate_plots.png',
+    #             bbox_inches='tight')
+    #
     PRO_relcoords = {}
     PRO_relcoords = {'AP2': '(616, 512) <> (683, 557) <> (995, 551)',
                      'AP3': '(601, 522) <> (690, 582) <> (995, 582)',
@@ -638,29 +603,98 @@ def get_injector_coordinates():
     # Get relative position inputs
     # for well in [pw for pw in PRO_PAD_KEYS.keys() if 'A' in pw or 'B' in pw]:
     #     PRO_relcoords[well] = input(prompt='Please enter coordinates for producer {}'.format(well))
-    # Re-format relative positions
+    # k, v = list(PRO_relcoords.items())[0]
     for k, v in PRO_relcoords.items():
+        # Re-format relative positions
         # Parsing
         PRO_relcoords[k] = [chunk.strip() for chunk in v.split('<>')]
         # String to tuple
         PRO_relcoords[k] = [eval(chunk) for chunk in PRO_relcoords[k]]
-    # Re-scale relative positions (cartesian, not jS, system)
-    for k, v in PRO_relcoords.items():
+
+        # Re-scale relative positions (cartesian, not jS, system)
         transformed = []
         for coordinate in PRO_relcoords[k]:
             transformed.append((coordinate[0] - x_delta, y_delta - coordinate[1]))
-        PRO_relcoords[k] = transformed
-    # Find n points connecting the points
-    PRO_finalcoords = {}
-    for k, v in PRO_relcoords.items():
+
+        # Find n points connecting the points
         discrete_links = []
-        for coordinate_i in range(len(PRO_relcoords[k]) - 1):
-            c1 = PRO_relcoords[k][coordinate_i]
-            c2 = PRO_relcoords[k][coordinate_i + 1]
+        for coordinate_i in range(len(transformed) - 1):
+            c1 = transformed[coordinate_i]
+            c2 = transformed[coordinate_i + 1]
             num_points = int(euclidean_2d_distance(c1, c2) / focal_period)
             discrete_ind = intermediates(c1, c2, nb_points=num_points)
             discrete_links.append(discrete_ind)
-        PRO_finalcoords[k] = list(chain.from_iterable(discrete_links))
+        PRO_relcoords[k] = list(chain.from_iterable(discrete_links))
+
+    return PRO_relcoords
+
+
+def get_all_candidates(injection_coordinates, production_coordinates, save=True, plot=plot_geo):
+    candidates_by_prodpad = {}
+    reports_by_prodpad = {}
+    for pad in available_pads_transformed:
+        candidates, report = injector_candidates(production_pad=pad,
+                                                 production_well=None,
+                                                 pro_well_pad_relationship=PRO_PAD_KEYS,
+                                                 injector_coordinates=injection_coordinates,
+                                                 production_coordinates=production_coordinates,
+                                                 relative_radius=50)
+        candidates_by_prodpad[pad] = candidates
+        reports_by_prodpad[pad] = report
+
+    candidates_by_prodwell = {}
+    reports_by_prodwell = {}
+    for pwell in available_pwells_transformed:
+        candidates, report = injector_candidates(production_pad=None,
+                                                 production_well=pwell,
+                                                 pro_well_pad_relationship=None,
+                                                 injector_coordinates=injection_coordinates,
+                                                 production_coordinates=production_coordinates,
+                                                 relative_radius=50)
+        candidates_by_prodwell[pwell] = candidates
+        reports_by_prodwell[pwell] = report
+
+    if(plot_geo):
+        plot_geo_candidates(candidates_by_prodwell, 'BP4', production_coordinates, injection_coordinates)
+
+    with open('Data/PAD_Candidates.pkl', 'wb') as fp:
+        pickle.dump(candidates_by_prodpad, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
+    with open('Data/WELL_Candidates.pkl', 'wb') as fp:
+        pickle.dump(candidates_by_prodwell, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
+    return candidates_by_prodpad, candidates_by_prodwell
+
+
+_ = """
+#######################################################################################################################
+#############################################   MINOR DATA PRE-PROCESSING  ############################################
+#######################################################################################################################
+"""
+
+FINALE['PRO_Pad'] = FINALE['PRO_Well'].apply(lambda x: PRO_PAD_KEYS.get(x))
+FINALE = FINALE.dropna(subset=['PRO_Well']).reset_index(drop=True)
+
+FINALE = filter_negatives(FINALE, FINALE.select_dtypes(float), out=True)
+# FINALE.drop(FINALE.columns[0], axis=1, inplace=True)
+
+_ = """
+#######################################################################################################################
+################################################   ANOMALY DETECTION   ################################################
+#######################################################################################################################
+"""
+FINALE = specialized_anomaly_detection(FINALE)
+
+os.system('say finished anomaly detection')
+
+_ = """
+#######################################################################################################################
+###################################   INJECTOR, PRODUCER > RELATIVE REPRESENTATION   ##################################
+#######################################################################################################################
+"""
+
+INJ_relcoords = get_injector_coordinates()
+PRO_finalcoords = get_producer_coordinates()
 
 
 _ = """
@@ -669,40 +703,8 @@ _ = """
 #######################################################################################################################
 """
 
-candidates_by_prodpad = {}
-reports_by_prodpad = {}
-for pad in available_pads_transformed:
-    candidates, report = injector_candidates(production_pad=pad,
-                                             production_well=None,
-                                             pro_well_pad_relationship=PRO_PAD_KEYS,
-                                             injector_coordinates=INJ_relcoords,
-                                             production_coordinates=PRO_finalcoords,
-                                             relative_radius=50)
-    candidates_by_prodpad[pad] = candidates
-    reports_by_prodpad[pad] = report
+candidates_by_prodpad, candidates_by_prodwell = get_all_candidates(INJ_relcoords, PRO_finalcoords, save=True)
 
-candidates_by_prodwell = {}
-reports_by_prodwell = {}
-for pwell in available_pwells_transformed:
-    candidates, report = injector_candidates(production_pad=None,
-                                             production_well=pwell,
-                                             pro_well_pad_relationship=None,
-                                             injector_coordinates=INJ_relcoords,
-                                             production_coordinates=PRO_finalcoords,
-                                             relative_radius=50)
-    candidates_by_prodwell[pwell] = candidates
-    reports_by_prodwell[pwell] = report
-
-if(plot_geo):
-    plot_geo_candidates(candidates_by_prodwell, 'BP6', PRO_finalcoords, INJ_relcoords)
-
-with open('Data/candidates_by_prodpad.pkl', 'wb') as fp:
-    pickle.dump(candidates_by_prodpad, fp, protocol=pickle.HIGHEST_PROTOCOL)
-
-with open('Data/candidates_by_prodwell.pkl', 'wb') as fp:
-    pickle.dump(candidates_by_prodwell, fp, protocol=pickle.HIGHEST_PROTOCOL)
-
-os.system('say finished candidate selection')
 
 _ = """
 #######################################################################################################################
