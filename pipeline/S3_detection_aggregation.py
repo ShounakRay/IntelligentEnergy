@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 17:04:16:168  GMT-0600
+# @Last modified time: 20-Apr-2021 17:04:11:113  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     import _traversal
 
 
-# _traversal.print_tree_to_txt(PATH='_configs/FILE_STRUCTURE.txt')
+_traversal.print_tree_to_txt(PATH='_configs/FILE_STRUCTURE.txt')
 
 _ = """
 #######################################################################################################################
@@ -82,24 +82,7 @@ POS_BR = (1439, 1008)
 x_delta = POS_TL[0] | POS_BL[0]
 y_delta = POS_TR[0] | POS_BR[0]
 
-MAX = 150.0
-
 OLD_DUPLICATES = ['PRO_Alloc_Oil', 'PRO_Pump_Speed']
-
-_ = """
-#######################################################################################################################
-#################################################   DATA INGESTIONS   #################################################
-#######################################################################################################################
-"""
-
-
-def _DETECTION():
-    return
-
-
-def _AGGREGATION():
-    return
-
 
 aggregation_dict = {'PRO_Adj_Pump_Speed': 'mean',
                     # 'PRO_Pump_Speed': 'sum',
@@ -123,14 +106,6 @@ aggregation_dict = {'PRO_Adj_Pump_Speed': 'mean',
                     'Bin_7': 'mean',
                     'Bin_8': 'mean',
                     'weight': 'mean'}
-
-
-FINALE = _accessories.retrieve_local_data_file('Data/combined_ipc_engineered_phys.csv')
-INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/INJECTION_[Well, Pad].pkl')
-PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/PRODUCTION_[Well, Pad].pkl')
-
-available_pads_transformed = ['A', 'B']
-available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in available_pads_transformed]
 
 _ = """
 #######################################################################################################################
@@ -185,84 +160,13 @@ def drop_singles(df):
     return df, dropped
 
 
-def euclidean_2d_distance(c1, c2):
-    x1 = c1[0]
-    x2 = c2[0]
-    y1 = c1[1]
-    y2 = c2[1]
-    return math.hypot(x2 - x1, y2 - y1)
+def minor_processing(FINALE, PRO_PAD_KEYS):
+    FINALE['PRO_Pad'] = FINALE['PRO_Well'].apply(lambda x: PRO_PAD_KEYS.get(x))
+    FINALE = FINALE.dropna(subset=['PRO_Well']).reset_index(drop=True)
 
+    FINALE = filter_negatives(FINALE, FINALE.select_dtypes(float), out=True)
 
-def injector_candidates(production_pad, production_well,
-                        pro_well_pad_relationship, injector_coordinates, production_coordinates,
-                        relative_radius=relative_radius):
-
-    if(production_pad is not None or production_well is not None):
-        inclusion = pd.DataFrame([], columns=injector_coordinates.keys(), index=production_coordinates.keys())
-        for iwell, iwell_point in injector_coordinates.items():
-            x_test = iwell_point[0]
-            y_test = iwell_point[1]
-            inj_allpro_tracker = []
-            for pwell, pwell_points in production_coordinates.items():
-                inj_pro_level_tracker = []
-                for pwell_point in pwell_points:
-                    center_x = pwell_point[0]
-                    center_y = pwell_point[1]
-                    inclusion_condition = (x_test - center_x)**2 + (y_test - center_y)**2 < relative_radius**2
-                    inj_pro_level_tracker.append(inclusion_condition)
-                state = any(inj_pro_level_tracker)
-                inj_allpro_tracker.append(state)
-            inclusion[iwell] = inj_allpro_tracker
-
-        inclusion = inclusion.rename_axis('PRO_Well').reset_index()
-        if(production_pad is not None):
-            inclusion['PRO_Pad'] = [pro_well_pad_relationship.get(pwell) for pwell in inclusion['PRO_Well']]
-
-        if(production_pad is not None):
-            type_filtered_inclusion = inclusion[inclusion['PRO_Pad'] == production_pad].reset_index(drop=True)
-        elif(production_well is not None):
-            type_filtered_inclusion = inclusion[inclusion['PRO_Well'] == production_well].reset_index(drop=True)
-
-        all_possible_candidates = type_filtered_inclusion.select_dtypes(bool).columns
-        candidate_injectors_full = dict([(candidate, any(type_filtered_inclusion[candidate]))
-                                         for candidate in all_possible_candidates])
-        candidate_injectors = [k for k, v in candidate_injectors_full.items() if v is True]
-
-        return candidate_injectors, candidate_injectors_full
-    else:
-        raise ValueError('ERROR: Fatal parameter inputs for `injector_candidates`')
-
-
-def produce_injector_aggregates(FINALE, candidates_by_prodtype, group_type):
-    # This is just to delete the implicit duplicates found in the data
-    # > (each production well has the same injection data)
-    some_random_pwell = list(FINALE['PRO_Well'])[0]
-    injector_data = FINALE[FINALE['PRO_Well'] == some_random_pwell].reset_index(drop=True).drop('PRO_Well', 1)
-    all_injs = [c for c in injector_data.columns if 'I' in c and '_' not in c]
-
-    INJECTOR_AGGREGATES = {}
-    for category, cat_candidates in candidates_by_prodtype.items():
-        # Select candidates (not all the wells)
-        local_candidates = cat_candidates.copy()
-        absence = []
-        for cand in local_candidates:
-            if cand not in all_injs:
-                print('> STATUS: Candidate {} removed assessing {}, unavailable in initial data'.format(cand,
-                                                                                                        category))
-                absence.append(cand)
-        local_candidates = [el for el in local_candidates if el not in absence]
-
-        melted_inj = pd.melt(injector_data, id_vars=['Date'], value_vars=local_candidates,
-                             var_name='Injector', value_name='Steam')
-        melted_inj['INJ_Pad'] = melted_inj['Injector'].apply(lambda x: INJ_PAD_KEYS.get(x))
-        melted_inj = melted_inj[~melted_inj['INJ_Pad'].isna()].reset_index(drop=True)
-        # To groupby injector pads, by=['Date', 'INJ_Pad']
-        agg_inj = melted_inj.groupby(by=['Date'], axis=0, sort=False, as_index=False).sum()
-        agg_inj[group_type] = category
-        INJECTOR_AGGREGATES[category] = agg_inj
-    INJECTOR_AGGREGATES = pd.concat(INJECTOR_AGGREGATES.values()).reset_index(drop=True)
-
-    return INJECTOR_AGGREGATES
+    return FINALE
 
 
 def specialized_anomaly_detection(FINALE):
@@ -356,179 +260,311 @@ def specialized_anomaly_detection(FINALE):
     return anom_original_merged
 
 
-def get_injector_coordinates():
-    INJ_relcoords = {}
-    INJ_relcoords = {'I02': '(757, 534)',
-                     'I03': '(709, 519)',
-                     'I04': '(760, 488)',
-                     'I05': '(708, 443)',
-                     'I06': '(825, 537)',
-                     'I07': '(823, 461)',
-                     'I08': '(997, 571)',
-                     'I09': '(940, 516)',
-                     'I10': '(872, 489)',
-                     'I11': '(981, 477)',
-                     'I12': '(1026, 495)',
-                     'I13': '(1034, 444)',
-                     'I14': '(935, 440)',
-                     'I15': '(709, 686)',
-                     'I16': '(694, 611)',
-                     'I17': '(758, 649)',
-                     'I18': '(760, 571)',
-                     'I19': '(818, 684)',
-                     'I20': '(880, 645)',
-                     'I21': '(817, 606)',
-                     'I22': '(881, 565)',
-                     'I23': '(946, 682)',
-                     'I24': '(1066, 679)',
-                     'I25': '(1063, 604)',
-                     'I26': '(995, 643)',
-                     'I27': '(940, 604)',
-                     'I28': '(758, 801)',
-                     'I29': '(701, 766)',
-                     'I30': '(825, 763)',
-                     'I31': '(759, 736)',
-                     'I32': '(871, 716)',
-                     'I33': '(939, 739)',
-                     'I34': '(873, 801)',
-                     'I35': '(1023, 727)',
-                     'I36': '(996, 789)',
-                     'I37': '(1061, 782)',
-                     'I38': '(982, 529)',
-                     'I86': '(792, 385)',
-                     'I80': '(880, 416)',
-                     'I61': '(928, 370)',
-                     'I59': '(928, 334)',
-                     'I60': '(1036, 374)',
-                     'I47': '(1085, 411)',
-                     'I44': '(1144, 409)'}
-    # for inj in [k for k in INJ_PAD_KEYS.keys() if INJ_PAD_KEYS[k] in ['A', '15-05', '16-05', '11-05', '10-05',
-    #                                                                   '09-05', '06-05', '08-05']]:
-    #     INJ_relcoords[inj] = input(prompt='Please enter coordinates for injector {}'.format(inj))
-    for k, v in INJ_relcoords.items():
-        # String to tuple
-        INJ_relcoords[k] = eval(v)
-        v = INJ_relcoords[k]
-        # Re-scaling
-        INJ_relcoords[k] = (v[0] - x_delta, y_delta - v[1])
-    return INJ_relcoords
+def produce_injection_aggregates(FINALE, candidates_by_prodtype, group_type):
+    # This is just to delete the implicit duplicates found in the data
+    # > (each production well has the same injection data)
+    some_random_pwell = list(FINALE['PRO_Well'])[0]
+    injector_data = FINALE[FINALE['PRO_Well'] == some_random_pwell].reset_index(drop=True).drop('PRO_Well', 1)
+    all_injs = [c for c in injector_data.columns if 'I' in c and '_' not in c]
+
+    INJECTOR_AGGREGATES = {}
+    for category, cat_candidates in candidates_by_prodtype.items():
+        # Select candidates (not all the wells)
+        local_candidates = cat_candidates.copy()
+        absence = []
+        for cand in local_candidates:
+            if cand not in all_injs:
+                print('> STATUS: Candidate {} removed assessing {}, unavailable in initial data'.format(cand,
+                                                                                                        category))
+                absence.append(cand)
+        local_candidates = [el for el in local_candidates if el not in absence]
+
+        melted_inj = pd.melt(injector_data, id_vars=['Date'], value_vars=local_candidates,
+                             var_name='Injector', value_name='Steam')
+        melted_inj['INJ_Pad'] = melted_inj['Injector'].apply(lambda x: INJ_PAD_KEYS.get(x))
+        melted_inj = melted_inj[~melted_inj['INJ_Pad'].isna()].reset_index(drop=True)
+        # To groupby injector pads, by=['Date', 'INJ_Pad']
+        agg_inj = melted_inj.groupby(by=['Date'], axis=0, sort=False, as_index=False).sum()
+        agg_inj[group_type] = category
+        INJECTOR_AGGREGATES[category] = agg_inj
+    INJECTOR_AGGREGATES = pd.concat(INJECTOR_AGGREGATES.values()).reset_index(drop=True)
+
+    return INJECTOR_AGGREGATES
 
 
-def get_producer_coordinates(nb_points=8):
-    def intermediates(p1, p2, nb_points=nb_points):
-        """"Return a list of nb_points equally spaced points
-        between p1 and p2"""
-        # If we have 8 intermediate points, we have 8+1=9 spaces
-        # between p1 and p2
-        x_spacing = (p2[0] - p1[0]) / (nb_points + 1)
-        y_spacing = (p2[1] - p1[1]) / (nb_points + 1)
+def produce_production_aggregates(FINALE, aggregation_dict, group_name='PRO_Pad', include_weights=True):
+    if('weight' not in FINALE.columns):
+        _accessories._print('WARNING: The `weight` key does not exist in the supplied data. ' +
+                            '`include_weights` is now coerced to False.',
+                            color='LIGHTRED_EX')
+        include_weights = False
+        del aggregation_dict['weight']
 
-        return [[p1[0] + i * x_spacing, p1[1] + i * y_spacing]
-                for i in range(0, nb_points + 2)]
-    # NORTHING AND EASTING INPUTS
-    # all_file_paths = [f for f in sorted(
-    #     ['Data/Coordinates/' + c for c in list(os.walk('Data/Coordinates'))[0][2]]) if '.txt' in f]
-    # all_wells = list(FINALE['PRO_Well'].unique())
-    # all_pads = list(FINALE['PRO_Pad'].unique())
-    #
-    # liner_bounds = pd.read_excel('Data/Coordinates/Liner Depths (measured depth).xlsx').infer_objects()
-    #
-    # all_files = {}
-    # all_positions = {}
-    # for file_path in all_file_paths:
-    #     well_group = str([group for group in all_wells + ['I2'] if group in file_path][0])
-    #     lines = open(file_path, 'r', errors='ignore').readlines()
-    #     all_files[file_path] = lines
-    #
-    #     try:
-    #         data_line = [line.split('\n') for line in ''.join(
-    #             map(str, lines)).split('\n\n') if 'Local Coordinates' in line][0]
-    #         data_line = [line.split('\t') for line in data_line if line != '']
-    #     except Exception:
-    #         data_line = [line[0].split('\t') for line in data_line if line != '']
-    #     data_start_index = sorted([data_line.index(line) for line in data_line if '0.0' in line[0]])[0]
-    #     data_string = data_line[data_start_index:]
-    #     data_string = [re.sub(' +', ' ', line[0].strip()) + '\n' for line in data_string]
-    #     dummy_columns = ''.join(map(str, ['col_' + str(i) + ' '
-    #                                       for i in range(len(data_string[0].split(' ')))])) + '\n'
-    #     str_obj_input = StringIO(dummy_columns + ''.join(map(str, data_string)))
-    #     df = pd.read_csv(str_obj_input, sep=' ', error_bad_lines=False).dropna(1).infer_objects()
-    #     df = df.select_dtypes(np.number)
-    #     df.columns = ['Depth', 'Incl', 'Azim', 'SubSea_Depth', 'Vertical_Depth', 'Local_Northing', 'Local_Easting',
-    #                   'UTM_Northing', 'UTM_Easting', 'Vertical_Section', 'Dogleg']
-    #     # df = df[['UTM_Easting', 'UTM_Northing']]
-    #
-    #     start_bound = float(liner_bounds[liner_bounds['Well'] == well_group]['Liner Start (mD)'])
-    #     end_bound = float(liner_bounds[liner_bounds['Well'] == well_group]['Liner End (mD)'])
-    #     final_df = df[(df['Depth'] > start_bound) & (df['Depth'] < end_bound)]
-    #     all_positions[well_group] = final_df.sort_values('Depth').reset_index(drop=True)
-    #
-    # fig, ax = plt.subplots(nrows=len(all_positions.keys()), ncols=2, figsize=(15, 40))
-    # for well in all_positions.keys():
-    #     group_df = all_positions[well]  # /all_positions[well].max()
-    #     axes_1 = ax[list(all_positions.keys()).index(well)][0]
-    #     axes_1.plot(group_df['UTM_Easting'], group_df['UTM_Northing'])
-    #     axes_1.set_xlabel('UTM Easting')
-    #     axes_1.set_ylabel('UTM Northing')
-    #     axes_1.set_title(well + ' UTM Coordinates')
-    #     # axes_1.set_ylim(1000000 + 3.963 * 10**6, 1000000 + 5.963 * 10**6)
-    #
-    #     axes_2 = ax[list(all_positions.keys()).index(well)][1]
-    #     axes_2.plot(group_df['Local_Easting'], group_df['Local_Northing'])
-    #     axes_1.set_xlabel('Local Easting')
-    #     axes_1.set_xlabel('Local Northing')
-    #     axes_2.set_title(well + ' Local Coordinates')
-    #     axes_2.set_ylim(0, 225)
-    # plt.tight_layout()
-    # fig.suptitle('Coordinates Bounded by Provided Liner Depths XLSX File')
-    # plt.savefig('Modeling Reference Files/Candidate Selection Images/provided_coordinate_plots.png',
-    #             bbox_inches='tight')
-    #
-    PRO_relcoords = {}
-    PRO_relcoords = {'AP2': '(616, 512) <> (683, 557) <> (995, 551)',
-                     'AP3': '(601, 522) <> (690, 582) <> (995, 582)',
-                     'AP4': '(621, 504) <> (691, 526) <> (1052, 523)',
-                     'AP5': '(616, 483) <> (688, 505) <> (759, 507) <> (1058, 501)',
-                     'AP6': '(606, 470) <> (685, 478) <> (827, 472) <> (910, 472)',
-                     'AP7': '(602, 461) <> (674, 456) <> (846, 452) <> (992, 450)',
-                     'AP8': '(593, 456) <> (674, 429) <> (1009, 427)',
-                     'BP1': '(541, 733) <> (609, 654) <> (674, 633) <> (916, 636) <> (992, 635) <> (1015, 629)',
-                     'BP2': '(541, 747) <> (630, 670) <> (1014, 668)',
-                     'BP3': '(541, 760) <> (647, 704) <> (1016, 697)',
-                     'BP4': '(555, 772) <> (691, 752) <> (908, 750)',
-                     'BP5': '(555, 784) <> (838, 786) <> (1010, 748)',
-                     'BP6': '(555, 803) <> (690, 821) <> (1026, 817)'}
-    # Get relative position inputs
-    # for well in [pw for pw in PRO_PAD_KEYS.keys() if 'A' in pw or 'B' in pw]:
-    #     PRO_relcoords[well] = input(prompt='Please enter coordinates for producer {}'.format(well))
-    # k, v = list(PRO_relcoords.items())[0]
-    for k, v in PRO_relcoords.items():
-        # Re-format relative positions
-        # Parsing
-        PRO_relcoords[k] = [chunk.strip() for chunk in v.split('<>')]
-        # String to tuple
-        PRO_relcoords[k] = [eval(chunk) for chunk in PRO_relcoords[k]]
+    all_pro_data = list(aggregation_dict.keys())
 
-        # Re-scale relative positions (cartesian, not jS, system)
-        transformed = []
-        for coordinate in PRO_relcoords[k]:
-            transformed.append((coordinate[0] - x_delta, y_delta - coordinate[1]))
+    subset_cols = all_pro_data + ['Date'] + [group_name]
+    if include_weights:
+        subset_cols.extend(['weight'])
 
-        # Find n points connecting the points
-        discrete_links = []
-        for coordinate_i in range(len(transformed) - 1):
-            c1 = transformed[coordinate_i]
-            c2 = transformed[coordinate_i + 1]
-            num_points = int(euclidean_2d_distance(c1, c2) / focal_period)
-            discrete_ind = intermediates(c1, c2, nb_points=num_points)
-            discrete_links.append(discrete_ind)
-        PRO_relcoords[k] = list(chain.from_iterable(discrete_links))
+    FINALE_pro = FINALE[subset_cols]
+    FINALE_pro, dropped_cols = drop_singles(FINALE_pro)
 
-    return PRO_relcoords
+    FINALE_agg_pro = FINALE_pro.groupby(by=['Date', group_name], axis=0,
+                                        sort=False, as_index=False).agg(aggregation_dict)
+
+    return FINALE_agg_pro
+
+
+def euclidean_2d_distance(c1, c2):
+    x1 = c1[0]
+    x2 = c2[0]
+    y1 = c1[1]
+    y2 = c2[1]
+    return math.hypot(x2 - x1, y2 - y1)
+
+
+def get_coordinates(data_group):
+    def get_injector_coordinates():
+        INJ_relcoords = {}
+        INJ_relcoords = {'I02': '(757, 534)',
+                         'I03': '(709, 519)',
+                         'I04': '(760, 488)',
+                         'I05': '(708, 443)',
+                         'I06': '(825, 537)',
+                         'I07': '(823, 461)',
+                         'I08': '(997, 571)',
+                         'I09': '(940, 516)',
+                         'I10': '(872, 489)',
+                         'I11': '(981, 477)',
+                         'I12': '(1026, 495)',
+                         'I13': '(1034, 444)',
+                         'I14': '(935, 440)',
+                         'I15': '(709, 686)',
+                         'I16': '(694, 611)',
+                         'I17': '(758, 649)',
+                         'I18': '(760, 571)',
+                         'I19': '(818, 684)',
+                         'I20': '(880, 645)',
+                         'I21': '(817, 606)',
+                         'I22': '(881, 565)',
+                         'I23': '(946, 682)',
+                         'I24': '(1066, 679)',
+                         'I25': '(1063, 604)',
+                         'I26': '(995, 643)',
+                         'I27': '(940, 604)',
+                         'I28': '(758, 801)',
+                         'I29': '(701, 766)',
+                         'I30': '(825, 763)',
+                         'I31': '(759, 736)',
+                         'I32': '(871, 716)',
+                         'I33': '(939, 739)',
+                         'I34': '(873, 801)',
+                         'I35': '(1023, 727)',
+                         'I36': '(996, 789)',
+                         'I37': '(1061, 782)',
+                         'I38': '(982, 529)',
+                         'I86': '(792, 385)',
+                         'I80': '(880, 416)',
+                         'I61': '(928, 370)',
+                         'I59': '(928, 334)',
+                         'I60': '(1036, 374)',
+                         'I47': '(1085, 411)',
+                         'I44': '(1144, 409)'}
+        # for inj in [k for k in INJ_PAD_KEYS.keys() if INJ_PAD_KEYS[k] in ['A', '15-05', '16-05', '11-05', '10-05',
+        #                                                                   '09-05', '06-05', '08-05']]:
+        #     INJ_relcoords[inj] = input(prompt='Please enter coordinates for injector {}'.format(inj))
+        for k, v in INJ_relcoords.items():
+            # String to tuple
+            INJ_relcoords[k] = eval(v)
+            v = INJ_relcoords[k]
+            # Re-scaling
+            INJ_relcoords[k] = (v[0] - x_delta, y_delta - v[1])
+        return INJ_relcoords
+
+    def get_producer_coordinates(nb_points=8):
+        def intermediates(p1, p2, nb_points=nb_points):
+            """"Return a list of nb_points equally spaced points
+            between p1 and p2"""
+            # If we have 8 intermediate points, we have 8+1=9 spaces
+            # between p1 and p2
+            x_spacing = (p2[0] - p1[0]) / (nb_points + 1)
+            y_spacing = (p2[1] - p1[1]) / (nb_points + 1)
+
+            return [[p1[0] + i * x_spacing, p1[1] + i * y_spacing]
+                    for i in range(0, nb_points + 2)]
+        # NORTHING AND EASTING INPUTS
+        # all_file_paths = [f for f in sorted(
+        #     ['Data/Coordinates/' + c for c in list(os.walk('Data/Coordinates'))[0][2]]) if '.txt' in f]
+        # all_wells = list(FINALE['PRO_Well'].unique())
+        # all_pads = list(FINALE['PRO_Pad'].unique())
+        #
+        # liner_bounds = pd.read_excel('Data/Coordinates/Liner Depths (measured depth).xlsx').infer_objects()
+        #
+        # all_files = {}
+        # all_positions = {}
+        # for file_path in all_file_paths:
+        #     well_group = str([group for group in all_wells + ['I2'] if group in file_path][0])
+        #     lines = open(file_path, 'r', errors='ignore').readlines()
+        #     all_files[file_path] = lines
+        #
+        #     try:
+        #         data_line = [line.split('\n') for line in ''.join(
+        #             map(str, lines)).split('\n\n') if 'Local Coordinates' in line][0]
+        #         data_line = [line.split('\t') for line in data_line if line != '']
+        #     except Exception:
+        #         data_line = [line[0].split('\t') for line in data_line if line != '']
+        #     data_start_index = sorted([data_line.index(line) for line in data_line if '0.0' in line[0]])[0]
+        #     data_string = data_line[data_start_index:]
+        #     data_string = [re.sub(' +', ' ', line[0].strip()) + '\n' for line in data_string]
+        #     dummy_columns = ''.join(map(str, ['col_' + str(i) + ' '
+        #                                       for i in range(len(data_string[0].split(' ')))])) + '\n'
+        #     str_obj_input = StringIO(dummy_columns + ''.join(map(str, data_string)))
+        #     df = pd.read_csv(str_obj_input, sep=' ', error_bad_lines=False).dropna(1).infer_objects()
+        #     df = df.select_dtypes(np.number)
+            # df.columns = ['Depth', 'Incl', 'Azim', 'SubSea_Depth', 'Vertical_Depth', 'Local_Northing',
+            #               'Local_Easting', 'UTM_Northing', 'UTM_Easting', 'Vertical_Section', 'Dogleg']
+        #     # df = df[['UTM_Easting', 'UTM_Northing']]
+        #
+        #     start_bound = float(liner_bounds[liner_bounds['Well'] == well_group]['Liner Start (mD)'])
+        #     end_bound = float(liner_bounds[liner_bounds['Well'] == well_group]['Liner End (mD)'])
+        #     final_df = df[(df['Depth'] > start_bound) & (df['Depth'] < end_bound)]
+        #     all_positions[well_group] = final_df.sort_values('Depth').reset_index(drop=True)
+        #
+        # fig, ax = plt.subplots(nrows=len(all_positions.keys()), ncols=2, figsize=(15, 40))
+        # for well in all_positions.keys():
+        #     group_df = all_positions[well]  # /all_positions[well].max()
+        #     axes_1 = ax[list(all_positions.keys()).index(well)][0]
+        #     axes_1.plot(group_df['UTM_Easting'], group_df['UTM_Northing'])
+        #     axes_1.set_xlabel('UTM Easting')
+        #     axes_1.set_ylabel('UTM Northing')
+        #     axes_1.set_title(well + ' UTM Coordinates')
+        #     # axes_1.set_ylim(1000000 + 3.963 * 10**6, 1000000 + 5.963 * 10**6)
+        #
+        #     axes_2 = ax[list(all_positions.keys()).index(well)][1]
+        #     axes_2.plot(group_df['Local_Easting'], group_df['Local_Northing'])
+        #     axes_1.set_xlabel('Local Easting')
+        #     axes_1.set_xlabel('Local Northing')
+        #     axes_2.set_title(well + ' Local Coordinates')
+        #     axes_2.set_ylim(0, 225)
+        # plt.tight_layout()
+        # fig.suptitle('Coordinates Bounded by Provided Liner Depths XLSX File')
+        # plt.savefig('Modeling Reference Files/Candidate Selection Images/provided_coordinate_plots.png',
+        #             bbox_inches='tight')
+        #
+        PRO_relcoords = {}
+        PRO_relcoords = {'AP2': '(616, 512) <> (683, 557) <> (995, 551)',
+                         'AP3': '(601, 522) <> (690, 582) <> (995, 582)',
+                         'AP4': '(621, 504) <> (691, 526) <> (1052, 523)',
+                         'AP5': '(616, 483) <> (688, 505) <> (759, 507) <> (1058, 501)',
+                         'AP6': '(606, 470) <> (685, 478) <> (827, 472) <> (910, 472)',
+                         'AP7': '(602, 461) <> (674, 456) <> (846, 452) <> (992, 450)',
+                         'AP8': '(593, 456) <> (674, 429) <> (1009, 427)',
+                         'BP1': '(541, 733) <> (609, 654) <> (674, 633) <> (916, 636) <> (992, 635) <> (1015, 629)',
+                         'BP2': '(541, 747) <> (630, 670) <> (1014, 668)',
+                         'BP3': '(541, 760) <> (647, 704) <> (1016, 697)',
+                         'BP4': '(555, 772) <> (691, 752) <> (908, 750)',
+                         'BP5': '(555, 784) <> (838, 786) <> (1010, 748)',
+                         'BP6': '(555, 803) <> (690, 821) <> (1026, 817)'}
+        # Get relative position inputs
+        # for well in [pw for pw in PRO_PAD_KEYS.keys() if 'A' in pw or 'B' in pw]:
+        #     PRO_relcoords[well] = input(prompt='Please enter coordinates for producer {}'.format(well))
+        # k, v = list(PRO_relcoords.items())[0]
+        for k, v in PRO_relcoords.items():
+            # Re-format relative positions
+            # Parsing
+            PRO_relcoords[k] = [chunk.strip() for chunk in v.split('<>')]
+            # String to tuple
+            PRO_relcoords[k] = [eval(chunk) for chunk in PRO_relcoords[k]]
+
+            # Re-scale relative positions (cartesian, not jS, system)
+            transformed = []
+            for coordinate in PRO_relcoords[k]:
+                transformed.append((coordinate[0] - x_delta, y_delta - coordinate[1]))
+
+            # Find n points connecting the points
+            discrete_links = []
+            for coordinate_i in range(len(transformed) - 1):
+                c1 = transformed[coordinate_i]
+                c2 = transformed[coordinate_i + 1]
+                num_points = int(euclidean_2d_distance(c1, c2) / focal_period)
+                discrete_ind = intermediates(c1, c2, nb_points=num_points)
+                discrete_links.append(discrete_ind)
+            PRO_relcoords[k] = list(chain.from_iterable(discrete_links))
+
+        return PRO_relcoords
+
+    if(data_group == 'PRODUCTION'):
+        return get_producer_coordinates()
+    elif(data_group == 'INGESTION'):
+        return get_injector_coordinates()
+    else:
+        raise ValueError('Improperly entered `data_group` in `get_coordinates`.')
+
+
+def distance_matrix(injector_coordinates, producer_coordinates, save=True):
+    pro_inj_distance = pd.DataFrame([], columns=injector_coordinates.keys(), index=producer_coordinates.keys())
+    pro_inj_distance = pro_inj_distance.rename_axis('PRO_Well').reset_index()
+    operat = 'mean'
+    for injector in injector_coordinates.keys():
+        iwell_coord = injector_coordinates.get(injector)
+        PRO_Well_uniques = pro_inj_distance['PRO_Well']
+        inj_specific_distances = []
+        for pwell in PRO_Well_uniques:
+            pwell_coords = producer_coordinates.get(pwell)
+            point_distances = [euclidean_2d_distance(pwell_coord, iwell_coord) for pwell_coord in pwell_coords]
+            dist_store = np.mean(point_distances) if operat == 'mean' else min(point_distances)
+            inj_specific_distances.append(dist_store)
+        pro_inj_distance[injector] = inj_specific_distances
+    pro_inj_distance = pro_inj_distance.infer_objects()
+
+    if(save):
+        _accessories.save_local_data_file(pro_inj_distance, 'Data/DISTANCE_MATRIX.pkl')
+
+    return pro_inj_distance
 
 
 def get_all_candidates(injection_coordinates, production_coordinates,
+                       available_pads_transformed, available_pwells_transformed,
                        rel_rad=relative_radius, save=True, plot=plot_geo, **kwargs):
+    def injector_candidates(production_pad, production_well,
+                            pro_well_pad_relationship, injector_coordinates, production_coordinates,
+                            relative_radius=relative_radius):
+
+        if(production_pad is not None or production_well is not None):
+            inclusion = pd.DataFrame([], columns=injector_coordinates.keys(), index=production_coordinates.keys())
+            for iwell, iwell_point in injector_coordinates.items():
+                x_test = iwell_point[0]
+                y_test = iwell_point[1]
+                inj_allpro_tracker = []
+                for pwell, pwell_points in production_coordinates.items():
+                    inj_pro_level_tracker = []
+                    for pwell_point in pwell_points:
+                        center_x = pwell_point[0]
+                        center_y = pwell_point[1]
+                        inclusion_condition = (x_test - center_x)**2 + (y_test - center_y)**2 < relative_radius**2
+                        inj_pro_level_tracker.append(inclusion_condition)
+                    state = any(inj_pro_level_tracker)
+                    inj_allpro_tracker.append(state)
+                inclusion[iwell] = inj_allpro_tracker
+
+            inclusion = inclusion.rename_axis('PRO_Well').reset_index()
+            if(production_pad is not None):
+                inclusion['PRO_Pad'] = [pro_well_pad_relationship.get(pwell) for pwell in inclusion['PRO_Well']]
+
+            if(production_pad is not None):
+                type_filtered_inclusion = inclusion[inclusion['PRO_Pad'] == production_pad].reset_index(drop=True)
+            elif(production_well is not None):
+                type_filtered_inclusion = inclusion[inclusion['PRO_Well'] == production_well].reset_index(drop=True)
+
+            all_possible_candidates = type_filtered_inclusion.select_dtypes(bool).columns
+            candidate_injectors_full = dict([(candidate, any(type_filtered_inclusion[candidate]))
+                                             for candidate in all_possible_candidates])
+            candidate_injectors = [k for k, v in candidate_injectors_full.items() if v is True]
+
+            return candidate_injectors, candidate_injectors_full
+        else:
+            raise ValueError('ERROR: Fatal parameter inputs for `injector_candidates`')
+
     def plot_geo_candidates(candidate_dict, group_type, PRO_finalcoords, INJ_relcoords,
                             POS_TL=POS_TL, POS_BR=POS_BR, POS_TR=POS_TR):
         # Producer connections
@@ -598,49 +634,14 @@ def get_all_candidates(injection_coordinates, production_coordinates,
     return candidates_by_prodpad, candidates_by_prodwell
 
 
-def distance_matrix(injector_coordinates, producer_coordinates, save=True):
-    pro_inj_distance = pd.DataFrame([], columns=injector_coordinates.keys(), index=producer_coordinates.keys())
-    pro_inj_distance = pro_inj_distance.rename_axis('PRO_Well').reset_index()
-    operat = 'mean'
-    for injector in injector_coordinates.keys():
-        iwell_coord = injector_coordinates.get(injector)
-        PRO_Well_uniques = pro_inj_distance['PRO_Well']
-        inj_specific_distances = []
-        for pwell in PRO_Well_uniques:
-            pwell_coords = producer_coordinates.get(pwell)
-            point_distances = [euclidean_2d_distance(pwell_coord, iwell_coord) for pwell_coord in pwell_coords]
-            dist_store = np.mean(point_distances) if operat == 'mean' else min(point_distances)
-            inj_specific_distances.append(dist_store)
-        pro_inj_distance[injector] = inj_specific_distances
-    pro_inj_distance = pro_inj_distance.infer_objects()
+def merge(datasets, available_pads):
+    PRODUCER_AGGREGATES = datasets['PRODUCTION_AGGREGATES'][datasets['PRODUCTION_AGGREGATES']
+                                                            ['PRO_Pad'].isin(available_pads)]
+    COMBINED_AGGREGATES = pd.merge(datasets['PRODUCTION_AGGREGATES'], [datasets['PRODUCTION_AGGREGATES'],
+                                   how='inner', on=['Date', 'PRO_Pad'])
+    COMBINED_AGGREGATES, dropped = drop_singles(COMBINED_AGGREGATES)
 
-    if(save):
-        _accessories.save_local_data_file(pro_inj_distance, 'Data/DISTANCE_MATRIX.pkl')
-
-    return pro_inj_distance
-
-
-def produce_producer_aggregates(FINALE, aggregation_dict, group_name='PRO_Pad', include_weights=True):
-    if('weight' not in FINALE.columns):
-        _accessories._print('WARNING: The `weight` key does not exist in the supplied data. ' +
-                            '`include_weights` is now coerced to False.',
-                            color='LIGHTRED_EX')
-        include_weights = False
-        del aggregation_dict['weight']
-
-    all_pro_data = list(aggregation_dict.keys())
-
-    subset_cols = all_pro_data + ['Date'] + [group_name]
-    if include_weights:
-        subset_cols.extend(['weight'])
-
-    FINALE_pro = FINALE[subset_cols]
-    FINALE_pro, dropped_cols = drop_singles(FINALE_pro)
-
-    FINALE_agg_pro = FINALE_pro.groupby(by=['Date', group_name], axis=0,
-                                        sort=False, as_index=False).agg(aggregation_dict)
-
-    return FINALE_agg_pro
+    return COMBINED_AGGREGATES
 
 
 _ = """
@@ -649,93 +650,40 @@ _ = """
 #######################################################################################################################
 """
 
-FINALE['PRO_Pad'] = FINALE['PRO_Well'].apply(lambda x: PRO_PAD_KEYS.get(x))
-FINALE = FINALE.dropna(subset=['PRO_Well']).reset_index(drop=True)
 
-FINALE = filter_negatives(FINALE, FINALE.select_dtypes(float), out=True)
-# FINALE.drop(FINALE.columns[0], axis=1, inplace=True)
+def _INTELLIGENT_AGGREGATION():
+    DATASETS = {'FINALE': accessories.retrieve_local_data_file('Data/combined_ipc_engineered_phys.csv')}
+    INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/INJECTION_[Well, Pad].pkl')
+    PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/PRODUCTION_[Well, Pad].pkl')
 
-_ = """
-#######################################################################################################################
-################################################   ANOMALY DETECTION   ################################################
-#######################################################################################################################
-"""
-FINALE = specialized_anomaly_detection(FINALE)
+    available_pads_transformed = ['A', 'B']
+    available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in available_pads_transformed]
 
-os.system('say finished anomaly detection')
+    DATASETS['FINALE'] = minor_processing(DATASETS['FINALE'], PRO_PAD_KEYS)
 
-_ = """
-#######################################################################################################################
-###################################   INJECTOR, PRODUCER > RELATIVE REPRESENTATION   ##################################
-#######################################################################################################################
-"""
+    DATASETS['FINALE'] = specialized_anomaly_detection(DATASETS['FINALE'])
 
-INJ_relcoords = get_injector_coordinates()
-PRO_finalcoords = get_producer_coordinates()
+    INJ_relcoords = get_coordinates('INJECTION')
+    PRO_finalcoords = get_coordinates('PRODUCTION')
 
+    candidates_by_prodpad, candidates_by_prodwell = get_all_candidates(INJ_relcoords, PRO_finalcoords,
+                                                                       available_pads_transformed,
+                                                                       available_pwells_transformed,
+                                                                       save=True)
 
-_ = """
-#######################################################################################################################
-########################################   NAIVE INJECTOR SELECTION ALGORITHM   #######################################
-#######################################################################################################################
-"""
-
-candidates_by_prodpad, candidates_by_prodwell = get_all_candidates(INJ_relcoords, PRO_finalcoords, save=True)
+    _ = distance_matrix(INJ_relcoords, PRO_finalcoords, save=True)
 
 
-_ = """
-#######################################################################################################################
-########################################   PRODUCER/INJECTOR DISTANCE MATRIX    #######################################
-#######################################################################################################################
-"""
-pro_inj_distance = distance_matrix(INJ_relcoords, PRO_finalcoords, save=True)
+    DATASETS['PRODUCTION_AGGREGATES'] = produce_production_aggregates(DATASETS['FINALE'],
+                                                                      aggregation_dict.copy(),
+                                                                      include_weights=False)
+    DATASETS['INJECTOR_AGGREGATES'] = produce_injection_aggregates(DATASETS['FINALE'],
+                                                                   candidates_by_prodpad,
+                                                                   'PRO_Pad')
 
+    merged_df = merge(DATASETS, available_pads_transformed)
 
-_ = """
-#######################################################################################################################
-###########################################   PRODUCTION-DATA AGGREGATION   ###########################################
-#######################################################################################################################
-"""
-_ = """
-####################################
-######  PAD-LEVEL AGGREGATION ######
-####################################
-"""
-
-
-PRODUCTION_AGGREGATES = produce_producer_aggregates(FINALE, aggregation_dict.copy(), include_weights=False)
-
-
-_ = """
-#######################################################################################################################
-############################################   INJECTOR-DATA AGGREGATION   ############################################
-#######################################################################################################################
-"""
-
-_ = """
-####################################
-#####  PAD-LEVEL AGGREGATION #######
-####################################
-"""
-INJECTOR_AGGREGATES = produce_injector_aggregates(FINALE, candidates_by_prodpad, 'PRO_Pad')
-
-_ = """
-#######################################################################################################################
-#####################################   INJECTOR/PRODUCER AGGREGATION – MERGING   #####################################
-#######################################################################################################################
-"""
-_ = """
-####################################
-########  PAD-LEVEL MERGING ########
-####################################
-"""
-PRODUCER_AGGREGATES = PRODUCTION_AGGREGATES[PRODUCTION_AGGREGATES['PRO_Pad'].isin(available_pads_transformed)]
-COMBINED_AGGREGATES = pd.merge(PRODUCER_AGGREGATES, INJECTOR_AGGREGATES,
-                               how='inner', on=['Date', 'PRO_Pad'])
-COMBINED_AGGREGATES, dropped = drop_singles(COMBINED_AGGREGATES)
-
-
-_accessories.save_local_data_file(COMBINED_AGGREGATES, 'Data/combined_ipc_aggregates.csv')
+    _accessories.save_local_data_file(COMBINED_AGGREGATES, 'Data/combined_ipc_aggregates.csv')
 
 
 # _ = """
@@ -743,6 +691,7 @@ _accessories.save_local_data_file(COMBINED_AGGREGATES, 'Data/combined_ipc_aggreg
 # ###########  WEIGHT EDA ############
 # ####################################
 # """
+# MAX = 150.0
 # def plot_weights_eda(df, groupby_val, groupby_col, time_col='Date', weight_col='weight', col_thresh=None):
 #     plt.figure(figsize=(30, 20))
 #     _temp = df[df[groupby_col] == groupby_val].sort_values(time_col).reset_index(drop=True)
