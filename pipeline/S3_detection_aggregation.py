@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 16:04:04:048  GMT-0600
+# @Last modified time: 20-Apr-2021 16:04:96:969  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -629,7 +629,8 @@ def get_producer_coordinates():
     return PRO_relcoords
 
 
-def get_all_candidates(injection_coordinates, production_coordinates, save=True, plot=plot_geo):
+def get_all_candidates(injection_coordinates, production_coordinates,
+                       rel_rad=relative_radius, save=True, plot=plot_geo, **kwargs):
     candidates_by_prodpad = {}
     reports_by_prodpad = {}
     for pad in available_pads_transformed:
@@ -638,7 +639,7 @@ def get_all_candidates(injection_coordinates, production_coordinates, save=True,
                                                  pro_well_pad_relationship=PRO_PAD_KEYS,
                                                  injector_coordinates=injection_coordinates,
                                                  production_coordinates=production_coordinates,
-                                                 relative_radius=50)
+                                                 relative_radius=relative_radius)
         candidates_by_prodpad[pad] = candidates
         reports_by_prodpad[pad] = report
 
@@ -650,20 +651,72 @@ def get_all_candidates(injection_coordinates, production_coordinates, save=True,
                                                  pro_well_pad_relationship=None,
                                                  injector_coordinates=injection_coordinates,
                                                  production_coordinates=production_coordinates,
-                                                 relative_radius=50)
+                                                 relative_radius=relative_radius)
         candidates_by_prodwell[pwell] = candidates
         reports_by_prodwell[pwell] = report
 
     if(plot_geo):
-        plot_geo_candidates(candidates_by_prodwell, 'BP4', production_coordinates, injection_coordinates)
+        group = kwargs.get('group')
+        name = kwargs.get('name')
+        if(group is None or name is None):
+            raise ValueError('Improper kwargs for `get_all_candidates`. Please check `group` and `name`.')
+        elif(group == 'PAD'):
+            plot_geo_candidates(candidates_by_prodpad, name,
+                                production_coordinates, injection_coordinates)
+        elif(group == 'WELL'):
+            plot_geo_candidates(candidates_by_prodwell, name,
+                                production_coordinates, injection_coordinates)
 
-    with open('Data/PAD_Candidates.pkl', 'wb') as fp:
-        pickle.dump(candidates_by_prodpad, fp, protocol=pickle.HIGHEST_PROTOCOL)
-
-    with open('Data/WELL_Candidates.pkl', 'wb') as fp:
-        pickle.dump(candidates_by_prodwell, fp, protocol=pickle.HIGHEST_PROTOCOL)
+    if(save):
+        _accessories.save_local_data_file(candidates_by_prodpad, 'Data/PAD_Candidates.pkl')
+        _accessories.save_local_data_file(candidates_by_prodwell, 'Data/WELL_Candidates.pkl')
 
     return candidates_by_prodpad, candidates_by_prodwell
+
+
+def distance_matrix(injector_coordinates, producer_coordinates, save=True):
+    pro_inj_distance = pd.DataFrame([], columns=injector_coordinates.keys(), index=producer_coordinates.keys())
+    pro_inj_distance = pro_inj_distance.rename_axis('PRO_Well').reset_index()
+    operat = 'mean'
+    for injector in injector_coordinates.keys():
+        iwell_coord = injector_coordinates.get(injector)
+        PRO_Well_uniques = pro_inj_distance['PRO_Well']
+        inj_specific_distances = []
+        for pwell in PRO_Well_uniques:
+            pwell_coords = producer_coordinates.get(pwell)
+            point_distances = [euclidean_2d_distance(pwell_coord, iwell_coord) for pwell_coord in pwell_coords]
+            dist_store = np.mean(point_distances) if operat == 'mean' else min(point_distances)
+            inj_specific_distances.append(dist_store)
+        pro_inj_distance[injector] = inj_specific_distances
+    pro_inj_distance = pro_inj_distance.infer_objects()
+
+    if(save):
+        _accessories.save_local_data_file(pro_inj_distance, 'Data/DISTANCE_MATRIX.pkl')
+
+    return pro_inj_distance
+
+
+def produce_producer_aggregates(FINALE, aggregation_dict, group_name='PRO_Pad', include_weights=True):
+    if('weight' not in FINALE.columns):
+        _accessories._print('WARNING: The `weight` key does not exist in the supplied data. ' +
+                            '`include_weights` is now coerced to False.',
+                            color='LIGHTRED_EX')
+        include_weights = False
+        del aggregation_dict['weight']
+
+    all_pro_data = list(aggregation_dict.keys())
+
+    subset_cols = all_pro_data + ['Date'] + [group_name]
+    if include_weights:
+        subset_cols.extend(['weight'])
+
+    FINALE_pro = FINALE[subset_cols]
+    FINALE_pro, dropped_cols = drop_singles(FINALE_pro)
+
+    FINALE_agg_pro = FINALE_pro.groupby(by=['Date', group_name], axis=0,
+                                        sort=False, as_index=False).agg(aggregation_dict)
+
+    return FINALE_agg_pro
 
 
 _ = """
@@ -711,24 +764,8 @@ _ = """
 ########################################   PRODUCER/INJECTOR DISTANCE MATRIX    #######################################
 #######################################################################################################################
 """
+pro_inj_distance = distance_matrix(INJ_relcoords, PRO_finalcoords, save=True)
 
-pro_inj_distance = pd.DataFrame([], columns=INJ_relcoords.keys(), index=PRO_finalcoords.keys())
-pro_inj_distance = pro_inj_distance.rename_axis('PRO_Well').reset_index()
-operat = 'mean'
-for injector in INJ_relcoords.keys():
-    iwell_coord = INJ_relcoords.get(injector)
-    PRO_Well_uniques = pro_inj_distance['PRO_Well']
-    inj_specific_distances = []
-    for pwell in PRO_Well_uniques:
-        pwell_coords = PRO_finalcoords.get(pwell)
-        point_distances = [euclidean_2d_distance(pwell_coord, iwell_coord) for pwell_coord in pwell_coords]
-        dist_store = np.mean(point_distances) if operat == 'mean' else min(point_distances)
-        inj_specific_distances.append(dist_store)
-    pro_inj_distance[injector] = inj_specific_distances
-
-pro_inj_distance.infer_objects().to_pickle('Data/injector_producer_dist_matrix.pkl')
-
-os.system('say finished distance matrix')
 
 _ = """
 #######################################################################################################################
@@ -740,33 +777,6 @@ _ = """
 ######  PAD-LEVEL AGGREGATION ######
 ####################################
 """
-unique_pro_pads = list(FINALE['PRO_Pad'].unique())
-all_pro_data = ['PRO_Well',
-                'PRO_Adj_Pump_Speed',
-                # 'PRO_Pump_Speed',
-                # 'PRO_Time_On',
-                'PRO_Casing_Pressure',
-                'PRO_Heel_Pressure',
-                'PRO_Toe_Pressure',
-                'PRO_Heel_Temp',
-                'PRO_Toe_Temp',
-                'PRO_Pad',
-                # 'PRO_Duration',
-                'PRO_Adj_Alloc_Oil',
-                # 'PRO_Alloc_Oil',
-                'PRO_Total_Fluid',
-                # 'PRO_Alloc_Water',
-                'Bin_1',
-                'Bin_2',
-                'Bin_3',
-                'Bin_4',
-                'Bin_5',
-                'Bin_6',
-                'Bin_7',
-                'Bin_8']
-
-FINALE_pro = FINALE[all_pro_data + ['Date', 'weight']]
-FINALE_pro, dropped_cols = drop_singles(FINALE_pro)
 
 aggregation_dict = {'PRO_Adj_Pump_Speed': 'mean',
                     # 'PRO_Pump_Speed': 'sum',
@@ -791,42 +801,9 @@ aggregation_dict = {'PRO_Adj_Pump_Speed': 'mean',
                     'Bin_8': 'mean',
                     'weight': 'mean'}
 
-FINALE_agg_pro = FINALE_pro.groupby(by=['Date', 'PRO_Pad'], axis=0,
-                                    sort=False, as_index=False).agg(aggregation_dict)
 
-if(plot_eda):
-    # FIGURE PLOTTING (PRODUCTION PAD-LEVEL STATISTICS)
-    master_rows = len(unique_pro_pads)
-    master_cols = len(FINALE_agg_pro.select_dtypes(float).columns)
-    fig, ax = plt.subplots(nrows=master_rows, ncols=master_cols, figsize=(200, 50))
-    for pad in unique_pro_pads:
-        temp_pad = FINALE_agg_pro[FINALE_agg_pro['PRO_Pad'] == pad].sort_values('Date').reset_index(drop=True)
-        d_1 = list(temp_pad['Date'])[0]
-        d_n = list(temp_pad['Date'])[-1]
-        numcols = FINALE_agg_pro.select_dtypes(float).columns
-        for col in numcols:
-            temp = temp_pad[[col]]
-            temp = temp.interpolate('linear')
-            # if all(temp.isna()):
-            #     temp = temp.fillna(0)
-            subp = ax[unique_pro_pads.index(pad)][list(numcols).index(col)]
-            subp.plot(temp[col], label='Producer ' + pad + ', Metric ' +
-                      col + '\n{} > {}'.format(d_1, d_n))
-            subp.legend()
-            plt.tight_layout()
-        plt.tight_layout()
+PRODUCTION_AGGREGATES = produce_producer_aggregates(FINALE, aggregation_dict.copy(), include_weights=False)
 
-    plt.savefig('pro_pads_cols_ts.png')
-
-os.system('say finished producer pad aggregation')
-
-# _ = """
-# ####################################
-# #####  WELL-LEVEL AGGREGATION ######
-# ####################################
-# """
-# FINALE_agg_pro_pwell = FINALE_pro.groupby(by=['Date', 'PRO_Well'], axis=0,
-#                                           sort=False, as_index=False).agg(aggregation_dict)
 
 _ = """
 #######################################################################################################################
@@ -844,14 +821,6 @@ _ = """
 """
 INJECTOR_AGGREGATES = produce_injector_aggregates(candidates_by_prodpad, FINALE_inj, 'PRO_Pad')
 
-# _ = """
-# ####################################
-# #####  WELL-LEVEL AGGREGATION ######
-# ####################################
-# """
-# INJECTOR_AGGREGATES_PWELL = produce_injector_aggregates(candidates_by_prodwell, FINALE_inj, 'PRO_Well')
-
-os.system('say finished injector aggregation')
 
 _ = """
 #######################################################################################################################

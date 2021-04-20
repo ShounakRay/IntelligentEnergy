@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 08-Apr-2021 12:04:64:647  GMT-0600
+# @Last modified time: 20-Apr-2021 16:04:94:944  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -462,3 +462,28 @@
 # equ =
 # sympy.preview(all_new_fts[0], viewer='file', filename='output.png')
 # sympy.utilities.misc.find_executable('latex')
+
+# # PAD LEVEL AGGREGATION FOR INJECTION AGGREGATION
+# if(plot_eda):
+#     # FIGURE PLOTTING (PRODUCTION PAD-LEVEL STATISTICS)
+#     master_rows = len(unique_pro_pads)
+#     master_cols = len(FINALE_agg_pro.select_dtypes(float).columns)
+#     fig, ax = plt.subplots(nrows=master_rows, ncols=master_cols, figsize=(200, 50))
+#     for pad in unique_pro_pads:
+#         temp_pad = FINALE_agg_pro[FINALE_agg_pro['PRO_Pad'] == pad].sort_values('Date').reset_index(drop=True)
+#         d_1 = list(temp_pad['Date'])[0]
+#         d_n = list(temp_pad['Date'])[-1]
+#         numcols = FINALE_agg_pro.select_dtypes(float).columns
+#         for col in numcols:
+#             temp = temp_pad[[col]]
+#             temp = temp.interpolate('linear')
+#             # if all(temp.isna()):
+#             #     temp = temp.fillna(0)
+#             subp = ax[unique_pro_pads.index(pad)][list(numcols).index(col)]
+#             subp.plot(temp[col], label='Producer ' + pad + ', Metric ' +
+#                       col + '\n{} > {}'.format(d_1, d_n))
+#             subp.legend()
+#             plt.tight_layout()
+#         plt.tight_layout()
+#
+#     plt.savefig('pro_pads_cols_ts.png')
