@@ -3,9 +3,10 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 15-Apr-2021 09:04:81:813  GMT-0600
+# @Last modified time: 20-Apr-2021 15:04:63:631  GMT-0600
 # @License: [Private IP]
 
+import ast
 import math
 import os
 import pickle
@@ -27,14 +28,44 @@ except Exception:
 
 import warnings
 
-import defs
+
+def ensure_cwd(expected_parent):
+    init_cwd = os.getcwd()
+    sub_dir = init_cwd.split('/')[-1]
+
+    if(sub_dir != expected_parent):
+        new_cwd = init_cwd
+        print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
+              f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
+    else:
+        new_cwd = init_cwd.replace('/' + sub_dir, '')
+        print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
+        os.chdir(new_cwd)
+
+
+if __name__ == '__main__':
+    try:
+        _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
+    except Exception:
+        _EXPECTED_PARENT_NAME = 'pipeline'
+        print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
+              f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
+    ensure_cwd(_EXPECTED_PARENT_NAME)
+    sys.path.insert(1, os.getcwd() + '/_references')
+    sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
+    import _accessories
+    import _context_managers
+    import _multiprocessed.defs as defs
+    import _traversal
+
+
+# _traversal.print_tree_to_txt(PATH='_configs/FILE_STRUCTURE.txt')
 
 _ = """
 #######################################################################################################################
 #############################################   HYPERPARAMETER SETTINGS   #############################################
 #######################################################################################################################
 """
-
 plot_eda = False
 plot_geo = False
 
@@ -61,12 +92,18 @@ _ = """
 #######################################################################################################################
 """
 
-FINALE = pd.read_csv('Data/combined_ipc_engineered_phys.csv').infer_objects()
-DATA_INJECTION_ORIG = pd.read_pickle('Data/Pickles/DATA_INJECTION_ORIG.pkl')
-DATA_PRODUCTION_ORIG = pd.read_pickle('Data/Pickles/DATA_PRODUCTION_ORIG.pkl')
 
-PRO_PAD_KEYS = dict(zip(DATA_PRODUCTION_ORIG['Well'], DATA_PRODUCTION_ORIG['Pad']))
-INJ_PAD_KEYS = dict(zip(DATA_INJECTION_ORIG['Well'], DATA_INJECTION_ORIG['Pad']))
+def _DETECTION():
+    return
+
+
+def _AGGREGATION():
+    return
+
+
+FINALE = _accessories.retrieve_local_data_file('Data/combined_ipc_engineered_phys.csv')
+PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/INJECTION_[Well, Pad].pkl')
+INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/PRODUCTION_[Well, Pad].pkl')
 
 available_pads_transformed = ['A', 'B']
 available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in available_pads_transformed]
@@ -340,6 +377,97 @@ def plot_weights_eda(df, groupby_val, groupby_col, time_col='Date', weight_col='
     plt.savefig(f'Manipulation Reference Files/Weight TS {groupby_col} = {groupby_val}.png')
 
 
+def specialized_anomaly_detection(FINALE):
+    def perform_detection(TEMP, injector_names, all_prod_wells, benchmark_plot=False):
+        all_continuous_columns = TEMP.select_dtypes(np.number).columns
+
+        # Conduct Anomaly Detection
+        cumulative_tagged = []          # Stores the outputs from the customized, anomaly detection function
+        temporal_benchmarks = []        # Used to track multi-process benchmarking for utlimate vizualization
+        process_init = datetime.now()
+        for cont_col in all_continuous_columns:
+            rep_multiplier = len(all_prod_wells) if cont_col not in injector_names else 1
+            arguments = list(zip([TEMP] * rep_multiplier, all_prod_wells, [cont_col] * rep_multiplier))
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                if __name__ == '__main__':
+                    with Pool(os.cpu_count() - 1) as pool:
+                        data_outputs = pool.starmap(defs.process_local_anomalydetection, arguments)
+            cumulative_tagged.extend(data_outputs)
+
+            process_final = datetime.now()
+            temporal_benchmarks.append((cont_col, (process_final - process_init).total_seconds()))
+            _accessories._print('> STATUS: {} % progress with `{}`'.format(
+                round(100.0 * (list(all_continuous_columns).index(cont_col) + 1) / len(all_continuous_columns), 3),
+                cont_col), color='CYAN')
+
+        if(benchmark_plot):
+            fig_path = 'Manipulation Reference Files/Benchmarking Anomaly Detection.png'
+            # Save benchmarking materials
+            fig, ax = plt.subplots(figsize=(12, 8))
+            ax.plot([t[1] for t in temporal_benchmarks])
+            ax.set_xlabel('Feature (the middle are injectors)')
+            ax.set_ylabel('Cumulative Time (s)')
+            ax.set_title('Multiprocessing – Benchmarking Anomaly Detection')
+            _accessories.auto_make_path(fig_path)
+            fig.savefig(fig_path)
+
+        # Reformat the tagged anomalies to a format more accessible DataFrame
+        anomaly_tag_tracker = pd.concat(cumulative_tagged).reset_index(drop=True)
+
+        return anomaly_tag_tracker
+
+    def coalesce_datasets(anomaly_tag_tracker, FINALE, injector_names):
+        sole_injector_data = anomaly_tag_tracker[anomaly_tag_tracker['feature'].isin(   # Only the injector data
+            injector_names)].reset_index(drop=True).drop('group', axis=1)
+
+        # Duplicate the injector data for all available producer wells
+        rep_tracker = []
+        for pwell in all_prod_wells:
+            sole_injector_data['group'] = pwell
+            rep_tracker.append(sole_injector_data.copy())
+        sole_injector_data_rep = pd.concat(rep_tracker).reset_index(drop=True)
+        sole_injector_data_rep['feature'] = sole_injector_data_rep['feature'].apply(lambda x: col_reference.get(x))
+        sole_injector_data_rep.drop(['selection', 'detection_iter', 'anomaly'], axis=1, inplace=True)
+
+        # NOTE: Do not consider old pump speed and allocated oil value in the weighting transformations
+        _temp_OLD_DUPLICATES = [c.lower() for c in OLD_DUPLICATES]
+        anomaly_tag_tracker = anomaly_tag_tracker[
+            ~anomaly_tag_tracker['feature'].isin(_temp_OLD_DUPLICATES)].reset_index(drop=True)
+        anomaly_tag_tracker.drop(['selection', 'detection_iter', 'anomaly'], axis=1, inplace=True)
+
+        # Concatenate the non-injector and the duplicated-injector tables together
+        cumulative_anomalies = pd.concat([sole_injector_data_rep, anomaly_tag_tracker], axis=0).reset_index(drop=True)
+
+        # Find the daily, unweighted average of the column-specific weights
+        reformatted_anomalies = cumulative_anomalies.groupby(['group', 'date'])[['updated_score']].mean().reset_index()
+        reformatted_anomalies.columns = ['PRO_Well', 'Date', 'weight']
+        reformatted_anomalies = reformatted_anomalies.infer_objects()
+
+        # Date Formatting (just to be sure)
+        FINALE['Date'] = pd.to_datetime(FINALE['Date'])
+        reformatted_anomalies['Date'] = pd.to_datetime(reformatted_anomalies['Date'])
+
+        # Merge this anomaly data into the original, highest-resolution base table
+        FINALE = pd.merge(FINALE.infer_objects(), reformatted_anomalies, 'inner', on=['Date', 'PRO_Well'])
+
+        return FINALE
+
+    # Anomaly Detection Preparation
+    TEMP = FINALE.copy()
+    TEMP.columns = list(TEMP.columns.str.lower())
+    col_reference = dict(zip(TEMP.columns, FINALE.columns))
+    lc_injectors = [k for k, v in col_reference.items() if 'I' in v]
+    all_prod_wells = list(FINALE['PRO_Well'].unique())
+
+    anomaly_tag_tracker = perform_detection(TEMP, injector_names=lc_injectors,
+                                            all_prod_wells=all_prod_wells, benchmark_plot=True)
+
+    anom_original_merged = coalesce_datasets(anomaly_tag_tracker, FINALE, injector_names=lc_injectors)
+
+    return anom_original_merged
+
+
 _ = """
 #######################################################################################################################
 #############################################   MINOR DATA PRE-PROCESSING  ############################################
@@ -349,85 +477,15 @@ _ = """
 FINALE['PRO_Pad'] = FINALE['PRO_Well'].apply(lambda x: PRO_PAD_KEYS.get(x))
 FINALE = FINALE.dropna(subset=['PRO_Well']).reset_index(drop=True)
 
-FINALE = filter_negatives(FINALE, FINALE.select_dtypes(float), out=False, placeholder=0)
-FINALE.drop(FINALE.columns[0], axis=1, inplace=True)
+FINALE = filter_negatives(FINALE, FINALE.select_dtypes(float), out=True)
+# FINALE.drop(FINALE.columns[0], axis=1, inplace=True)
 
 _ = """
 #######################################################################################################################
 ################################################   ANOMALY DETECTION   ################################################
 #######################################################################################################################
 """
-
-# Anomaly Detection Preparation
-TEMP = FINALE.copy()
-TEMP.columns = list(TEMP.columns.str.lower())
-col_reference = dict(zip(TEMP.columns, FINALE.columns))
-
-all_continuous_columns = TEMP.select_dtypes(np.number).columns
-all_prod_wells = list(FINALE['PRO_Well'].unique())
-lc_injectors = [k for k, v in col_reference.items() if 'I' in v]
-
-# Conduct Anomaly Detection
-cumulative_tagged = []          # Stores the outputs from the customized, anomaly detection function
-temporal_benchmarks = []        # Used to track multi-process benchmarking for utlimate vizualization
-process_init = datetime.now()
-for cont_col in all_continuous_columns:
-    rep_multiplier = len(all_prod_wells) if cont_col not in lc_injectors else 1
-    arguments = list(zip([TEMP] * rep_multiplier, all_prod_wells, [cont_col] * rep_multiplier))
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        if __name__ == '__main__':
-            with Pool(os.cpu_count() - 1) as pool:
-                data_outputs = pool.starmap(defs.process_local_anomalydetection, arguments)
-    cumulative_tagged.extend(data_outputs)
-
-    process_final = datetime.now()
-    temporal_benchmarks.append((cont_col, (process_final - process_init).total_seconds()))
-    print('> STATUS: {} % progress with `{}`'.format(
-        round(100.0 * (list(all_continuous_columns).index(cont_col) + 1) / len(all_continuous_columns), 3), cont_col))
-
-# Save benchmarking materials
-fig, ax = plt.subplots(figsize=(12, 8))
-ax.plot([t[1] for t in temporal_benchmarks])
-ax.set_xlabel('Feature (the middle are injectors)')
-ax.set_ylabel('Cumulative Time (s)')
-ax.set_title('Multiprocessing – Benchmarking Anomaly Detection')
-fig.savefig('Manipulation Reference Files/Benchmarking Anomaly Detection.png')
-
-# Reformat the tagged anomalies to a format more accessible
-anomaly_tag_tracker = pd.concat(cumulative_tagged).reset_index(drop=True)       # Reformat anomaly info to a DataFrame
-sole_injector_data = anomaly_tag_tracker[anomaly_tag_tracker['feature'].isin(   # Only the injector data
-    lc_injectors)].reset_index(drop=True).drop('group', axis=1)
-
-# Duplicate the injector data for all available producer wells
-rep_tracker = []
-for pwell in all_prod_wells:
-    sole_injector_data['group'] = pwell
-    rep_tracker.append(sole_injector_data.copy())
-sole_injector_data_rep = pd.concat(rep_tracker).reset_index(drop=True)
-sole_injector_data_rep['feature'] = sole_injector_data_rep['feature'].apply(lambda x: col_reference.get(x))
-sole_injector_data_rep.drop(['selection', 'detection_iter', 'anomaly'], axis=1, inplace=True)
-
-# NOTE: Do not consider old pump speed and allocated oil value in the weighting transformations
-_temp_OLD_DUPLICATES = [c.lower() for c in OLD_DUPLICATES]
-anomaly_tag_tracker = anomaly_tag_tracker[
-    ~anomaly_tag_tracker['feature'].isin(_temp_OLD_DUPLICATES)].reset_index(drop=True)
-anomaly_tag_tracker.drop(['selection', 'detection_iter', 'anomaly'], axis=1, inplace=True)
-
-# Concatenate the non-injector and the duplicated-injector tables together
-cumulative_anomalies = pd.concat([sole_injector_data_rep, anomaly_tag_tracker], axis=0).reset_index(drop=True)
-
-# Find the daily, unweighted average of the column-specific weights
-reformatted_anomalies = cumulative_anomalies.groupby(['group', 'date'])[['updated_score']].mean().reset_index()
-reformatted_anomalies.columns = ['PRO_Well', 'Date', 'weight']
-reformatted_anomalies = reformatted_anomalies.infer_objects()
-
-# Date Formatting (just to be sure)
-FINALE['Date'] = pd.to_datetime(FINALE['Date'])
-reformatted_anomalies['Date'] = pd.to_datetime(reformatted_anomalies['Date'])
-
-# Merge this anomaly data into the original, highest-resolution base table
-FINALE = pd.merge(FINALE.infer_objects(), reformatted_anomalies, 'inner', on=['Date', 'PRO_Well'])
+FINALE = specialized_anomaly_detection(FINALE)
 
 os.system('say finished anomaly detection')
 
@@ -437,60 +495,64 @@ _ = """
 #######################################################################################################################
 """
 
-INJ_relcoords = {}
-INJ_relcoords = {'I02': '(757, 534)',
-                 'I03': '(709, 519)',
-                 'I04': '(760, 488)',
-                 'I05': '(708, 443)',
-                 'I06': '(825, 537)',
-                 'I07': '(823, 461)',
-                 'I08': '(997, 571)',
-                 'I09': '(940, 516)',
-                 'I10': '(872, 489)',
-                 'I11': '(981, 477)',
-                 'I12': '(1026, 495)',
-                 'I13': '(1034, 444)',
-                 'I14': '(935, 440)',
-                 'I15': '(709, 686)',
-                 'I16': '(694, 611)',
-                 'I17': '(758, 649)',
-                 'I18': '(760, 571)',
-                 'I19': '(818, 684)',
-                 'I20': '(880, 645)',
-                 'I21': '(817, 606)',
-                 'I22': '(881, 565)',
-                 'I23': '(946, 682)',
-                 'I24': '(1066, 679)',
-                 'I25': '(1063, 604)',
-                 'I26': '(995, 643)',
-                 'I27': '(940, 604)',
-                 'I28': '(758, 801)',
-                 'I29': '(701, 766)',
-                 'I30': '(825, 763)',
-                 'I31': '(759, 736)',
-                 'I32': '(871, 716)',
-                 'I33': '(939, 739)',
-                 'I34': '(873, 801)',
-                 'I35': '(1023, 727)',
-                 'I36': '(996, 789)',
-                 'I37': '(1061, 782)',
-                 'I38': '(982, 529)',
-                 'I86': '(792, 385)',
-                 'I80': '(880, 416)',
-                 'I61': '(928, 370)',
-                 'I59': '(928, 334)',
-                 'I60': '(1036, 374)',
-                 'I47': '(1085, 411)',
-                 'I44': '(1144, 409)'}
-# for inj in [k for k in INJ_PAD_KEYS.keys() if INJ_PAD_KEYS[k] in ['A', '15-05', '16-05', '11-05', '10-05',
-#                                                                   '09-05', '06-05', '08-05']]:
-#     INJ_relcoords[inj] = input(prompt='Please enter coordinates for injector {}'.format(inj))
-for k, v in INJ_relcoords.items():
-    # String to tuple
-    INJ_relcoords[k] = eval(v)
-    v = INJ_relcoords[k]
-    # Re-scaling
-    INJ_relcoords[k] = (v[0] - x_delta, y_delta - v[1])
+
+def get_injector_coordinates():
+    INJ_relcoords = {}
+    INJ_relcoords = {'I02': '(757, 534)',
+                     'I03': '(709, 519)',
+                     'I04': '(760, 488)',
+                     'I05': '(708, 443)',
+                     'I06': '(825, 537)',
+                     'I07': '(823, 461)',
+                     'I08': '(997, 571)',
+                     'I09': '(940, 516)',
+                     'I10': '(872, 489)',
+                     'I11': '(981, 477)',
+                     'I12': '(1026, 495)',
+                     'I13': '(1034, 444)',
+                     'I14': '(935, 440)',
+                     'I15': '(709, 686)',
+                     'I16': '(694, 611)',
+                     'I17': '(758, 649)',
+                     'I18': '(760, 571)',
+                     'I19': '(818, 684)',
+                     'I20': '(880, 645)',
+                     'I21': '(817, 606)',
+                     'I22': '(881, 565)',
+                     'I23': '(946, 682)',
+                     'I24': '(1066, 679)',
+                     'I25': '(1063, 604)',
+                     'I26': '(995, 643)',
+                     'I27': '(940, 604)',
+                     'I28': '(758, 801)',
+                     'I29': '(701, 766)',
+                     'I30': '(825, 763)',
+                     'I31': '(759, 736)',
+                     'I32': '(871, 716)',
+                     'I33': '(939, 739)',
+                     'I34': '(873, 801)',
+                     'I35': '(1023, 727)',
+                     'I36': '(996, 789)',
+                     'I37': '(1061, 782)',
+                     'I38': '(982, 529)',
+                     'I86': '(792, 385)',
+                     'I80': '(880, 416)',
+                     'I61': '(928, 370)',
+                     'I59': '(928, 334)',
+                     'I60': '(1036, 374)',
+                     'I47': '(1085, 411)',
+                     'I44': '(1144, 409)'}
+    # for inj in [k for k in INJ_PAD_KEYS.keys() if INJ_PAD_KEYS[k] in ['A', '15-05', '16-05', '11-05', '10-05',
+    #                                                                   '09-05', '06-05', '08-05']]:
+    #     INJ_relcoords[inj] = input(prompt='Please enter coordinates for injector {}'.format(inj))
+    for k, v in INJ_relcoords.items():
+        # String to tuple
+        INJ_relcoords[k] = eval(v)
+        v = INJ_relcoords[k]
+        # Re-scaling
+        INJ_relcoords[k] = (v[0] - x_delta, y_delta - v[1])
+    return INJ_relcoords
+
 
 _ = """
 #######################################################################################################################
@@ -557,46 +619,49 @@ _ = """
 #             bbox_inches='tight')
 #
 
-PRO_relcoords = {}
-PRO_relcoords = {'AP2': '(616, 512) <> (683, 557) <> (995, 551)',
-                 'AP3': '(601, 522) <> (690, 582) <> (995, 582)',
-                 'AP4': '(621, 504) <> (691, 526) <> (1052, 523)',
-                 'AP5': '(616, 483) <> (688, 505) <> (759, 507) <> (1058, 501)',
-                 'AP6': '(606, 470) <> (685, 478) <> (827, 472) <> (910, 472)',
-                 'AP7': '(602, 461) <> (674, 456) <> (846, 452) <> (992, 450)',
-                 'AP8': '(593, 456) <> (674, 429) <> (1009, 427)',
-                 'BP1': '(541, 733) <> (609, 654) <> (674, 633) <> (916, 636) <> (992, 635) <> (1015, 629)',
-                 'BP2': '(541, 747) <> (630, 670) <> (1014, 668)',
-                 'BP3': '(541, 760) <> (647, 704) <> (1016, 697)',
-                 'BP4': '(555, 772) <> (691, 752) <> (908, 750)',
-                 'BP5': '(555, 784) <> (838, 786) <> (1010, 748)',
-                 'BP6': '(555, 803) <> (690, 821) <> (1026, 817)'}
-# Get relative position inputs
-# for well in [pw for pw in PRO_PAD_KEYS.keys() if 'A' in pw or 'B' in pw]:
-#     PRO_relcoords[well] = input(prompt='Please enter coordinates for producer {}'.format(well))
-# Re-format relative positions
-for k, v in PRO_relcoords.items():
-    # Parsing
-    PRO_relcoords[k] = [chunk.strip() for chunk in v.split('<>')]
-    # String to tuple
-    PRO_relcoords[k] = [eval(chunk) for chunk in PRO_relcoords[k]]
-# Re-scale relative positions (cartesian, not jS, system)
-for k, v in PRO_relcoords.items():
-    transformed = []
-    for coordinate in PRO_relcoords[k]:
-        transformed.append((coordinate[0] - x_delta, y_delta - coordinate[1]))
-    PRO_relcoords[k] = transformed
-# Find n points connecting the points
-PRO_finalcoords = {}
-for k, v in PRO_relcoords.items():
-    discrete_links = []
-    for coordinate_i in range(len(PRO_relcoords[k]) - 1):
-        c1 = PRO_relcoords[k][coordinate_i]
-        c2 = PRO_relcoords[k][coordinate_i + 1]
-        num_points = int(euclidean_2d_distance(c1, c2) / focal_period)
-        discrete_ind = intermediates(c1, c2, nb_points=num_points)
-        discrete_links.append(discrete_ind)
-    PRO_finalcoords[k] = list(chain.from_iterable(discrete_links))
+
+def get_injector_coordinates():
+    PRO_relcoords = {}
+    PRO_relcoords = {'AP2': '(616, 512) <> (683, 557) <> (995, 551)',
+                     'AP3': '(601, 522) <> (690, 582) <> (995, 582)',
+                     'AP4': '(621, 504) <> (691, 526) <> (1052, 523)',
+                     'AP5': '(616, 483) <> (688, 505) <> (759, 507) <> (1058, 501)',
+                     'AP6': '(606, 470) <> (685, 478) <> (827, 472) <> (910, 472)',
+                     'AP7': '(602, 461) <> (674, 456) <> (846, 452) <> (992, 450)',
+                     'AP8': '(593, 456) <> (674, 429) <> (1009, 427)',
+                     'BP1': '(541, 733) <> (609, 654) <> (674, 633) <> (916, 636) <> (992, 635) <> (1015, 629)',
+                     'BP2': '(541, 747) <> (630, 670) <> (1014, 668)',
+                     'BP3': '(541, 760) <> (647, 704) <> (1016, 697)',
+                     'BP4': '(555, 772) <> (691, 752) <> (908, 750)',
+                     'BP5': '(555, 784) <> (838, 786) <> (1010, 748)',
+                     'BP6': '(555, 803) <> (690, 821) <> (1026, 817)'}
+    # Get relative position inputs
+    # for well in [pw for pw in PRO_PAD_KEYS.keys() if 'A' in pw or 'B' in pw]:
+    #     PRO_relcoords[well] = input(prompt='Please enter coordinates for producer {}'.format(well))
+    # Re-format relative positions
+    for k, v in PRO_relcoords.items():
+        # Parsing
+        PRO_relcoords[k] = [chunk.strip() for chunk in v.split('<>')]
+        # String to tuple
+        PRO_relcoords[k] = [eval(chunk) for chunk in PRO_relcoords[k]]
+    # Re-scale relative positions (cartesian, not jS, system)
+    for k, v in PRO_relcoords.items():
+        transformed = []
+        for coordinate in PRO_relcoords[k]:
+            transformed.append((coordinate[0] - x_delta, y_delta - coordinate[1]))
+        PRO_relcoords[k] = transformed
+    # Find n points connecting the points
+    PRO_finalcoords = {}
+    for k, v in PRO_relcoords.items():
+        discrete_links = []
+        for coordinate_i in range(len(PRO_relcoords[k]) - 1):
+            c1 = PRO_relcoords[k][coordinate_i]
+            c2 = PRO_relcoords[k][coordinate_i + 1]
+            num_points = int(euclidean_2d_distance(c1, c2) / focal_period)
+            discrete_ind = intermediates(c1, c2, nb_points=num_points)
+            discrete_links.append(discrete_ind)
+        PRO_finalcoords[k] = list(chain.from_iterable(discrete_links))
+
 
 _ = """
 #######################################################################################################################

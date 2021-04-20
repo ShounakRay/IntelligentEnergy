@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 13:04:06:065  GMT-0600
+# @Last modified time: 20-Apr-2021 14:04:61:619  GMT-0600
 # @License: [Private IP]
 
 
@@ -176,6 +176,14 @@ def ingest_fiber(producer_wells, **kwargs):
     return aggregated_fiber
 
 
+def save_well_pad_relations(datasets, direc='Data/', only=['INJECTION', 'PRODUCTION']):
+    for name, df in datasets.items():
+        if(name not in only):
+            continue
+        structure = dict(zip(df['Well'], df['Pad']))
+        _accessories.save_local_data_file(structure, f'{direc}{name}_[Well, Pad].pkl')
+
+
 _ = """
 #######################################################################################################################
 ##################################################   CORE EXECUTION  ##################################################
@@ -186,6 +194,7 @@ _ = """
 def _INGESTION():
     _accessories._print('Ingesting INJECTION, PRODUCTION, and PRODUCTION_TEST data...')
     DATASETS = ingest_sources(filepaths)
+    save_well_pad_relations(DATASETS)
     filter_out(DATASETS)
 
     _accessories._print('Ingesting and transforming FIBER data...')

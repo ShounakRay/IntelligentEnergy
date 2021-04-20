@@ -3,9 +3,11 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 13:04:53:538  GMT-0600
+# @Last modified time: 20-Apr-2021 15:04:22:228  GMT-0600
 # @License: [Private IP]
 
+import ast
+import json
 import os
 
 import pandas as pd
@@ -42,21 +44,29 @@ def retrieve_local_data_file(filedir):
     filename = filedir.split('/')[-1:][0]
     try:
         if(filename.endswith('.csv')):
-            data = pd.read_csv(filedir, error_bad_lines=False, warn_bad_lines=False)
-            _print(f'> Importing "{filename}"...', color='GREEN')
+            data = pd.read_csv(filedir, error_bad_lines=False, warn_bad_lines=False).infer_objects()
         elif(filename.endswith(('.xlsx', '.xls', '.xlsm', '.xlsb', '.odf', '.ods', '.odt'))):
-            data = pd.read_excel(filedir)
-            _print(f'> Importing "{filename}"...', color='GREEN')
+            data = pd.read_excel(filedir).infer_objects()
+        elif(filename.endswith('.pkl')):
+            with open(filedir, 'rb') as f:
+                data = f.readlines()[0]
+                data = ast.literal_eval(data.decode("utf-8").replace('\n', ''))
         if(data is None):
             raise Exception
+        _print(f'> Imported "{filename}"...', color='GREEN')
     except Exception as e:
         _print('Unable to retrieve local data', color='RED')
         raise e
-    return data.infer_objects()
+    return data
 
 
 def save_local_data_file(data, filepath, **kwargs):
-    data.to_csv(filepath, index=kwargs.get('index'))
+    auto_make_path(filepath)
+    if(filepath.endswith('.csv')):
+        data.to_csv(filepath, index=kwargs.get('index'))
+    elif(filepath.endswith('.pkl')):
+        with open(filepath, 'w') as file:
+            print(data, file=file)
     _print(f'> Saved data to "{filepath}"')
 
 
@@ -80,8 +90,6 @@ def auto_make_path(path: str, **kwargs: bool) -> None:
         Should not begin with backslash.
     **kwargs : bool
         Any keyword arguments to be processed inside `auto_make_path`.
-        Currently supports:
-        > `exceed_json` : bool –> Indicates whether an empty dictionary should be printed to the opened JSON file.
 
     Returns
     -------
