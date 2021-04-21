@@ -4,7 +4,7 @@ Innovative algorithms which use statistical, AI/ML, and forecasting methodologie
 *Note: Client data is not available on Github, and references to such data has beeen de-identified for security purposes*
 
 **Dependency Chart for entire repository**
-![Dependency Graph](IntelligentEnergy.png "Dependency Graph")
+![Dependency Graph](IntelligentEnergy.svg "Dependency Graph")
 
 There are two sequential components to this repository. The first step in the pipeline is **Stage 1: Data Ingestion and Pre-Processing** where the client-side data is prepared for **Stage 2: Data Modeling and Prediction**.
 
