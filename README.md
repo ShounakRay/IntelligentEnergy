@@ -37,7 +37,7 @@ Important design decisions and their motivations
 ## Part 4: Pipeline
 ### Overview
 There are seven sequential components in the main pipeline of this repository.
-1. [Source Table Aggregation](#stage-1:-source-table-aggregation)
+1. [Source Table Aggregation](#stage-1-source-table-aggregation)
 2. Physics Feature Engineering
 3. Anomaly Detection and Aggregation
 4. Mathematical Feature Engineering
@@ -45,7 +45,7 @@ There are seven sequential components in the main pipeline of this repository.
 6. Optimization and Producer-Level Steam Allocation
 7. Injector-Level Steam Allocation
 
-### Stage 1: Source Table Aggregation
+### Stage 1 Source Table Aggregation
 This section will outline the core steps conducted to pre-process the data. The purpose of this step is to ensure clean, restructured, and engineered data which makes sense for predictive modeling algorithms and framework in **Stage 2: Data Modeling**.
 
 ### Stage 2: Physics Feature Engineering
