@@ -19,8 +19,7 @@ Innovative algorithms which use statistical, AI/ML, and forecasting methodologie
 
 <p align="center"><b>Dependency Chart for entire repository</b></p>
 
-![Dependency Graph](IntelligentEnergy.svg "Dependency Graph")
-
+![Dependency Graph](images/IntelligentEnergy.svg "Dependency Graph")
 
 <hr style="border:3px solid blue"></hr>
 
@@ -45,6 +44,10 @@ There are seven sequential components in the main pipeline of this repository.
 6. [Optimization and Producer Level Steam Allocation](#stage-6---optimization-and-producer-level-steam-allocation)
 7. [Injector Level Steam Allocation](#stage-7---injector-level-steam-allocation)
 
+<p align="center"><b>Process Flow of Pipeline</b></p>
+
+![Dependency Graph](images/process_flow.svg "Pipeline Process")
+
 ### Stage 1 - Source Table Aggregation
 Joining the production, production testing, injection, and fiber data.
 
@@ -55,7 +58,7 @@ Generating new features based on domain-specific [modified] SAGD knowledge.
 Using custom anomaly detection package to determine weights.
 
 ### Stage 4 - Mathematical Feature Engineering
-Generation new features - solely based on combinatorial explosions that are helpful towards model performance.
+Generating new features - solely based on combinatorial explosions that are helpful towards model performance.
 
 ### Stage 5 - Model Creation and Performance
 Running the h2o experiment, assesssing model performance, and picking the best ones.
