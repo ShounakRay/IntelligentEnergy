@@ -15,7 +15,7 @@ Innovative algorithms which use statistical, AI/ML, and forecasting methodologie
 
 <hr style="border:3px solid blue"></hr>
 
-## Part 1– Dependencies
+## Part 1 – Dependencies
 
 <p align="center"><b>Dependency Chart for entire repository</b></p>
 
@@ -24,12 +24,12 @@ Innovative algorithms which use statistical, AI/ML, and forecasting methodologie
 
 <hr style="border:3px solid blue"></hr>
 
-## Part 2– Notable File Structure
+## Part 2 – Notable File Structure
 File structure content here
 
 <hr style="border:3px solid blue"></hr>
 
-## Part 3– Design Decisions
+## Part 3 – Design Decisions
 Important design decisions and their motivations
 
 <hr style="border:3px solid blue"></hr>
@@ -46,7 +46,7 @@ There are seven sequential components in the main pipeline of this repository.
 7. Injector-Level Steam Allocation
 
 ### Stage 1 – Source Table Aggregation
-This section will outline the core steps conducted to pre-process the data. The purpose of this step is to ensure clean, restructured, and engineered data which makes sense for predictive modeling algorithms and framework in **Stage 2– Data Modeling**.
+This section will outline the core steps conducted to pre-process the data. The purpose of this step is to ensure clean, restructured, and engineered data which makes sense for predictive modeling algorithms and framework in **Stage 2 – Data Modeling**.
 
 ### Stage 2 – Physics Feature Engineering
 This section will overview the core steps conducted *with* the pre-processed data to develop accurate and robust predictive models. The purpose of this step is to generate even *further* pre-processed data (from a modeling standpoint) and complementary models.
@@ -57,8 +57,8 @@ This section will overview the core steps conducted *with* the pre-processed dat
 
 <hr style="border:3px solid blue"></hr>
 
-## Part 6– Final Implementation
+## Part 6 – Final Implementation
 
 <hr style="border:3px solid blue"></hr>
 
-## Part 7– Other
+## Part 7 – Other
