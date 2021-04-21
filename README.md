@@ -16,7 +16,6 @@ Innovative algorithms which use statistical, AI/ML, and forecasting methodologie
 <hr style="border:2px solid blue"> </hr>
 
 ## Part 1: Dependencies
-<p align="center">  <b>Dependency Chart for entire repository</b></p>
 ![Dependency Graph](IntelligentEnergy.svg "Dependency Graph")
 
 <hr style="border:2px solid blue"> </hr>
