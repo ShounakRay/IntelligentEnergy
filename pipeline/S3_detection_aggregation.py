@@ -3,14 +3,13 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 17:04:11:113  GMT-0600
+# @Last modified time: 20-Apr-2021 22:04:29:296  GMT-0600
 # @License: [Private IP]
 
-import ast
 import math
 import os
-import pickle
 import sys
+import warnings
 from datetime import datetime
 from itertools import chain
 from multiprocessing import Pool
@@ -20,13 +19,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-try:
-    import Anomaly_Detection_PKG
-except Exception:
-    sys.path.append('/Users/Ray/Documents/Github/AnomalyDetection')
-    from Anomaly_Detection_PKG import *
-
-import warnings
+# try:
+#     import Anomaly_Detection_PKG
+# except Exception:
+#     sys.path.append('/Users/Ray/Documents/Github/AnomalyDetection')
+#     from Anomaly_Detection_PKG import *
 
 
 def ensure_cwd(expected_parent):
@@ -54,19 +51,19 @@ if __name__ == '__main__':
     sys.path.insert(1, os.getcwd() + '/_references')
     sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
     import _accessories
-    import _context_managers
+    # import _context_managers
     import _multiprocessed.defs as defs
-    import _traversal
+
+    # import _traversal
 
 
-_traversal.print_tree_to_txt(PATH='_configs/FILE_STRUCTURE.txt')
+# _traversal.print_tree_to_txt(PATH='_configs/FILE_STRUCTURE.txt')
 
 _ = """
 #######################################################################################################################
 #############################################   HYPERPARAMETER SETTINGS   #############################################
 #######################################################################################################################
 """
-plot_eda = False
 plot_geo = False
 
 # Display hyperparams
@@ -194,15 +191,16 @@ def specialized_anomaly_detection(FINALE):
                 cont_col), color='CYAN')
 
         if(benchmark_plot):
-            fig_path = 'Manipulation Reference Files/Benchmarking Anomaly Detection.png'
-            # Save benchmarking materials
-            fig, ax = plt.subplots(figsize=(12, 8))
-            ax.plot([t[1] for t in temporal_benchmarks])
-            ax.set_xlabel('Feature (the middle are injectors)')
-            ax.set_ylabel('Cumulative Time (s)')
-            ax.set_title('Multiprocessing – Benchmarking Anomaly Detection')
-            _accessories.auto_make_path(fig_path)
-            fig.savefig(fig_path)
+            with _accessories.suppress_stdout():
+                fig_path = 'Manipulation Reference Files/Benchmarking Anomaly Detection.png'
+                # Save benchmarking materials
+                fig, ax = plt.subplots(figsize=(12, 8))
+                ax.plot([t[1] for t in temporal_benchmarks])
+                ax.set_xlabel('Feature (the middle are injectors)')
+                ax.set_ylabel('Cumulative Time (s)')
+                ax.set_title('Multiprocessing – Benchmarking Anomaly Detection')
+                _accessories.auto_make_path(fig_path)
+                fig.savefig(fig_path)
 
         # Reformat the tagged anomalies to a format more accessible DataFrame
         anomaly_tag_tracker = pd.concat(cumulative_tagged).reset_index(drop=True)
@@ -260,7 +258,7 @@ def specialized_anomaly_detection(FINALE):
     return anom_original_merged
 
 
-def produce_injection_aggregates(FINALE, candidates_by_prodtype, group_type):
+def produce_injection_aggregates(FINALE, candidates_by_prodtype, group_type, INJ_PAD_KEYS):
     # This is just to delete the implicit duplicates found in the data
     # > (each production well has the same injection data)
     some_random_pwell = list(FINALE['PRO_Well'])[0]
@@ -274,8 +272,8 @@ def produce_injection_aggregates(FINALE, candidates_by_prodtype, group_type):
         absence = []
         for cand in local_candidates:
             if cand not in all_injs:
-                print('> STATUS: Candidate {} removed assessing {}, unavailable in initial data'.format(cand,
-                                                                                                        category))
+                _accessories._print(f'> STATUS: Candidate {cand} removed assessing {category}, ' +
+                                    'unavailable in initial data', color='CYAN')
                 absence.append(cand)
         local_candidates = [el for el in local_candidates if el not in absence]
 
@@ -495,7 +493,7 @@ def get_coordinates(data_group):
 
     if(data_group == 'PRODUCTION'):
         return get_producer_coordinates()
-    elif(data_group == 'INGESTION'):
+    elif(data_group == 'INJECTION'):
         return get_injector_coordinates()
     else:
         raise ValueError('Improperly entered `data_group` in `get_coordinates`.')
@@ -524,11 +522,11 @@ def distance_matrix(injector_coordinates, producer_coordinates, save=True):
 
 
 def get_all_candidates(injection_coordinates, production_coordinates,
-                       available_pads_transformed, available_pwells_transformed,
-                       rel_rad=relative_radius, save=True, plot=plot_geo, **kwargs):
+                       available_pads_transformed, available_pwells_transformed, pro_well_pad_relationship,
+                       rel_rad=50, save=True, plot=False, **kwargs):
     def injector_candidates(production_pad, production_well,
-                            pro_well_pad_relationship, injector_coordinates, production_coordinates,
-                            relative_radius=relative_radius):
+                            injector_coordinates, production_coordinates, relative_radius=50,
+                            pro_well_pad_relationship=pro_well_pad_relationship):
 
         if(production_pad is not None or production_well is not None):
             inclusion = pd.DataFrame([], columns=injector_coordinates.keys(), index=production_coordinates.keys())
@@ -596,10 +594,10 @@ def get_all_candidates(injection_coordinates, production_coordinates,
     for pad in available_pads_transformed:
         candidates, report = injector_candidates(production_pad=pad,
                                                  production_well=None,
-                                                 pro_well_pad_relationship=PRO_PAD_KEYS,
+                                                 pro_well_pad_relationship=pro_well_pad_relationship,
                                                  injector_coordinates=injection_coordinates,
                                                  production_coordinates=production_coordinates,
-                                                 relative_radius=relative_radius)
+                                                 relative_radius=rel_rad)
         candidates_by_prodpad[pad] = candidates
         reports_by_prodpad[pad] = report
 
@@ -611,7 +609,7 @@ def get_all_candidates(injection_coordinates, production_coordinates,
                                                  pro_well_pad_relationship=None,
                                                  injector_coordinates=injection_coordinates,
                                                  production_coordinates=production_coordinates,
-                                                 relative_radius=relative_radius)
+                                                 relative_radius=rel_rad)
         candidates_by_prodwell[pwell] = candidates
         reports_by_prodwell[pwell] = report
 
@@ -637,7 +635,7 @@ def get_all_candidates(injection_coordinates, production_coordinates,
 def merge(datasets, available_pads):
     PRODUCER_AGGREGATES = datasets['PRODUCTION_AGGREGATES'][datasets['PRODUCTION_AGGREGATES']
                                                             ['PRO_Pad'].isin(available_pads)]
-    COMBINED_AGGREGATES = pd.merge(datasets['PRODUCTION_AGGREGATES'], [datasets['PRODUCTION_AGGREGATES'],
+    COMBINED_AGGREGATES = pd.merge(PRODUCER_AGGREGATES, datasets['INJECTION_AGGREGATES'],
                                    how='inner', on=['Date', 'PRO_Pad'])
     COMBINED_AGGREGATES, dropped = drop_singles(COMBINED_AGGREGATES)
 
@@ -652,38 +650,50 @@ _ = """
 
 
 def _INTELLIGENT_AGGREGATION():
-    DATASETS = {'FINALE': accessories.retrieve_local_data_file('Data/combined_ipc_engineered_phys.csv')}
+    _accessories._print('Ingesting PHYSICS ENGINEERD and pad-well relationship data...', color='LIGHTYELLOW_EX')
+    DATASETS = {'FINALE': _accessories.retrieve_local_data_file('Data/combined_ipc_engineered_phys.csv')}
     INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/INJECTION_[Well, Pad].pkl')
     PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/PRODUCTION_[Well, Pad].pkl')
 
+    _accessories._print('Minor processing and group availability tracking...', color='LIGHTYELLOW_EX')
     available_pads_transformed = ['A', 'B']
     available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in available_pads_transformed]
-
     DATASETS['FINALE'] = minor_processing(DATASETS['FINALE'], PRO_PAD_KEYS)
 
+    _accessories._print('Performing anomaly detection...', color='LIGHTYELLOW_EX')
     DATASETS['FINALE'] = specialized_anomaly_detection(DATASETS['FINALE'])
 
-    INJ_relcoords = get_coordinates('INJECTION')
-    PRO_finalcoords = get_coordinates('PRODUCTION')
+    _accessories._print('Getting producer and injector coordinates...', color='LIGHTYELLOW_EX')
+    injector_coords = get_coordinates('INJECTION')
+    producer_coords = get_coordinates('PRODUCTION')
 
-    candidates_by_prodpad, candidates_by_prodwell = get_all_candidates(INJ_relcoords, PRO_finalcoords,
+    _accessories._print('Determining candidates and distance matrix...', color='LIGHTYELLOW_EX')
+    candidates_by_prodpad, candidates_by_prodwell = get_all_candidates(injector_coords, producer_coords,
                                                                        available_pads_transformed,
                                                                        available_pwells_transformed,
-                                                                       save=True)
+                                                                       rel_rad=relative_radius,
+                                                                       save=True,
+                                                                       plot=plot_geo,
+                                                                       pro_well_pad_relationship=PRO_PAD_KEYS)
 
-    _ = distance_matrix(INJ_relcoords, PRO_finalcoords, save=True)
+    _ = distance_matrix(injector_coords, producer_coords, save=True)
 
-
+    _accessories._print('Determining PRODUCTION data aggregates...', color='LIGHTYELLOW_EX')
     DATASETS['PRODUCTION_AGGREGATES'] = produce_production_aggregates(DATASETS['FINALE'],
                                                                       aggregation_dict.copy(),
                                                                       include_weights=False)
-    DATASETS['INJECTOR_AGGREGATES'] = produce_injection_aggregates(DATASETS['FINALE'],
-                                                                   candidates_by_prodpad,
-                                                                   'PRO_Pad')
+    _accessories._print('Determining INJECTION data aggregates...', color='LIGHTYELLOW_EX')
+    DATASETS['INJECTION_AGGREGATES'] = produce_injection_aggregates(DATASETS['FINALE'],
+                                                                    candidates_by_prodpad,
+                                                                    'PRO_Pad', INJ_PAD_KEYS)
 
+    _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
     merged_df = merge(DATASETS, available_pads_transformed)
+    _accessories.save_local_data_file(merged_df, 'Data/combined_ipc_aggregates.csv')
 
-    _accessories.save_local_data_file(COMBINED_AGGREGATES, 'Data/combined_ipc_aggregates.csv')
+
+if __name__ == '__main__':
+    _INTELLIGENT_AGGREGATION()
 
 
 # _ = """

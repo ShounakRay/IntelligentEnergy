@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 15-Apr-2021 15:04:34:347  GMT-0600
+# @Last modified time: 20-Apr-2021 22:04:76:760  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -16,7 +16,6 @@ import os
 import random
 import subprocess
 import sys
-from contextlib import contextmanager
 from pprint import pprint
 from typing import Final
 
@@ -169,17 +168,6 @@ _ = """
 ##############################################   FUNCTION DEFINITIONS   ###############################################
 #######################################################################################################################
 """
-
-
-@contextmanager
-def suppress_stdout():
-    with open(os.devnull, "w") as devnull:
-        old_stdout = sys.stdout
-        sys.stdout = devnull
-        try:
-            yield
-        finally:
-            sys.stdout = old_stdout
 
 
 @server
@@ -1338,7 +1326,7 @@ ranked_names_pad, ranked_steam_pad = varimp_heatmap(varimps_pad,
                                                     annot=False)
 
 # OPTIONAL VISUALIZATION: Plot predictor/regressor correlation matrix
-# with suppress_stdout():
+# with _accessories.suppress_stdout():
 #     correlation_matrix(varimps_pad,
 #                        EXP_NAME='Aggregated Experiment Results - Pad-Level',
 #                        FPATH='Modeling Reference Files/Round {tag}/cross-correlations_PAD{tag}.pdf'.format(tag=RUN_TAG))
@@ -1364,7 +1352,7 @@ benchline_pad.update((x, y * PREFERRED_TOLERANCE) for x, y in benchline_pad.item
 perf_pad = model_performance(varimps_pad, benchline_pad, sort_by='Rel. RMSE')
 
 # OPTIONAL VISUALIZATION: Plot model performance metrics
-# with suppress_stdout():
+# with _accessories.suppress_stdout():
 #     plot_model_performance(perf_pad.select_dtypes(float),
 #                            'Modeling Reference Files/Round {tag}/model_performance_PAD{tag}.pdf'.format(tag=RUN_TAG),
 #                            MODEL_CMAPS, HMAP_CENTERS, ranked_names_pad, ranked_steam_pad,
@@ -1382,7 +1370,7 @@ _ = """
 _ = os.system("say Validating Models")
 
 # OPTIONAL VISUALIZATION: Validation metrics
-with suppress_stdout():
+with _accessories.suppress_stdout():
     validate_models(perf_pad, pad_relationship_training, benchline_pad, pad_relationship_validation,
                     TOP_MODELS=30, order_by='Rel. Val. RMSE')
 

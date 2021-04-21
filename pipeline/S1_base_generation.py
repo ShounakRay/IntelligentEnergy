@@ -3,14 +3,13 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 14:04:61:619  GMT-0600
+# @Last modified time: 20-Apr-2021 22:04:81:814  GMT-0600
 # @License: [Private IP]
 
 
 import os
 import sys
 from multiprocessing import Pool
-from pathlib import Path
 from typing import Final
 
 import pandas as pd
@@ -41,8 +40,9 @@ if __name__ == '__main__':
     sys.path.insert(1, os.getcwd() + '/_references')
     sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
     import _accessories
-    import _context_managers
-    import _traversal
+
+    # import _context_managers
+    # import _traversal
 
 # print(_traversal.print_tree_to_txt)
 
@@ -192,22 +192,22 @@ _ = """
 
 
 def _INGESTION():
-    _accessories._print('Ingesting INJECTION, PRODUCTION, and PRODUCTION_TEST data...')
+    _accessories._print('Ingesting INJECTION, PRODUCTION, and PRODUCTION_TEST data...', color='LIGHTYELLOW_EX')
     DATASETS = ingest_sources(filepaths)
     save_well_pad_relations(DATASETS)
     filter_out(DATASETS)
 
-    _accessories._print('Ingesting and transforming FIBER data...')
+    _accessories._print('Ingesting and transforming FIBER data...', color='LIGHTYELLOW_EX')
     producer_wells = get_fiber_pwells(fiber_dir)
     DATASETS['FIBER'] = ingest_fiber([i for i in producer_wells if i != 'AP2'], ap2_path=ap2_path)
 
-    _accessories._print('Transforming and filtering...')
+    _accessories._print('Transforming and filtering...', color='LIGHTYELLOW_EX')
     _temp = DATASETS['PRODUCTION']
     DATASETS['PRODUCTION'] = _temp[_temp['PRO_Well'].isin(producer_wells)]
     DATASETS['INJECTION_TABLE'] = pd.pivot_table(DATASETS['INJECTION'], values='INJ_Meter_Steam',
                                                  index='Date', columns='INJ_Well').reset_index()
 
-    _accessories._print('Merging and saving...')
+    _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
     _accessories.finalize_all(DATASETS, skip=['FIBER'])
     merged_df = merge(DATASETS)
     _accessories.save_local_data_file(merged_df, 'Data/combined_ipc.csv')

@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: feature_engineering.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 13:04:13:134  GMT-0600
+# @Last modified time: 20-Apr-2021 22:04:05:051  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -39,9 +39,10 @@ if __name__ == '__main__':
     sys.path.insert(1, os.getcwd() + '/_references')
     sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
     import _accessories
-    import _context_managers
+    # import _context_managers
     import _multiprocessed.defs as defs
-    import _traversal
+
+    # import _traversal
 
 
 # _traversal.print_tree_to_txt(PATH='_configs/FILE_STRUCTURE.txt')
@@ -115,22 +116,22 @@ _ = """
 
 
 def _FEATENG_PHYS():
-    _accessories._print('Ingesting JOINED DATA data...')
+    _accessories._print('Ingesting JOINED DATA data...', color='LIGHTYELLOW_EX')
     DATASETS = {'JOINED_SOURCE': _accessories.retrieve_local_data_file(filepath)}
 
-    _accessories._print('Engineering initial physics features...')
+    _accessories._print('Engineering initial physics features...', color='LIGHTYELLOW_EX')
     engineer_initial_features(DATASETS['JOINED_SOURCE'])
 
-    _accessories._print('Engineering theoretical fluid...')
+    _accessories._print('Engineering theoretical fluid...', color='LIGHTYELLOW_EX')
     DATASETS['THEORETICAL'] = theoretical_fluid(DATASETS['JOINED_SOURCE'])
-    _accessories._print('Engineering allocation factor...')
+    _accessories._print('Engineering allocation factor...', color='LIGHTYELLOW_EX')
     DATASETS['THEORETICAL'] = allocation_factor(DATASETS['THEORETICAL'])
 
-    _accessories._print('Engineering adjusted features...')
+    _accessories._print('Engineering adjusted features...', color='LIGHTYELLOW_EX')
     injectors = get_injector_wells(DATASETS['THEORETICAL'])
     engineer_adjusted_features(DATASETS['THEORETICAL'], injectors)
 
-    _accessories._print('Health checks and saving...')
+    _accessories._print('Health checks and saving...', color='LIGHTYELLOW_EX')
     DATASETS['THEORETICAL'].drop(NOT_REQUIRED, axis=1, inplace=True)
     _accessories.finalize_all(DATASETS, skip=[])
     _accessories.save_local_data_file(DATASETS['THEORETICAL'], 'Data/combined_ipc_engineered_phys.csv')

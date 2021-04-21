@@ -3,12 +3,13 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 15:04:22:228  GMT-0600
+# @Last modified time: 20-Apr-2021 22:04:03:031  GMT-0600
 # @License: [Private IP]
 
 import ast
-import json
 import os
+import sys
+from contextlib import contextmanager
 
 import pandas as pd
 from colorama import Fore, Style
@@ -104,3 +105,15 @@ def auto_make_path(path: str, **kwargs: bool) -> None:
     if not os.path.exists(path=path):
         raise Exception(message='Something is TERRIBLY wrong.')
     _print(f'>> Created: \"{path}\"', color='green')
+
+
+@contextmanager
+def suppress_stdout():
+    _print('Atteming to supress plot output using context manager...', color='LIGHTRED_EX')
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
