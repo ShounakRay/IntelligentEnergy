@@ -5,13 +5,13 @@ Innovative algorithms which use statistical, AI/ML, and forecasting methodologie
 <hr style="border:3px solid blue"></hr>
 
 ## Table of Contents:
-1. Dependencies
-2. Notable File Structure
-3. Design Decisions
-4. Pipeline
-5. Benchmarking and Backtesting
-6. Final Implementation
-7. Other
+1. [Dependencies](#part-1-dependencies)
+2. [Notable File Structure](#part-2-notable-file-structure)
+3. [Design Decisions](#part-3-design-decisions)
+4. [Pipeline](#part-4-pipeline)
+5. [Benchmarking and Backtesting](#part-5-benchmarking-and-backtesting)
+6. [Final Implementation](#part-6-final-implementation)
+7. [Other](#part-7-other)
 
 <hr style="border:3px solid blue"></hr>
 
@@ -38,27 +38,45 @@ Important design decisions and their motivations
 ### Overview
 There are seven sequential components in the main pipeline of this repository.
 1. [Source Table Aggregation](#stage-1-source-table-aggregation)
-2. Physics Feature Engineering
-3. Anomaly Detection and Aggregation
-4. Mathematical Feature Engineering
-5. Model Creation and Performance
-6. Optimization and Producer-Level Steam Allocation
-7. Injector-Level Steam Allocation
+2. [Physics Feature Engineering](#stage-2-physics-feature-engineering)
+3. [Anomaly Detection and Aggregation](#stage-3-anomaly-detection-and-aggregation)
+4. [Mathematical Feature Engineering](#stage-4-mathematical-feature-engineering)
+5. [Model Creation and Performance](#stage-5-model-creation-and-performance)
+6. [Optimization and Producer Level Steam Allocation](#stage-6-optimization-and-producer-level-steam-allocation)
+7. [Injector Level Steam Allocation](#stage-7-injector-level-steam-allocation)
 
 ### Stage 1 – Source Table Aggregation
-This section will outline the core steps conducted to pre-process the data. The purpose of this step is to ensure clean, restructured, and engineered data which makes sense for predictive modeling algorithms and framework in **Stage 2 – Data Modeling**.
+Joining the production, production testing, injection, and fiber data.
 
 ### Stage 2 – Physics Feature Engineering
-This section will overview the core steps conducted *with* the pre-processed data to develop accurate and robust predictive models. The purpose of this step is to generate even *further* pre-processed data (from a modeling standpoint) and complementary models.
+Generating new features based on domain-specific [modified] SAGD knowledge.
+
+### Stage 3 – Anomaly Detection and Aggregation
+Using custom anomaly detection package to determine weights.
+
+### Stage 4 – Mathematical Feature Engineering
+Generation new features - solely based on combinatorial explosions that are helpful towards model performance.
+
+### Stage 5 – Model Creation and Performance
+Running the h2o experiment, assesssing model performance, and picking the best ones.
+
+### Stage 6 – Optimization and Producer Level Steam Allocation
+Determinining optimization base table and using domain-specific contraints to tune high-level steam allocation.
+
+### Stage 7 – Injector Level Steam Allocation
+The highest resolution of steam allocation.
 
 <hr style="border:3px solid blue"></hr>
 
 ## Part 5 – Benchmarking and Backtesting
+Using the top performing models and running incremental backtests to compare recommended and actual steam allocations.
 
 <hr style="border:3px solid blue"></hr>
 
 ## Part 6 – Final Implementation
+Based on model performance and general design of project, what's the best way to implement it.
 
 <hr style="border:3px solid blue"></hr>
 
 ## Part 7 – Other
+Miscellaneous.
