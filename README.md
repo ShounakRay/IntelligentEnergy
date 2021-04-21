@@ -37,7 +37,7 @@ Important design decisions and their motivations
 ## Part 4: Pipeline
 ### Overview
 There are seven sequential components in the main pipeline of this repository.
-1. [Source Table Aggregation](#Stage-1:-Source-Table-Aggregation)
+1. [Source Table Aggregation](#stage-1:-source-table-aggregation)
 2. Physics Feature Engineering
 3. Anomaly Detection and Aggregation
 4. Mathematical Feature Engineering
