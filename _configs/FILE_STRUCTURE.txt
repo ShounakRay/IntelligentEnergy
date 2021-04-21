@@ -1,8 +1,6 @@
 IntelligentEnergy/
 ├── .DS_Store
 >>>> SKIPPED .GIT FILES !
-├── .ipynb_checkpoints/
-│   └── JUPYTER-IPC_Real_Modeling-checkpoint.ipynb
 ├── __init__.py
 ├── __pycache__/
 │   ├── _acessories.cpython-38.pyc
@@ -14,6 +12,7 @@ IntelligentEnergy/
 │   └── FILE_STRUCTURE.txt
 ├── _references/
 │   ├── .DS_Store
+│   ├── __init__.py
 │   ├── __pycache__/
 │   │   ├── _accessories.cpython-38.pyc
 │   │   ├── _acessories.cpython-38.pyc
@@ -22,42 +21,324 @@ IntelligentEnergy/
 │   ├── _accessories.py
 │   ├── _context_managers.py
 │   └── _traversal.py
-├── Approach 1/
+├── Data/
 │   ├── .DS_Store
-│   ├── AUTO-IPC_Real_Manipulation.py
-│   ├── CrossCorrelation/
+│   ├── aggregate_fiber.csv
+│   ├── combined_ipc.csv
+│   ├── combined_ipc_aggregates.csv
+│   ├── combined_ipc_aggregates_PWELL.csv
+│   ├── combined_ipc_engineered_math.csv
+│   ├── combined_ipc_engineered_phys.csv
+│   ├── Coordinates/
+│   │   ├── BPRI ONION LAKE N 1AP2 Hz 7A13-5-4D9-5-56-27(14-3317 Final Surveys).txt
+│   │   ├── BPRI ONION LAKE N 1AP3 HZ 11A13-5-4D9-5-56-27_14-3646 Final Surveys.txt
+│   │   ├── BPRI ONION LAKE N 1AP4 HZ 15A13-5-1A16-5-56-27 (14-3647 Final Survey).txt
+│   │   ├── BPRI Onion Lake N 1AP5 HZ 18D13-5-4A16-5-56-27_14-3648_Final_Survyes.txt
+│   │   ├── BPRI ONION LAKE N 1AP6 HZ 22D13-5-1D16-5-56-27_Final Surveys.txt
+│   │   ├── BPRI ONION LAKE N 1AP7 HZ 26D13-5-5D16-5-56-27 ( 14-3650 Final Surveys).txt
+│   │   ├── BPRI ONION LAKE N 1AP8 HZ 30D13-5-4D16-5-56-27_Final Surveys.txt
+│   │   ├── BPRI ONION LAKE N 1BP1 HZ 2C5-5-8A9-5-56-27 Final Surveys.TXT
+│   │   ├── BPRI Onion Lake N 1BP2 HZ 6C5-5-5A9-5-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lake N 1BP3 HZ 10C5-5-9A9-5-56-27_14-3895 Final Survey.txt
+│   │   ├── BPRI Onion Lake N 1BP4 HZ 3B5-5-1D8-5-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lake N 1BP5 HZ 7B5-5-4A8-5-56-27_14-3897 Final Surveys.txt
+│   │   ├── BPRI Onion Lake N 1BP6 HZ 11B5-5-1A8-5-56-27 (14-3898 Final ).txt
+│   │   ├── BPRI Onion LakeN 1AI2 HZ 2D13-5-8D9-5-56-27 March 21 Final Surveys.txt
+│   │   └── Liner Depths (measured depth).xlsx
+│   ├── DISTANCE_MATRIX.pkl
+│   ├── DTS/
 │   │   ├── .DS_Store
-│   │   ├── Injector Cross Correlation.png
-│   │   ├── selective_matrix.pdf
-│   │   ├── selective_matrix.png
-│   │   ├── test copy.mp4
-│   │   ├── test.mp4
-│   │   ├── WELL-ALL_PRODUCTION_TARGET-UNSPECIFIED.png
-│   │   └── WELL-ALL_PRODUCTION_TARGET-UNSPECIFIED_TIMED-True.png
-│   ├── Exploratory Data Analysis/
-│   │   ├── report_DATA_INJECTION_PRESS.html
-│   │   ├── report_DATA_INJECTION_STEAM.html
-│   │   ├── report_DATA_PRODUCTION.html
-│   │   ├── report_DATA_TEST.html
-│   │   ├── report_FIBER_DATA.html
-│   │   ├── report_FINALE.html
-│   │   ├── report_PRODUCTION_WELL_INTER.html
-│   │   └── report_PRODUCTION_WELL_WSENSOR.html
-│   ├── heatmap_anitest.py
-│   ├── HTML/
-│   │   ├── just_foref.html
-│   │   ├── nx_visjs.html
-│   │   └── nx_visjs_TAILOR.html
-│   ├── IPC_Real_Manipulation.py
-│   ├── IPC_Real_Modeling.py
-│   ├── MAIN_COPY.py
-│   └── vis/
-│       ├── .babelrc
-│       ├── .codeclimate.yml
-│       ├── .csslintrc
-│       ├── .DS_Store
-│       ├── .eslintrc
-│       ├── .github/
-│       │   ├── ISSUE_TEMPLATE.md
-│       │   └── PULL_REQUEST_TEMPLATE.md
-│       
+│   │   ├── AP2/
+│   │   │   └── AP2THERM.xlsx
+│   │   ├── AP3/
+│   │   │   ├── AP31DTS.csv
+│   │   │   ├── AP32DTS.csv
+│   │   │   ├── AP33DTS.csv
+│   │   │   ├── AP34DTS.csv
+│   │   │   ├── AP35DTS.csv
+│   │   │   ├── AP36DTS.csv
+│   │   │   ├── AP37DTS.csv
+│   │   │   └── AP3DTS.csv
+│   │   ├── AP4/
+│   │   │   ├── AP41DTS.csv
+│   │   │   ├── AP42DTS.csv
+│   │   │   ├── AP43DTS.csv
+│   │   │   ├── AP44DTS.csv
+│   │   │   ├── AP45DTS.csv
+│   │   │   ├── AP46DTS.csv
+│   │   │   ├── AP47DTS.csv
+│   │   │   └── AP4DTS.csv
+│   │   ├── AP5/
+│   │   │   ├── AP51DTS.csv
+│   │   │   ├── AP52DTS.csv
+│   │   │   ├── AP53DTS.csv
+│   │   │   ├── AP54DTS.csv
+│   │   │   ├── AP55DTS.csv
+│   │   │   ├── AP56DTS.csv
+│   │   │   ├── AP57DTS.csv
+│   │   │   ├── AP58DTS.csv
+│   │   │   └── AP5DTS.csv
+│   │   ├── AP6/
+│   │   │   ├── AP61DTS.csv
+│   │   │   ├── AP62DTS.csv
+│   │   │   ├── AP63DTS.csv
+│   │   │   ├── AP64DTS.csv
+│   │   │   ├── AP65DTS.csv
+│   │   │   ├── AP66DTS.csv
+│   │   │   ├── AP67DTS.csv
+│   │   │   ├── AP68DTS.csv
+│   │   │   └── AP6DTS.csv
+│   │   ├── AP7/
+│   │   │   ├── AP71DTS.csv
+│   │   │   ├── AP72DTS.csv
+│   │   │   ├── AP73DTS.csv
+│   │   │   ├── AP74DTS.csv
+│   │   │   ├── AP75DTS.csv
+│   │   │   ├── AP76DTS.csv
+│   │   │   ├── AP77DTS.csv
+│   │   │   ├── AP78DTS.csv
+│   │   │   └── AP7DTS.csv
+│   │   ├── AP8/
+│   │   │   ├── AP81DTS.csv
+│   │   │   ├── AP82DTS.csv
+│   │   │   ├── AP83DTS.csv
+│   │   │   ├── AP84DTS.csv
+│   │   │   ├── AP85DTS.csv
+│   │   │   ├── AP86DTS.csv
+│   │   │   ├── AP87DTS.csv
+│   │   │   └── AP8DTS.csv
+│   │   ├── BP1/
+│   │   │   ├── BP11DTS.csv
+│   │   │   ├── BP12DTS.csv
+│   │   │   ├── BP13DTS.csv
+│   │   │   ├── BP14DTS.csv
+│   │   │   ├── BP15DTS.csv
+│   │   │   ├── BP16DTS.csv
+│   │   │   ├── BP17DTS.csv
+│   │   │   └── BP1DTS.csv
+│   │   ├── BP2/
+│   │   │   ├── BP21DTS.csv
+│   │   │   ├── BP22DTS.csv
+│   │   │   ├── BP23DTS.csv
+│   │   │   ├── BP24DTS.csv
+│   │   │   ├── BP25DTS.csv
+│   │   │   └── BP2DTS.csv
+│   │   ├── BP3/
+│   │   │   ├── BP31DTS.csv
+│   │   │   ├── BP32DTS.csv
+│   │   │   ├── BP33DTS.csv
+│   │   │   ├── BP34DTS.csv
+│   │   │   ├── BP35DTS.csv
+│   │   │   ├── BP36DTS.csv
+│   │   │   ├── BP37DTS.csv
+│   │   │   └── BP3DTS.csv
+│   │   ├── BP4/
+│   │   │   ├── BP41DTS.csv
+│   │   │   ├── BP42DTS.csv
+│   │   │   ├── BP43DTS.csv
+│   │   │   ├── BP44DTS.csv
+│   │   │   ├── BP45DTS.csv
+│   │   │   ├── BP46DTS.csv
+│   │   │   └── BP4DTS.csv
+│   │   ├── BP5/
+│   │   │   ├── BP51DTS.csv
+│   │   │   ├── BP52DTS.csv
+│   │   │   ├── BP53DTS.csv
+│   │   │   ├── BP54DTS.csv
+│   │   │   ├── BP55DTS.csv
+│   │   │   ├── BP56DTS.csv
+│   │   │   ├── BP57DTS.csv
+│   │   │   └── BP5DTS.csv
+│   │   └── BP6/
+│   │       ├── BP61DTS.csv
+│   │       ├── BP62DTS.csv
+│   │       ├── BP63DTS.csv
+│   │       ├── BP64DTS.csv
+│   │       ├── BP65DTS.csv
+│   │       ├── BP66DTS.csv
+│   │       ├── BP67DTS.csv
+│   │       └── BP6DTS.csv
+│   ├── INJECTION_[Well, Pad].pkl
+│   ├── Isolated/
+│   │   ├── OLT injection data.xlsx
+│   │   ├── OLT production data (rev 1).xlsx
+│   │   ├── OLT production data.xlsx
+│   │   └── OLT well test data.xlsx
+│   ├── PAD_Candidates.pkl
+│   ├── Pickles/
+│   │   ├── DATA_INJECTION_ORIG.pkl
+│   │   ├── DATA_INJECTION_PRESS.pkl
+│   │   ├── DATA_INJECTION_STEAM.pkl
+│   │   ├── DATA_PRODUCTION.pkl
+│   │   ├── DATA_PRODUCTION_ORIG.pkl
+│   │   ├── DATA_TEST.pkl
+│   │   ├── DATA_TEST_ORIG.pkl
+│   │   ├── FIBER_DATA.pkl
+│   │   ├── FINALE.pkl
+│   │   ├── PRODUCTION_WELL_INTER.pkl
+│   │   └── PRODUCTION_WELL_WSENSOR.pkl
+│   ├── PRODUCTION_[Well, Pad].pkl
+│   └── WELL_Candidates.pkl
+├── IntelligentEnergy.svg
+├── LICENSE
+├── Manipulation Reference Files/
+│   ├── .DS_Store
+│   ├── Benchmarking Anomaly Detection.png
+│   ├── Engineered Features.png
+│   ├── ft_end_correlations.png
+│   ├── Manipulation Validation/
+│   │   ├── IPC_Validation_initial.pdf
+│   │   └── IPC_Validation_revised.pdf
+│   ├── Producer-Injector Overlap.png
+│   ├── Schematic 1/
+│   │   ├── .DS_Store
+│   │   ├── File_IO_Error_log.png
+│   │   ├── injection.png
+│   │   ├── IPC Layout.pdf
+│   │   ├── IPC_BASE.html.zip
+│   │   ├── IPC_BASE.png
+│   │   ├── IPC_BASE.svg
+│   │   ├── production.png
+│   │   ├── target.png
+│   │   ├── testing.png
+│   │   └── well_example.png
+│   ├── Schematic 2/
+│   │   ├── .DS_Store
+│   │   ├── DATA_INJECTION.png
+│   │   ├── DATA_INJECTION_PRESS.png
+│   │   ├── DATA_INJECTION_STEAM.png
+│   │   ├── DATA_PRODUCTION.png
+│   │   ├── DATA_TEST.png
+│   │   ├── FIBER_DATA.png
+│   │   ├── FINALE.png
+│   │   ├── IPC Layout-1.png
+│   │   ├── IPC Layout.pdf
+│   │   ├── IPC_BASE.png
+│   │   ├── PRODUCTION_WELL_INTER.png
+│   │   ├── PRODUCTION_WELL_WSENSOR.png
+│   │   └── target.png
+│   ├── Schematic 3/
+│   │   ├── IPC_BASE.png
+│   │   └── IPC_BASE.svg
+│   ├── Schematic 4/
+│   │   ├── Screen Shot 2021-03-22 at 3.26.28 PM (2).png
+│   │   └── Screen Shot 2021-03-22 at 3.26.31 PM (2).png
+│   ├── Weight EDA/
+│   │   ├── Weight TS PRO_Pad = A.png
+│   │   ├── Weight TS PRO_Pad = B.png
+│   │   ├── Weight TS PRO_Well = AP2.png
+│   │   ├── Weight TS PRO_Well = AP3.png
+│   │   ├── Weight TS PRO_Well = AP4.png
+│   │   ├── Weight TS PRO_Well = AP5.png
+│   │   ├── Weight TS PRO_Well = AP6.png
+│   │   ├── Weight TS PRO_Well = AP7.png
+│   │   ├── Weight TS PRO_Well = AP8.png
+│   │   ├── Weight TS PRO_Well = BP1.png
+│   │   ├── Weight TS PRO_Well = BP2.png
+│   │   ├── Weight TS PRO_Well = BP3.png
+│   │   ├── Weight TS PRO_Well = BP4.png
+│   │   ├── Weight TS PRO_Well = BP5.png
+│   │   └── Weight TS PRO_Well = BP6.png
+│   ├── Weight TS PRO_Pad = A.png
+│   ├── Weight TS PRO_Pad = B.png
+│   ├── Weight TS PRO_Well = AP2.png
+│   ├── Weight TS PRO_Well = AP3.png
+│   ├── Weight TS PRO_Well = AP4.png
+│   ├── Weight TS PRO_Well = AP5.png
+│   ├── Weight TS PRO_Well = AP6.png
+│   ├── Weight TS PRO_Well = AP7.png
+│   ├── Weight TS PRO_Well = AP8.png
+│   ├── Weight TS PRO_Well = BP1.png
+│   ├── Weight TS PRO_Well = BP2.png
+│   ├── Weight TS PRO_Well = BP3.png
+│   ├── Weight TS PRO_Well = BP4.png
+│   ├── Weight TS PRO_Well = BP5.png
+│   └── Weight TS PRO_Well = BP6.png
+├── Modeling Reference Files/
+│   ├── No feateng/
+│   │   ├── hyperparams.txt
+│   │   ├── model_analytics_2571_top30.pdf
+│   │   └── variable_importances_PAD2571.pdf
+│   ├── Pad Level Experiments/
+│   │   ├── R_PAD, !End-Bins, Weighted/
+│   │   │   └── hyperparams.txt
+│   │   ├── R_PAD, !End-Bins, Weighted, Eng./
+│   │   │   └── hyperparams.txt
+│   │   └── R_PAD, Quo, Weighted/
+│   │       └── hyperparams.txt
+│   ├── Producer-Injector Overlap for BP4.png
+│   ├── Producer-Injector Overlap for BP6.png
+│   ├── Round 4434/
+│   │   ├── hyperparams.txt
+│   │   ├── variable_importances_PAD4434.pdf
+│   │   └── with feateng.pdf
+│   └── Steam Allocation.pdf
+├── pipeline/
+│   ├── .DS_Store
+│   ├── __init__.py
+│   ├── _class/
+│   │   └── S1F_base_generation.py
+│   ├── _multiprocessed/
+│   │   ├── __pycache__/
+│   │   │   └── defs.cpython-38.pyc
+│   │   └── defs.py
+│   ├── modeling_bare_minimum.py
+│   ├── S1_base_generation.py
+│   ├── S2_ft_eng_physics.py
+│   ├── S3_detection_aggregation.py
+│   ├── S4_ft_eng_math.py
+│   ├── S5_approach_alt_modeling.py
+│   └── S6_steam_allocation.py
+├── process_flow.drawio
+├── R&D References/
+│   ├── Adaptive TS SVM.pdf
+│   ├── Anomaly Detection.pdf
+│   ├── Feature Selection.pdf
+│   ├── ND Phase Space.pdf
+│   ├── Plan 1, Anomaly Detection.pdf
+│   ├── SAGD Math.pdf
+│   ├── SAGD Vertical Injection Wells.pdf
+│   ├── TS ND OCSVM.pdf
+│   ├── TS Phase Space Theoretical.pdf
+│   └── TS Phase Space.pdf
+├── README.md
+└── Statis Code/
+    ├── Approach 1/
+    │   ├── .DS_Store
+    │   ├── AUTO-IPC_Real_Manipulation.py
+    │   ├── CrossCorrelation/
+    │   │   ├── .DS_Store
+    │   │   ├── Injector Cross Correlation.png
+    │   │   ├── selective_matrix.pdf
+    │   │   ├── selective_matrix.png
+    │   │   ├── test copy.mp4
+    │   │   ├── test.mp4
+    │   │   ├── WELL-ALL_PRODUCTION_TARGET-UNSPECIFIED.png
+    │   │   └── WELL-ALL_PRODUCTION_TARGET-UNSPECIFIED_TIMED-True.png
+    │   ├── Exploratory Data Analysis/
+    │   │   ├── report_DATA_INJECTION_PRESS.html
+    │   │   ├── report_DATA_INJECTION_STEAM.html
+    │   │   ├── report_DATA_PRODUCTION.html
+    │   │   ├── report_DATA_TEST.html
+    │   │   ├── report_FIBER_DATA.html
+    │   │   ├── report_FINALE.html
+    │   │   ├── report_PRODUCTION_WELL_INTER.html
+    │   │   └── report_PRODUCTION_WELL_WSENSOR.html
+    │   ├── heatmap_anitest.py
+    │   ├── HTML/
+    │   │   ├── just_foref.html
+    │   │   ├── nx_visjs.html
+    │   │   └── nx_visjs_TAILOR.html
+    │   ├── IPC_Real_Manipulation.py
+    │   ├── IPC_Real_Modeling.py
+    │   ├── MAIN_COPY.py
+    │   └── vis/
+    │       ├── .babelrc
+    │       ├── .codeclimate.yml
+    │       ├── .csslintrc
+    │       ├── .DS_Store
+    │       ├── .eslintrc
+    │       ├── .github/
+    │       │   ├── ISSUE_TEMPLATE.md
+    │       │   └── PULL_REQUEST_TEMPLATE.md
+    │       

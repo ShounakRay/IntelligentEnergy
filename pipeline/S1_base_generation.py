@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Apr-2021 00:04:45:451  GMT-0600
+# @Last modified time: 21-Apr-2021 00:04:81:817  GMT-0600
 # @License: [Private IP]
 
 
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     # import _context_managers
     # import _traversal
 
-# print(_traversal.print_tree_to_txt)
+# _traversal.print_tree_to_txt(PATH='_configs/FILE_STRUCTURE.txt')
 
 _ = """
 #######################################################################################################################
