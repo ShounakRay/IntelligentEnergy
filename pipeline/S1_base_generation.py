@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Apr-2021 12:04:75:754  GMT-0600
+# @Last modified time: 21-Apr-2021 12:04:30:301  GMT-0600
 # @License: [Private IP]
 
 
@@ -181,7 +181,7 @@ def ingest_fiber(producer_wells, **kwargs):
     # Concatenating aggregated fiber and AP2 data
     aggregated_fiber = pd.concat([aggregated_fiber, AP2_df.infer_objects()]).reset_index(drop=True)
 
-    if len(aggregated_fiber[aggregated_fiber['Date'] == 'Date/Time']['PRO_Well'].unique()) >= 0:
+    if len(aggregated_fiber[aggregated_fiber['Date'] == 'Date/Time']['PRO_Well'].unique()) > 0:
         raise ValueError('Something went wrong processing the fiber data.')
 
     return aggregated_fiber

@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: ft_eng_math.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Apr-2021 12:04:02:029  GMT-0600
+# @Last modified time: 21-Apr-2021 16:04:35:355  GMT-0600
 # @License: [Private IP]
 
 import itertools
@@ -64,6 +64,7 @@ _ = """
 RESPONDER = 'PRO_Total_Fluid'
 # TRAIN_PCT = 0.8
 TOP_F = 5
+NAIVE = False
 
 _ = """
 #######################################################################################################################
@@ -80,7 +81,7 @@ def minor_processing(df):
     return df
 
 
-def generate_new_features(df, RESPONDER, group_colname='PRO_Pad', **kwargs):
+def generate_new_features(df, RESPONDER, group_colname='PRO_Pad', save=True, **kwargs):
     CORE_FEATURES = list(df.columns).copy()
 
     groupers = df[group_colname].unique()
@@ -105,10 +106,14 @@ def generate_new_features(df, RESPONDER, group_colname='PRO_Pad', **kwargs):
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            model_feateng = AutoFeatRegressor(feateng_steps=2, verbose=3)
+            _accessories._print(f'Performing feature fngineering and selection for group "{group}"...')
+            model_feateng = AutoFeatRegressor(feateng_steps=2, verbose=1)
             feateng_X_TRAIN = model_feateng.fit_transform(TRAIN_X, TRAIN_Y)
 
         new_ft[group] = (feateng_X_TRAIN, model_feateng.new_feat_cols_)
+
+    if(save):
+        _accessories.save_local_data_file(new_ft, f'Data/FEATENGS_[{group_colname}, Engineered].pkl')
 
     return new_ft, CORE_FEATURES
 
@@ -125,13 +130,18 @@ def extract_specs(new_ft, group_colname, CORE_FEATURES):
 
     NEW_FEATURES = [c for c in all_new_dfs.columns if c not in CORE_FEATURES]
 
-    return all_new_fts, NEW_FEATURES
+    return all_new_dfs, all_new_fts, NEW_FEATURES
 
 
 def naive_merge_all(df, all_new_dfs, NEW_FEATURES):
-    df.reset_index(drop=False, inplace=True)
+    _accessories._print('WARNING: All generated features were merged with provided source data.\n' +
+                        'This is a quick and dirty way to proceed with engineered features, but may results in ' +
+                        'spurious results...', color='LIGHTRED_EX')
+    df = df.reset_index(drop=False, inplace=False)
     concatenated = pd.merge(df, all_new_dfs[NEW_FEATURES], on='index', how='inner').drop('index', 1)
     concatenated = concatenated.T.drop_duplicates().T.infer_objects()
+    if 'level_0' in concatenated:
+        concatenated.drop('level_0', axis=1, inplace=True)
 
     return concatenated
 
@@ -214,25 +224,21 @@ def _FEATENG_MATH():
     DATASETS['WEIGHTED'] = minor_processing(DATASETS['WEIGHTED'])
 
     _accessories._print('Generating new features...', color='LIGHTYELLOW_EX')
-
-    for g in DATASETS['WEIGHTED']['PRO_Pad'].unique():
-        gdf = DATASETS['WEIGHTED'][DATASETS['WEIGHTED']['PRO_Pad'] == g].reset_index(drop=True)
-        print(gdf.isna().sum())
-
     groups_engdfs, CORE_FEATURES = generate_new_features(DATASETS['WEIGHTED'], RESPONDER, 'PRO_Pad')
-    _accessories._print('Extracing specs of generated features...', color='LIGHTYELLOW_EX')
-    all_new_fts, NEW_FEATURES = extract_specs(groups_engdfs, 'PRO_Pad', CORE_FEATURES)
+    _accessories._print('Extracting specs of generated features...', color='LIGHTYELLOW_EX')
+    all_new_dfs, all_new_fts, NEW_FEATURES = extract_specs(groups_engdfs, 'PRO_Pad', CORE_FEATURES)
 
-    _accessories._print('Naively merge data...', color='LIGHTYELLOW_EX')
-    _accessories._print('WARNING: All generated features were merged with provided source data. ' +
-                        'This is a quick and dirty way to proceed with engineered features, but may results in ' +
-                        'spurious results...', color='LIGHTRED_EX')
-    DATASETS['CONCATENATED'] = naive_merge_all(DATASETS['WEIGHTED'], all_new_fts)
+    if(NAIVE):
+        _accessories._print('Naively merging and saving data...', color='LIGHTYELLOW_EX')
+        DATASETS['CONCATENATED'] = naive_merge_all(DATASETS['WEIGHTED'], all_new_dfs.copy(), NEW_FEATURES)
 
-    _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
-    _accessories.finalize_all(DATASETS, skip=[])
-    _accessories.save_local_data_file(DATASETS['CONCATENATED'], 'Data/combined_ipc_engineered_math.csv')
+        _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
+        _accessories.finalize_all(DATASETS, skip=[])
+        _accessories.save_local_data_file(DATASETS['CONCATENATED'], 'Data/combined_ipc_engineered_math.csv')
 
+
+if __name__ == '__main__':
+    _FEATENG_MATH()
 
 # EOF
 

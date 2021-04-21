@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: feature_engineering.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 22:04:05:051  GMT-0600
+# @Last modified time: 21-Apr-2021 12:04:61:615  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -52,9 +52,6 @@ _ = """
 #############################################   HYPERPARAMETER SETTINGS   #############################################
 #######################################################################################################################
 """
-data_dir = 'Data'
-filepath = data_dir + '/combined_ipc.csv'
-
 NOT_REQUIRED: Final = ['PRO_Pump_Efficiency', 'PRO_Engineering_Approved', 'PRO_Alloc_Water_Cut',
                        'PRO_Water_cut', 'PRO_Theo_Fluid', 'PRO_Alloc_Factor', 'adj_PRO_Theo_Fluid',
                        'PRO_Adj_Alloc_Water', 'PRO_Adj_Pump_Efficiency', 'Field_Steam', 'PRO_Pump_Speed', 'PRO_UWI',
@@ -117,7 +114,7 @@ _ = """
 
 def _FEATENG_PHYS():
     _accessories._print('Ingesting JOINED DATA data...', color='LIGHTYELLOW_EX')
-    DATASETS = {'JOINED_SOURCE': _accessories.retrieve_local_data_file(filepath)}
+    DATASETS = {'JOINED_SOURCE': _accessories.retrieve_local_data_file('Data/combined_ipc.csv')}
 
     _accessories._print('Engineering initial physics features...', color='LIGHTYELLOW_EX')
     engineer_initial_features(DATASETS['JOINED_SOURCE'])

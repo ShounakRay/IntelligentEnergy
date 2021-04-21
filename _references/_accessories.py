@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Apr-2021 12:04:38:388  GMT-0600
+# @Last modified time: 21-Apr-2021 16:04:47:475  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -71,11 +71,20 @@ def save_local_data_file(data, filepath, **kwargs):
     _print(f'> Saved data to "{filepath}"')
 
 
-def finalize_all(datasets, skip=[], coerce_date=True):
+def finalize_all(datasets, skip=[], coerce_date=True, nan_check=True, **kwargs):
     for name, df in datasets.items():
         if name in skip:
             continue
         _temp = df.infer_objects()
+        if(nan_check):
+            if('PRO_Pad' in df.columns):
+                _print(f'NaN Checks: for {name} dataset', color='CYAN')
+                na_eda(df, 'PRO_Pad', threshold=kwargs.get('threshold'))
+            elif('PRO_Well' in df.columns):
+                _print(f'NaN Checks: for {name} dataset', color='CYAN')
+                na_eda(df, 'PRO_Well', threshold=kwargs.get('threshold'))
+            else:
+                _print('WARNING: No expected group in data to perform NaN check. Skipping...')
         if(coerce_date):
             _temp['Date'] = pd.to_datetime(_temp['Date'])
         datasets[name] = _temp
@@ -119,9 +128,18 @@ def suppress_stdout():
             sys.stdout = old_stdout
 
 
-def na_eda(df, group):
+def na_eda(df, group, show='selective', threshold=0.7):
+    if(threshold is None):
+        threshold = 0.7
     df = df.copy()
     for g in df[group].unique():
         gdf = df[df[group] == g].reset_index(drop=True)
-        _print(f'"{g}" grouped by "{group}"')
-        print(dict(gdf.isna().sum() / len(gdf)))
+        _print(f'"{g}" grouped by "{group}"', color='CYAN')
+        content = dict(gdf.isna().sum() / len(gdf))
+        if(show == "all"):
+            print(content)
+        elif(show == 'selective'):
+            for col, prop in content.items():
+                if(prop > threshold):
+                    _print(f'WARNING: Column "{col}" in group "{g}" exceeded threshold of {threshold} with ' +
+                           f'a NaN proportion of {prop}', color='LIGHTRED_EX')

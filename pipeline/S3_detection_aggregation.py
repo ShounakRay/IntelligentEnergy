@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Apr-2021 11:04:21:214  GMT-0600
+# @Last modified time: 21-Apr-2021 12:04:51:512  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -648,11 +648,6 @@ def _INTELLIGENT_AGGREGATION():
     DATASETS = {'FINALE': _accessories.retrieve_local_data_file('Data/combined_ipc_engineered_phys.csv')}
     INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/INJECTION_[Well, Pad].pkl')
     PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/PRODUCTION_[Well, Pad].pkl')
-
-    for g in DATASETS['FINALE']['PRO_Well'].unique():
-        gdf = DATASETS['FINALE'][DATASETS['FINALE']['PRO_Well'] == g].reset_index(drop=True)
-        _accessories._print(g)
-        print(dict(gdf.isna().sum() / len(gdf)))
 
     _accessories._print('Minor processing and group availability tracking...', color='LIGHTYELLOW_EX')
     available_pads_transformed = ['A', 'B']
