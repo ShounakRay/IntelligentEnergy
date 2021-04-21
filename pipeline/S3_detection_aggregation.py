@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 22:04:29:293  GMT-0600
+# @Last modified time: 21-Apr-2021 11:04:21:214  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -18,12 +18,6 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-# try:
-#     import Anomaly_Detection_PKG
-# except Exception:
-#     sys.path.append('/Users/Ray/Documents/Github/AnomalyDetection')
-#     from Anomaly_Detection_PKG import *
 
 
 def ensure_cwd(expected_parent):
@@ -644,16 +638,21 @@ def merge(datasets, available_pads):
 
 _ = """
 #######################################################################################################################
-#############################################   MINOR DATA PRE-PROCESSING  ############################################
+##################################################   CORE EXECUTION  ##################################################
 #######################################################################################################################
 """
 
 
 def _INTELLIGENT_AGGREGATION():
-    _accessories._print('Ingesting PHYSICS ENGINEERD and pad-well relationship data...', color='LIGHTYELLOW_EX')
+    _accessories._print('Ingesting PHYSICS ENGINEERED and pad-well relationship data...', color='LIGHTYELLOW_EX')
     DATASETS = {'FINALE': _accessories.retrieve_local_data_file('Data/combined_ipc_engineered_phys.csv')}
     INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/INJECTION_[Well, Pad].pkl')
     PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/PRODUCTION_[Well, Pad].pkl')
+
+    for g in DATASETS['FINALE']['PRO_Well'].unique():
+        gdf = DATASETS['FINALE'][DATASETS['FINALE']['PRO_Well'] == g].reset_index(drop=True)
+        _accessories._print(g)
+        print(dict(gdf.isna().sum() / len(gdf)))
 
     _accessories._print('Minor processing and group availability tracking...', color='LIGHTYELLOW_EX')
     available_pads_transformed = ['A', 'B']
@@ -688,6 +687,7 @@ def _INTELLIGENT_AGGREGATION():
                                                                     'PRO_Pad', INJ_PAD_KEYS)
 
     _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
+    _accessories.finalize_all(DATASETS, skip=[])
     merged_df = merge(DATASETS, available_pads_transformed)
     _accessories.save_local_data_file(merged_df, 'Data/combined_ipc_aggregates.csv')
 

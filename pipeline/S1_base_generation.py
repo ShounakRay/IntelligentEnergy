@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Apr-2021 00:04:81:817  GMT-0600
+# @Last modified time: 21-Apr-2021 12:04:75:754  GMT-0600
 # @License: [Private IP]
 
 
@@ -100,12 +100,20 @@ def filter_out(datasets, FORMAT=FORMAT_COLUMNS, CHOICE=CHOICE_COLUMNS):
         datasets[name] = _temp.infer_objects()
 
 
-def merge(datasets):
-    df = pd.merge(datasets['PRODUCTION'], datasets['FIBER'], how='outer', on=['Date', 'PRO_Well'])
-    df = pd.merge(df, datasets['INJECTION_TABLE'], how='outer', on=['Date'])
-    df = pd.merge(df, datasets['PRODUCTION_TEST'], how='left', on=['Date', 'PRO_Well'])
+def merge(DATASETS):
+    df = pd.merge(DATASETS['PRODUCTION'], DATASETS['FIBER'], how='outer', on=['Date', 'PRO_Well'])
+    df = pd.merge(df, DATASETS['INJECTION_TABLE'], how='outer', on=['Date'])
 
-    df = df.dropna(subset=['PRO_Well', 'PRO_UWI'], how='any').reset_index(drop=True)
+    # group = 'PRO_Well'
+    # df = df.copy()
+    # for g in df[group].unique():
+    #     gdf = df[df[group] == g].reset_index(drop=True)
+    #     _accessories._print(f'"{g}" grouped by "{group}"')
+    #     print(dict(gdf.isna().sum() / len(gdf)))
+
+    df = pd.merge(df, DATASETS['PRODUCTION_TEST'], how='left', on=['Date', 'PRO_Well'])
+
+    df = df.dropna(subset=['PRO_UWI'], how='all').reset_index(drop=True)
 
     return df
 
@@ -149,13 +157,13 @@ def ingest_fiber(producer_wells, **kwargs):
 
         condensed = pd.concat(condensed, axis=1)
         condensed['Date'] = combined['index']
-        condensed = condensed.sort_values('Date').set_index('Date')
+        condensed = condensed.sort_values('Date')
+        condensed['PRO_Well'] = producer
 
         return condensed
     aggregated_fiber = []
     for producer in producer_wells[1:]:
         condensed = get_fiber_data(producer)
-        condensed['PRO_Well'] = producer
         aggregated_fiber.append(condensed)
 
     aggregated_fiber = pd.concat(aggregated_fiber)
@@ -172,6 +180,9 @@ def ingest_fiber(producer_wells, **kwargs):
 
     # Concatenating aggregated fiber and AP2 data
     aggregated_fiber = pd.concat([aggregated_fiber, AP2_df.infer_objects()]).reset_index(drop=True)
+
+    if len(aggregated_fiber[aggregated_fiber['Date'] == 'Date/Time']['PRO_Well'].unique()) >= 0:
+        raise ValueError('Something went wrong processing the fiber data.')
 
     return aggregated_fiber
 
@@ -208,7 +219,7 @@ def _INGESTION():
                                                  index='Date', columns='INJ_Well').reset_index()
 
     _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
-    _accessories.finalize_all(DATASETS, skip=['FIBER'])
+    _accessories.finalize_all(DATASETS, skip=[])
     merged_df = merge(DATASETS)
     _accessories.save_local_data_file(merged_df, 'Data/combined_ipc.csv')
 

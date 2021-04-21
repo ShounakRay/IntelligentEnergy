@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 22:04:03:031  GMT-0600
+# @Last modified time: 21-Apr-2021 12:04:38:388  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -117,3 +117,11 @@ def suppress_stdout():
             yield
         finally:
             sys.stdout = old_stdout
+
+
+def na_eda(df, group):
+    df = df.copy()
+    for g in df[group].unique():
+        gdf = df[df[group] == g].reset_index(drop=True)
+        _print(f'"{g}" grouped by "{group}"')
+        print(dict(gdf.isna().sum() / len(gdf)))
