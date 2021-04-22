@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: ft_eng_math.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Apr-2021 16:04:35:355  GMT-0600
+# @Last modified time: 22-Apr-2021 09:04:25:257  GMT-0600
 # @License: [Private IP]
 
 import itertools
@@ -35,7 +35,7 @@ def ensure_cwd(expected_parent):
         os.chdir(new_cwd)
 
 
-if __name__ == '__main__':
+if bool(__name__):
     try:
         _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
     except Exception:
@@ -61,10 +61,8 @@ _ = """
 """
 
 # HYPERPARAMS
-RESPONDER = 'PRO_Total_Fluid'
 # TRAIN_PCT = 0.8
-TOP_F = 5
-NAIVE = False
+# TOP_F = 5
 
 _ = """
 #######################################################################################################################
@@ -76,7 +74,8 @@ _ = """
 def minor_processing(df):
     if('Unnamed: 0' in df.columns):
         df.drop('Unnamed', axis=1, inplace=True)
-    df = df.sort_values('Date').reset_index(drop=True)
+    if('Date' in df.columns):
+        df = df.sort_values('Date').reset_index(drop=True)
 
     return df
 
@@ -89,7 +88,7 @@ def generate_new_features(df, RESPONDER, group_colname='PRO_Pad', save=True, **k
     for group in groupers:
         subset_df = df[df[group_colname] == group].reset_index(drop=True).drop(group_colname, 1)
 
-        interpolated = subset_df.interpolate('linear').fillna(subset_df.mean()).sort_values('Date')
+        interpolated = subset_df.interpolate('linear').fillna(subset_df.mean())
 
         SOURCE_DF = interpolated.copy()
 
@@ -146,67 +145,67 @@ def naive_merge_all(df, all_new_dfs, NEW_FEATURES):
     return concatenated
 
 
-def view_generated_eqs(df, all_new_fts, TOP_F):
-    def divisorGenerator(n):
-        large_divisors = []
-        for i in range(1, int(math.sqrt(n) + 1)):
-            if n % i == 0:
-                yield i
-                if i * i != n:
-                    large_divisors.append(n / i)
-        for divisor in reversed(large_divisors):
-            yield int(divisor)
-
-    with _accessories.suppresss_stdout():
-        plt.figure(figsize=(25, 25))
-        sns.heatmap(df.select_dtypes(np.number).corr())
-        plt.savefig('Manipulation Reference Files/ft_end_correlations.png', bbox_inches='tight')
-
-        # TOP FORMULAS
-        _temp = pd.DataFrame(Counter(all_new_fts).most_common()[:TOP_F], columns=['Transformation', 'Frequency'])
-        _temp.index = _temp['Transformation']
-        _temp = _temp.drop('Transformation', 1)
-        plt.xticks(rotation='vertical')
-        plt.bar(_temp.index, _temp['Frequency'])
-        plt.title(f'Top {TOP_F} Engineered Features')
-
-        # REMOVE DUPLICATES
-        all_new_fts = list(set(all_new_fts))
-        all_new_fts_ltx = [sympy.latex(sympy.sympify(e.replace('_', '').replace('PRO', '')),
-                                       mul_symbol='dot') for e in all_new_fts]
-
-        # PLOTTING ALL GENERATED EQUATIONS
-        total_cells = len(all_new_fts_ltx)
-        divisors = list(divisorGenerator(total_cells))
-        # Find squarest combination
-        track = {}
-        for i in divisors:
-            divided = int(total_cells / i)
-            divisors.remove(divided) if divided in divisors else None
-            track[(divided, i)] = abs(divided - i)
-
-        nrows, ncols = sorted(sorted(track, reverse=False)[0], reverse=True)
-
-        fig, ax = plt.subplots(figsize=(2 * nrows, 2 * ncols), nrows=nrows, ncols=ncols)
-        relation = np.arange(0, total_cells).reshape(nrows, ncols).tolist()
-        for row in relation:
-            row_pos = relation.index(row)
-            for val in row:
-                col_pos = row.index(val)
-                axis_now = ax[row_pos][col_pos]
-                content = all_new_fts_ltx[val]
-                exec(f'axis_now.text(0.45, 0.5, r"${content}$", fontsize=14)')
-                axis_now.axes.get_xaxis().set_visible(False)
-                axis_now.axes.get_yaxis().set_visible(False)
-                axis_now.spines['top'].set_visible(False)
-                axis_now.spines['right'].set_visible(False)
-                axis_now.spines['left'].set_visible(False)
-                axis_now.spines['bottom'].set_visible(False)
-                plt.tight_layout()
-            plt.tight_layout()
-        plt.show()
-        fig.savefig('Manipulation Reference Files/Engineered Features.png', dpi=500,
-                    facecolor='white', bbox_inches='tight')
+# def view_generated_eqs(df, all_new_fts, TOP_F):
+#     def divisorGenerator(n):
+#         large_divisors = []
+#         for i in range(1, int(math.sqrt(n) + 1)):
+#             if n % i == 0:
+#                 yield i
+#                 if i * i != n:
+#                     large_divisors.append(n / i)
+#         for divisor in reversed(large_divisors):
+#             yield int(divisor)
+#
+#     with _accessories.suppresss_stdout():
+#         plt.figure(figsize=(25, 25))
+#         sns.heatmap(df.select_dtypes(np.number).corr())
+#         plt.savefig('Manipulation Reference Files/ft_end_correlations.png', bbox_inches='tight')
+#
+#         # TOP FORMULAS
+#         _temp = pd.DataFrame(Counter(all_new_fts).most_common()[:TOP_F], columns=['Transformation', 'Frequency'])
+#         _temp.index = _temp['Transformation']
+#         _temp = _temp.drop('Transformation', 1)
+#         plt.xticks(rotation='vertical')
+#         plt.bar(_temp.index, _temp['Frequency'])
+#         plt.title(f'Top {TOP_F} Engineered Features')
+#
+#         # REMOVE DUPLICATES
+#         all_new_fts = list(set(all_new_fts))
+#         all_new_fts_ltx = [sympy.latex(sympy.sympify(e.replace('_', '').replace('PRO', '')),
+#                                        mul_symbol='dot') for e in all_new_fts]
+#
+#         # PLOTTING ALL GENERATED EQUATIONS
+#         total_cells = len(all_new_fts_ltx)
+#         divisors = list(divisorGenerator(total_cells))
+#         # Find squarest combination
+#         track = {}
+#         for i in divisors:
+#             divided = int(total_cells / i)
+#             divisors.remove(divided) if divided in divisors else None
+#             track[(divided, i)] = abs(divided - i)
+#
+#         nrows, ncols = sorted(sorted(track, reverse=False)[0], reverse=True)
+#
+#         fig, ax = plt.subplots(figsize=(2 * nrows, 2 * ncols), nrows=nrows, ncols=ncols)
+#         relation = np.arange(0, total_cells).reshape(nrows, ncols).tolist()
+#         for row in relation:
+#             row_pos = relation.index(row)
+#             for val in row:
+#                 col_pos = row.index(val)
+#                 axis_now = ax[row_pos][col_pos]
+#                 content = all_new_fts_ltx[val]
+#                 exec(f'axis_now.text(0.45, 0.5, r"${content}$", fontsize=14)')
+#                 axis_now.axes.get_xaxis().set_visible(False)
+#                 axis_now.axes.get_yaxis().set_visible(False)
+#                 axis_now.spines['top'].set_visible(False)
+#                 axis_now.spines['right'].set_visible(False)
+#                 axis_now.spines['left'].set_visible(False)
+#                 axis_now.spines['bottom'].set_visible(False)
+#                 plt.tight_layout()
+#             plt.tight_layout()
+#         plt.show()
+#         fig.savefig('Manipulation Reference Files/Engineered Features.png', dpi=500,
+#                     facecolor='white', bbox_inches='tight')
 
 
 _ = """
@@ -216,25 +215,38 @@ _ = """
 """
 
 
-def _FEATENG_MATH():
-    _accessories._print('Ingesting PHYSICS ENGINEERD, WEIGHTED data...', color='LIGHTYELLOW_EX')
-    DATASETS = {'WEIGHTED': _accessories.retrieve_local_data_file('Data/combined_ipc_aggregates.csv')}
+def _FEATENG_MATH(data=None, RESPONDER='PRO_Total_Fluid', NAIVE=False):
+    if data is None:
+        _accessories._print('Ingesting PHYSICS ENGINEERD, WEIGHTED data...', color='LIGHTYELLOW_EX')
+        _accessories._print('WARNING: Mathematical feature engineering is isolated from modelling component.\n' +
+                            'This is not representative of the production pipeline.')
+        loaded_data = _accessories.retrieve_local_data_file('Data/combined_ipc_aggregates.csv')
+    elif type(data) is pd.core.frame.DataFrame:
+        _accessories._print('Model-group specific data is loaded for feature engineering...', color='LIGHTYELLOW_EX')
+        loaded_data = data.infer_objects()
+    else:
+        raise ValueError('Incorrectly formatted data inputted. Not DataFrame or defaulted None.')
+
+    DATASETS = {'WEIGHTED': loaded_data}
 
     _accessories._print('Minor processing on data...', color='LIGHTYELLOW_EX')
     DATASETS['WEIGHTED'] = minor_processing(DATASETS['WEIGHTED'])
 
     _accessories._print('Generating new features...', color='LIGHTYELLOW_EX')
     groups_engdfs, CORE_FEATURES = generate_new_features(DATASETS['WEIGHTED'], RESPONDER, 'PRO_Pad')
-    _accessories._print('Extracting specs of generated features...', color='LIGHTYELLOW_EX')
-    all_new_dfs, all_new_fts, NEW_FEATURES = extract_specs(groups_engdfs, 'PRO_Pad', CORE_FEATURES)
 
     if(NAIVE):
+        _accessories._print('Extracting specs of generated features...', color='LIGHTYELLOW_EX')
+        all_new_dfs, all_new_fts, NEW_FEATURES = extract_specs(groups_engdfs, 'PRO_Pad', CORE_FEATURES)
+
         _accessories._print('Naively merging and saving data...', color='LIGHTYELLOW_EX')
         DATASETS['CONCATENATED'] = naive_merge_all(DATASETS['WEIGHTED'], all_new_dfs.copy(), NEW_FEATURES)
 
         _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
         _accessories.finalize_all(DATASETS, skip=[])
         _accessories.save_local_data_file(DATASETS['CONCATENATED'], 'Data/combined_ipc_engineered_math.csv')
+    else:
+        return groups_engdfs, CORE_FEATURES
 
 
 if __name__ == '__main__':

@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Apr-2021 01:04:83:831  GMT-0600
+# @Last modified time: 22-Apr-2021 12:04:00:004  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -28,7 +28,8 @@ import seaborn as sns
 from colorama import Fore, Style
 from h2o.automl import H2OAutoML
 from h2o.exceptions import H2OConnectionError
-from matplotlib.patches import Rectangle
+
+# from matplotlib.patches import Rectangle
 
 
 def ensure_cwd(expected_parent):
@@ -73,6 +74,7 @@ if __name__ == '__main__':
     sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
     import _accessories
     import _context_managers
+    from S4_ft_eng_math import _FEATENG_MATH
 
     # Check java dependency
     check_java_dependency()
@@ -100,7 +102,7 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 5                                   # The longest that the experiment will run (seconds)
+MAX_EXP_RUNTIME: Final = 20                                   # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments (caveats*)
 EVAL_METRIC: Final = 'rmse'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'rmse'                                   # Leaderboard ranking metric after all trainings
@@ -118,7 +120,6 @@ PREFERRED_TOLERANCE = 0.1                                     # Tolerance applie
 TRAINING_VERBOSITY = 'warn'                                   # Verbosity of training (None, 'debug', 'info', d'warn')
 
 # Miscellaneous Constants
-RUN_TAG: Final = random.randint(0, 10000)                     # The identifying Key/ID for the specified run/config.
 MODEL_CMAPS = {'R^2': sns.color_palette('rocket_r', as_cmap=True),
                # 'R': sns.color_palette('rocket_r'),
                'MSE': sns.color_palette("coolwarm", as_cmap=True),
@@ -142,6 +143,66 @@ _ = """
 ##############################################   FUNCTION DEFINITIONS   ###############################################
 #######################################################################################################################
 """
+
+
+def get_aml_objects(project_names):
+    objs = []
+    for project_name in project_names:
+        objs.append(h2o.automl.get_automl(project_name))
+    return objs
+
+
+def record_hyperparameters(MAX_EXP_RUNTIME):
+    # NOTE: Dependent on global, non-locally defined variables
+
+    RUN_TAG: Final = random.randint(0, 10000)   # The identifying Key/ID for the specified run/config.
+    # Ensure overwriting does not occur while making identifying experiment directory.
+    while os.path.isdir(f'Modeling Reference Files/Round {RUN_TAG}/'):
+        RUN_TAG: Final = random.randint(0, 10000)
+    _accessories.auto_make_path(f'Modeling Reference Files/Round {RUN_TAG}/')
+
+    # Compartmentalize Hyperparameters
+    __LOCAL_VARS = locals().copy()
+    _SERVER_HYPERPARAMS = ('IP_LINK', 'SECURED', 'PORT', 'SERVER_FORCE')
+    _SERVER_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _SERVER_HYPERPARAMS}
+    _TRAIN_HYPERPARAMS = ('MAX_EXP_RUNTIME', 'RANDOM_SEED', 'EVAL_METRIC', 'RANK_METRIC', 'CV_FOLDS',
+                          'STOPPING_ROUNDS', 'WEIGHTS_COLUMN', 'EXPLOIT_RATIO', 'MODELING_PLAN')
+    _TRAIN_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _TRAIN_HYPERPARAMS}
+    _EXECUTION_HYPERPARAMS = ('FOLD_COLUMN', 'TOP_MODELS', 'PREFERRED_TOLERANCE', 'TRAINING_VERBOSITY')
+    _EXECUTION_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _EXECUTION_HYPERPARAMS}
+    _MISCELLANEOUS_HYPERPARAMS = ('MODEL_CMAPS', 'MODEL_CMAPS', 'HMAP_CENTERS', 'CELL_RATIO')
+    _MISCELLANEOUS_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _MISCELLANEOUS_HYPERPARAMS}
+
+    # Save hyperparameter configurations to file with TIMESTAMP
+    with open(f'Modeling Reference Files/Round {RUN_TAG}/hyperparams.txt', 'wt') as out:
+        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+        print('JOB INITIALIZED: ', datetime.datetime.now(), file=out)
+        print('RUN ID:', RUN_TAG, file=out)
+        print(file=out)
+
+        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+        print('SERVER HYPERPARAMETERS:', file=out)
+        pprint(_SERVER_HYPERPARAMS, stream=out)
+        print(file=out)
+
+        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+        print('TRAINING HYPERPARAMETRS:', file=out)
+        pprint(_TRAIN_HYPERPARAMS, stream=out)
+        print(file=out)
+
+        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+        print('EXECUTION HYPERPARAMETRS:', file=out)
+        pprint(_EXECUTION_HYPERPARAMS, stream=out)
+        print(file=out)
+
+        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+        print('MISCELLANEOUS HYPERPARAMETRS:', file=out)
+        pprint(_MISCELLANEOUS_HYPERPARAMS, stream=out)
+        print(file=out)
+
+    _accessories._print(f'STATUS: Directory created for Round {RUN_TAG}')
+
+    return RUN_TAG
 
 
 @_context_managers.server
@@ -429,11 +490,11 @@ def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN)
 
 
 @_context_managers.analytics
-def run_experiment(data, groupby_options, responder, validation_frames_dict,
-                   MAX_EXP_RUNTIME=MAX_EXP_RUNTIME, EVAL_METRIC=EVAL_METRIC, RANK_METRIC=RANK_METRIC,
+def run_experiment(data, groupby_options, responder, validation_frames_dict, weighting,
+                   MAX_EXP_RUNTIME, EVAL_METRIC=EVAL_METRIC, RANK_METRIC=RANK_METRIC,
                    RANDOM_SEED=RANDOM_SEED, WEIGHTS_COLUMNS=WEIGHTS_COLUMN, CV_FOLDS=CV_FOLDS,
                    STOPPING_ROUNDS=STOPPING_ROUNDS, EXPLOIT_RATIO=EXPLOIT_RATIO, MODELING_PLAN=MODELING_PLAN,
-                   TRAINING_VERBOSITY=TRAINING_VERBOSITY):
+                   TRAINING_VERBOSITY=TRAINING_VERBOSITY, ENGINEER_FEATURES=True):
     """Runs an H2O Experiment given specific configurations.
 
 
@@ -473,40 +534,40 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict,
         The names of the projects which were completed
 
     """
-    """DATA SANITATION"""
-    _provided_args = locals()
-    name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'data': None,
-                           'groupby_options': [str],
-                           'responder': [dict],
-                           'validation_frames_dict': [dict, type(None)],
-                           'MAX_EXP_RUNTIME': [dict],
-                           'EVAL_METRIC': [list, type(None)],
-                           'RANK_METRIC': [list, type(None)],
-                           'RANDOM_SEED': [int, float],
-                           'WEIGHTS_COLUMNS': [str, type(None)],
-                           'CV_FOLDS': [int],
-                           'STOPPING_ROUNDS': [int],
-                           'EXPLOIT_RATIO': [float],
-                           'MODELING_PLAN': [list, type(None)],
-                           'TRAINING_VERBOSITY': [str, type(None)]}
-    _expected_value_args = {'data': None,
-                            'groupby_options': None,
-                            'responder': None,
-                            'validation_frames_dict': None,
-                            'MAX_EXP_RUNTIME': [1, 10000],
-                            'EVAL_METRIC': None,
-                            'RANK_METRIC': None,
-                            'RANDOM_SEED': [0, np.inf],
-                            'WEIGHTS_COLUMNS': None,
-                            'CV_FOLDS': list(range(1, 100 + 1)),
-                            'STOPPING_ROUNDS': list(range(1, 10 + 1)),
-                            'EXPLOIT_RATIO': [0.0, 1.0],
-                            'MODELING_PLAN': None,
-                            'TRAINING_VERBOSITY': None}
-    util_data_type_sanitation(_provided_args, _expected_type_args, name)
-    util_data_range_sanitation(_provided_args, _expected_value_args, name)
-    """END OF DATA SANITATION"""
+    # """DATA SANITATION"""
+    # _provided_args = locals()
+    # name = sys._getframe(0).f_code.co_name
+    # _expected_type_args = {'data': None,
+    #                        'groupby_options': [str],
+    #                        'responder': [dict],
+    #                        'validation_frames_dict': [dict, type(None)],
+    #                        'MAX_EXP_RUNTIME': [dict],
+    #                        'EVAL_METRIC': [list, type(None)],
+    #                        'RANK_METRIC': [list, type(None)],
+    #                        'RANDOM_SEED': [int, float],
+    #                        'WEIGHTS_COLUMNS': [str, type(None)],
+    #                        'CV_FOLDS': [int],
+    #                        'STOPPING_ROUNDS': [int],
+    #                        'EXPLOIT_RATIO': [float],
+    #                        'MODELING_PLAN': [list, type(None)],
+    #                        'TRAINING_VERBOSITY': [str, type(None)]}
+    # _expected_value_args = {'data': None,
+    #                         'groupby_options': None,
+    #                         'responder': None,
+    #                         'validation_frames_dict': None,
+    #                         'MAX_EXP_RUNTIME': [1, 10000],
+    #                         'EVAL_METRIC': None,
+    #                         'RANK_METRIC': None,
+    #                         'RANDOM_SEED': [0, np.inf],
+    #                         'WEIGHTS_COLUMNS': None,
+    #                         'CV_FOLDS': list(range(1, 100 + 1)),
+    #                         'STOPPING_ROUNDS': list(range(1, 10 + 1)),
+    #                         'EXPLOIT_RATIO': [0.0, 1.0],
+    #                         'MODELING_PLAN': None,
+    #                         'TRAINING_VERBOSITY': None}
+    # util_data_type_sanitation(_provided_args, _expected_type_args, name)
+    # util_data_range_sanitation(_provided_args, _expected_value_args, name)
+    # """END OF DATA SANITATION"""
 
     # Determined the categorical variable to be dropped in TRAINING SET (should only be the groupby)
     tb_dropped = data.as_data_frame().select_dtypes(object).columns
@@ -517,12 +578,17 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict,
         tb_dropped = tb_dropped[0]
 
     # Run all the H2O experiments for all the different groupby_options. Store in unique project name.
-    cumulative_varimps = {}
     initialized_projects = []
+
+    if(ENGINEER_FEATURES):
+        _accessories._print('No validation frame will be supplied to H20 since ' +
+                            'mathematical features are dynamically engineered.')
+        MODEL_DATASETS, CORE_FEATURES = _FEATENG_MATH(data.as_data_frame(), RESPONDER=responder)
+
     for group in groupby_options:
         print(Fore.GREEN + 'STATUS: Experiment -> Production Pad {}\n'.format(group) + Style.RESET_ALL)
 
-        if(validation_frames_dict is not None):
+        if(validation_frames_dict is not None and ENGINEER_FEATURES is False):
             validation_frame_groupby = validation_frames_dict[group]
             # Determined the categorical variable to be dropped in VALIDATION SET (should only be the groupby)
             tb_dropped_val = validation_frame_groupby.as_data_frame().select_dtypes(object).columns
@@ -548,10 +614,18 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict,
                             verbosity=TRAINING_VERBOSITY,         # What is the verbosity of training process?
                             project_name=project_name)
         initialized_projects.append(project_name)
+
+        if(ENGINEER_FEATURES):
+            validation_frame_groupby = None
+            MODEL_DATA = MODEL_DATASETS[group][0].infer_objects()
+            MODEL_DATA = h2o.H2OFrame(MODEL_DATA)
         # Filter the complete, provided source data to only include info for the current group
         MODEL_DATA = data[data[tb_dropped] == group]
         MODEL_DATA = MODEL_DATA.drop(tb_dropped, axis=1)
-        print(MODEL_DATA)
+
+        if(weighting is False):
+            WEIGHTS_COLUMN = None
+
         aml_obj.train(y=responder,                                # A single responder
                       weights_column=WEIGHTS_COLUMN,              # What is the weights column in the H2O frame?
                       training_frame=MODEL_DATA,                  # All the data is used for training, cross-validation
@@ -646,21 +720,18 @@ def varimps(project_names):
 
 
 @_context_managers.analytics
-def model_performance(tracker_with_modelobj, adj_factor, sort_by='RMSE', modelobj_colname='model_object'):
+def model_performance(project_names_pad, adj_factor, validation_data_dict,
+                      sort_by='RMSE', RESPONDER='PRO_Total_Fluid'):
     """Determine the model performance through a series of predefined metrics.
 
     Parameters
     ----------
-    tracker_with_modelobj : pandas.core.frame.DataFrame
-        Data on each models variable importances, the model itself, and other identifying tags (like group_type)
-        Only numerical features are used to make the heatmap though.
+    project_names_pad : list of str
+        The names of the experiments/project run
     adj_factor : dict
         The benchlines for each grouping.
     sort_by : str
         The performance metric which should be used to sort the performance data in descending order.
-    modelobj_colname : str
-        The name of the column in the DataFrame which contains the H2O models.
-        The default value is dependent on the defintion of `varimps`.
 
     Returns
     -------
@@ -669,168 +740,185 @@ def model_performance(tracker_with_modelobj, adj_factor, sort_by='RMSE', modelob
                        Specifically, R^2, R (optionally), MSE, RMSE, RMSLE, and MAE.
 
     """
-    """DATA SANITATION"""
-    _provided_args = locals()
-    name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'tracker_with_modelobj': [pd.core.frame.DataFrame],
-                           'adj_factor': [dict],
-                           'sort_by': [str],
-                           'modelobj_colname': [str]}
-    _expected_value_args = {'tracker_with_modelobj': None,
-                            'adj_factor': None,
-                            'sort_by': ['R^2', 'MSE', 'RMSE', 'Rel. RMSE', 'RMSLE', 'MAE'],
-                            'modelobj_colname': None}
-    util_data_type_sanitation(_provided_args, _expected_type_args, name)
-    util_data_range_sanitation(_provided_args, _expected_value_args, name)
-    """END OF DATA SANITATION"""
+    # """DATA SANITATION"""
+    # _provided_args = locals()
+    # name = sys._getframe(0).f_code.co_name
+    # _expected_type_args = {'project_names_pad': [list],
+    #                        'adj_factor': [dict],
+    #                        'sort_by': [str]}
+    # _expected_value_args = {'project_names_pad': None,
+    #                         'adj_factor': None,
+    #                         'sort_by': ['R^2', 'MSE', 'RMSE', 'Rel. RMSE', 'RMSLE', 'MAE']}
+    # util_data_type_sanitation(_provided_args, _expected_type_args, name)
+    # util_data_range_sanitation(_provided_args, _expected_value_args, name)
+    # """END OF DATA SANITATION"""
 
     perf_data = {}
-    for model_name, model_obj in zip(tracker_with_modelobj.index, tracker_with_modelobj[modelobj_colname]):
-        perf_data[model_name] = {}
-        group = model_name.split('GROUP-')[1]
-        # perf_data[model_name]['R^2'] = model_obj.r2()
-        # perf_data[model_name]['R'] = model_obj.r2() ** 0.5
-        # perf_data[model_name]['MSE'] = model_obj.mse()
-        perf_data[model_name]['RMSE'] = model_obj.rmse()
-        perf_data[model_name]['Rel. RMSE'] = model_obj.rmse() - adj_factor.get(group)
-        perf_data[model_name]['Val. RMSE'] = model_obj.rmse(valid=True)
-        if(model_obj.rmse(valid=True) is not None):
-            perf_data[model_name]['Rel. Val. RMSE'] = model_obj.rmse(valid=True) - adj_factor.get(group)
-        else:
-            perf_data[model_name]['Rel. Val. RMSE'] = None
-        # perf_data[model_name]['RMSLE'] = model_obj.rmsle()
-        # perf_data[model_name]['MAE'] = model_obj.mae()
+    exp_objs = zip(project_names_pad, get_aml_objects(project_names_pad))
+
+    for project_name, exp_obj in exp_objs:
+        group = project_name.split('__')[-1]
+        # Calculate validation RMSE
+        validation_data = validation_data_dict.get(group)
+
+        model_ids = exp_obj.leaderboard.as_data_frame()['model_id']
+        for model_name in model_ids:
+            model_obj = h2o.get_model(model_name)
+
+            prediction_on_validation = model_obj.predict(validation_data).as_data_frame().infer_objects()
+            val_rmse = np.sqrt(np.mean((validation_data.as_data_frame()[RESPONDER] -
+                                        prediction_on_validation['predict'])**2))
+            rel_val_rmse = val_rmse - adj_factor.get(group)
+
+            perf_data[model_name] = {}
+            # perf_data[model_name]['R^2'] = model_obj.r2()
+            # perf_data[model_name]['R'] = model_obj.r2() ** 0.5
+            # perf_data[model_name]['MSE'] = model_obj.mse()
+            perf_data[model_name]['RMSE'] = model_obj.rmse()
+            perf_data[model_name]['Rel. RMSE'] = model_obj.rmse() - adj_factor.get(group)
+            perf_data[model_name]['Val. RMSE'] = val_rmse
+            perf_data[model_name]['Rel. Val. RMSE'] = rel_val_rmse
+            # if(model_obj.rmse(valid=True) is not None):
+            #     perf_data[model_name]['Rel. Val. RMSE'] = rel_val_rmse
+            # else:
+            #     perf_data[model_name]['Rel. Val. RMSE'] = None
+            perf_data[model_name]['group'] = group
+            perf_data[model_name]['model_obj'] = model_obj
+            # perf_data[model_name]['RMSLE'] = model_obj.rmsle()
+            # perf_data[model_name]['MAE'] = model_obj.mae()
 
     # Structure model output and order
     perf_data = pd.DataFrame(perf_data).T.sort_values(sort_by, ascending=False).infer_objects()
-    # Ensure correct data type of ther performance metric columns.
-    # Ensures proper heatmap functionality in `plot_model_performance`
-    for col in perf_data.columns:
-        perf_data[col] = perf_data[col].astype(float)
+    perf_data['tolerated RMSE'] = perf_data['group'].apply(lambda x: adj_factor.get(x))
+
+    for model_obj in perf_data.sort_values(['RMSE', 'Rel. Val. RMSE'])['model_obj'][:10]:
+        model_path = h2o.save_model(model=model_obj, path=f'Modeling Reference Files/Round {RUN_TAG}',
+                                    force=True)
+        _accessories._print('MODEL PATH: ' + model_path)
 
     return perf_data
 
 
-@_context_managers.representation
-def varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
-                   preferred='Steam', preferred_importance=0.7, mean_importance_threshold=0.7,
-                   top_color='green', chosen_color='cyan', RUN_TAG=RUN_TAG, FIGSIZE=(10, 55), annot=False,
-                   TOP_MODELS=TOP_MODELS):
-    """Plots a heatmap based on the inputted variable importance data.
-
-    Parameters
-    ----------
-    final_cumulative_varimps : pandas.core.frame.DataFrame
-        Data on each models variable importances, the model itself, and other identifying tags (like group_type)
-        Only numerical features are used to make the heatmap though.
-    FPATH : str
-        The file path where the heatmap should be saved.
-    highlight : bool
-        Whether or not Rectangles should be patched to show steam-preferred models and top models generated.
-    preferred : str
-        The name of the predictor that is preferred for the model to rank higher (for explainability).
-    preferred_importance : float
-        The relative, threshold value for which the `preferred` predictor should be at or above.
-        Used for filtering variable importances and identifying `ranked steam`.
-    mean_importance_threshold : float
-        The relative, average of each variable importance row (per model) should be at or above this value.
-        Used for filtering variable importances and identifying `ranked steam`.
-    top_color : str
-        The color the top model(s) should be. Specifically the Rectangle patched on.
-        Corresponds to `ranked_names`.
-    chosen_color : str
-        The color the high-steam model(s) should be. Specifically the Rectangle patched on.
-        Corresponds to `ranked_steam`.
-    RUN_TAG : int
-        The identifying ID/KEY for the global configuration.
-    FIGSIZE : tuple (of ints)
-        The size of the ouputted heatmap figure. (width x length)
-    annot : bool
-        Whether the heatmap should be annotated (aka variable importances should be labelled).
-        This should be turned off for very dense plots (lots of rows) or for minimzing runtime.
-    TOP_MODELS : int
-        The top n number of models which should be implicitly filtered.
-        Corresponds to `ranked_names`.
-
-    Returns
-    -------
-    list (of str), list (of str) OR None, None
-        `ranked_names` -> The indices of the models which are ranked according to
-                          `TOP_MODELS` and the predictor rank.
-        `ranked_steam` -> The indices of the models which are ranked according to
-                          `preferred` and `preferred_importance`.
-
-        NOTE RETURN DEPENDENCY: if `highlight` is False then both `ranked_names` and `ranked_steam` are None.
-
-    """
-    """DATA SANITATION"""
-    _provided_args = locals()
-    name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'final_cumulative_varimps': [pd.core.frame.DataFrame],
-                           'FPATH': [str],
-                           'highlight': [bool],
-                           'preferred': [str],
-                           'preferred_importance': [float],
-                           'mean_importance_threshold': [float],
-                           'top_color': [str],
-                           'chosen_color': [str],
-                           'RUN_TAG': [int],
-                           'FIGSIZE': [tuple],
-                           'annot': [bool],
-                           'TOP_MODELS': [int]}
-    _expected_value_args = {'final_cumulative_varimps': None,
-                            'FPATH': None,
-                            'highlight': [True, False],
-                            'preferred': None,
-                            'preferred_importance': [0.0, 1.0],
-                            'mean_importance_threshold': [0.0, 1.0],
-                            'top_color': None,
-                            'chosen_color': None,
-                            'RUN_TAG': None,
-                            'FIGSIZE': None,
-                            'annot': [True, False],
-                            'TOP_MODELS': [0, np.inf]}
-    util_data_type_sanitation(_provided_args, _expected_type_args, name)
-    util_data_range_sanitation(_provided_args, _expected_value_args, name)
-    """END OF DATA SANITATION"""
-
-    new = len(final_cumulative_varimps) / CELL_RATIO
-    if(new > 100):
-        print(f'> WARNING: The height of this figure is {int(new)} units. Render may take significant time...')
-    FIGSIZE = (FIGSIZE[0], new)
-
-    # Plot heatmap of variable importances across all model combinations
-    fig, ax = plt.subplots(figsize=FIGSIZE)
-    predictor_rank = final_cumulative_varimps.mean(axis=0).sort_values(ascending=False)
-    sns_fig = sns.heatmap(final_cumulative_varimps[predictor_rank.keys()], annot=annot, annot_kws={"size": 4})
-
-    if(highlight):
-        temp = final_cumulative_varimps[predictor_rank.keys()]
-
-        ranked_names = list(temp.index)[-TOP_MODELS:]
-        rect_width = len(predictor_rank)
-        bottom_y_loc: Final = len(temp) - 1
-        # For the top 10 models
-        for y_loc in range(TOP_MODELS + 1):
-            sns_fig.add_patch(Rectangle(xy=(0, bottom_y_loc - y_loc), width=rect_width, height=1,
-                                        edgecolor=top_color, fill=False, lw=3))
-
-        # For the models where steam is selected as the most important
-        ranked_steam = list(temp[(temp[preferred] >= preferred_importance) &
-                                 (temp.mean(axis=1) > mean_importance_threshold)].index)
-        y_locs = [list(range(len(temp))).index(list(temp.index).index(rstm)) for rstm in ranked_steam]
-        stm_loc = list(predictor_rank.index).index(preferred)
-        for y_loc in y_locs:
-            sns_fig.add_patch(Rectangle(xy=(stm_loc,  y_loc), width=1, height=1,
-                                        edgecolor=chosen_color, fill=False, lw=3))
-    else:
-        ranked_names = ranked_steam = None
-
-    sns_fig.get_figure().savefig(FPATH,
-                                 bbox_inches='tight')
-    plt.clf()
-
-    return ranked_names, ranked_steam
+# @_context_managers.representation
+# def varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
+#                    preferred='Steam', preferred_importance=0.7, mean_importance_threshold=0.7,
+#                    top_color='green', chosen_color='cyan', RUN_TAG=RUN_TAG, FIGSIZE=(10, 55), annot=False,
+#                    TOP_MODELS=TOP_MODELS):
+#     """Plots a heatmap based on the inputted variable importance data.
+#
+#     Parameters
+#     ----------
+#     final_cumulative_varimps : pandas.core.frame.DataFrame
+#         Data on each models variable importances, the model itself, and other identifying tags (like group_type)
+#         Only numerical features are used to make the heatmap though.
+#     FPATH : str
+#         The file path where the heatmap should be saved.
+#     highlight : bool
+#         Whether or not Rectangles should be patched to show steam-preferred models and top models generated.
+#     preferred : str
+#         The name of the predictor that is preferred for the model to rank higher (for explainability).
+#     preferred_importance : float
+#         The relative, threshold value for which the `preferred` predictor should be at or above.
+#         Used for filtering variable importances and identifying `ranked steam`.
+#     mean_importance_threshold : float
+#         The relative, average of each variable importance row (per model) should be at or above this value.
+#         Used for filtering variable importances and identifying `ranked steam`.
+#     top_color : str
+#         The color the top model(s) should be. Specifically the Rectangle patched on.
+#         Corresponds to `ranked_names`.
+#     chosen_color : str
+#         The color the high-steam model(s) should be. Specifically the Rectangle patched on.
+#         Corresponds to `ranked_steam`.
+#     RUN_TAG : int
+#         The identifying ID/KEY for the global configuration.
+#     FIGSIZE : tuple (of ints)
+#         The size of the ouputted heatmap figure. (width x length)
+#     annot : bool
+#         Whether the heatmap should be annotated (aka variable importances should be labelled).
+#         This should be turned off for very dense plots (lots of rows) or for minimzing runtime.
+#     TOP_MODELS : int
+#         The top n number of models which should be implicitly filtered.
+#         Corresponds to `ranked_names`.
+#
+#     Returns
+#     -------
+#     list (of str), list (of str) OR None, None
+#         `ranked_names` -> The indices of the models which are ranked according to
+#                           `TOP_MODELS` and the predictor rank.
+#         `ranked_steam` -> The indices of the models which are ranked according to
+#                           `preferred` and `preferred_importance`.
+#
+#         NOTE RETURN DEPENDENCY: if `highlight` is False then both `ranked_names` and `ranked_steam` are None.
+#
+#     """
+#     """DATA SANITATION"""
+#     _provided_args = locals()
+#     name = sys._getframe(0).f_code.co_name
+#     _expected_type_args = {'final_cumulative_varimps': [pd.core.frame.DataFrame],
+#                            'FPATH': [str],
+#                            'highlight': [bool],
+#                            'preferred': [str],
+#                            'preferred_importance': [float],
+#                            'mean_importance_threshold': [float],
+#                            'top_color': [str],
+#                            'chosen_color': [str],
+#                            'RUN_TAG': [int],
+#                            'FIGSIZE': [tuple],
+#                            'annot': [bool],
+#                            'TOP_MODELS': [int]}
+#     _expected_value_args = {'final_cumulative_varimps': None,
+#                             'FPATH': None,
+#                             'highlight': [True, False],
+#                             'preferred': None,
+#                             'preferred_importance': [0.0, 1.0],
+#                             'mean_importance_threshold': [0.0, 1.0],
+#                             'top_color': None,
+#                             'chosen_color': None,
+#                             'RUN_TAG': None,
+#                             'FIGSIZE': None,
+#                             'annot': [True, False],
+#                             'TOP_MODELS': [0, np.inf]}
+#     util_data_type_sanitation(_provided_args, _expected_type_args, name)
+#     util_data_range_sanitation(_provided_args, _expected_value_args, name)
+#     """END OF DATA SANITATION"""
+#
+#     new = len(final_cumulative_varimps) / CELL_RATIO
+#     if(new > 100):
+#         print(f'> WARNING: The height of this figure is {int(new)} units. Render may take significant time...')
+#     FIGSIZE = (FIGSIZE[0], new)
+#
+#     # Plot heatmap of variable importances across all model combinations
+#     fig, ax = plt.subplots(figsize=FIGSIZE)
+#     predictor_rank = final_cumulative_varimps.mean(axis=0).sort_values(ascending=False)
+#     sns_fig = sns.heatmap(final_cumulative_varimps[predictor_rank.keys()], annot=annot, annot_kws={"size": 4})
+#
+#     if(highlight):
+#         temp = final_cumulative_varimps[predictor_rank.keys()]
+#
+#         ranked_names = list(temp.index)[-TOP_MODELS:]
+#         rect_width = len(predictor_rank)
+#         bottom_y_loc: Final = len(temp) - 1
+#         # For the top 10 models
+#         for y_loc in range(TOP_MODELS + 1):
+#             sns_fig.add_patch(Rectangle(xy=(0, bottom_y_loc - y_loc), width=rect_width, height=1,
+#                                         edgecolor=top_color, fill=False, lw=3))
+#
+#         # For the models where steam is selected as the most important
+#         ranked_steam = list(temp[(temp[preferred] >= preferred_importance) &
+#                                  (temp.mean(axis=1) > mean_importance_threshold)].index)
+#         y_locs = [list(range(len(temp))).index(list(temp.index).index(rstm)) for rstm in ranked_steam]
+#         stm_loc = list(predictor_rank.index).index(preferred)
+#         for y_loc in y_locs:
+#             sns_fig.add_patch(Rectangle(xy=(stm_loc,  y_loc), width=1, height=1,
+#                                         edgecolor=chosen_color, fill=False, lw=3))
+#     else:
+#         ranked_names = ranked_steam = None
+#
+#     sns_fig.get_figure().savefig(FPATH,
+#                                  bbox_inches='tight')
+#     plt.clf()
+#
+#     return ranked_names, ranked_steam
 
 
 @_context_managers.representation
@@ -921,139 +1009,139 @@ def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False
     return input_data
 
 
+# @_context_managers.representation
+# def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, ranked_steam, RUN_TAG, extrema_thresh_pct=5,
+#                            annot=True, annot_size=4, highlight=True, FIGSIZE=(10, 50)):
+#     """Plots a heatmap based on the inputted model performance data.
+#
+#     Parameters
+#     ----------
+#     perf_data : pandas.core.frame.DataFrame
+#         The DataFrame with performance information for all of the inputted models.
+#         Specifically, R^2, R (optionally), MSE, RMSE, RMSLE, and MAE.
+#     FPATH : str
+#         The file path where the heatmap should be saved.
+#     mcmaps : dict
+#         Different heatmap/AxesPlot color schemes dependent on performance metric.
+#         Stands for "macro color maps."
+#     centers : dict
+#         Description of parameter `centers`.
+#     ranked_names : list (of ints) OR None
+#         The indices of the models which are ranked according to `TOP_MODELS` and the predictor rank.
+#         `TOP_MODELS` and the predictor rank may be found in `plot_varimp_heatmap`.
+#         NOTE DEPENDENCY: If `highlight` is False in `plot_varimp_heatmap`, then it MUST be locally False here.
+#                          If it is True in THIS function, it will raise an Exception since control doesn't know which
+#                          models to highlight, including for mean-ranks. (determined in `plot_varimp_heatmap`).
+#     ranked_steam : list (of ints) OR None
+#         The indices of the models which are ranked according to `preferred` and `preferred_importance`.
+#         `preferred` and `preferred_importance` may be found in `plot_varimp_heatmap`.
+#         NOTE DEPENDENCY: If `highlight` is False in `plot_varimp_heatmap`, then it MUST be locally False here.
+#                          If it is True in THIS function, it will raise an Exception since control doesn't know which
+#                          models to highlight, including for steam-ranks. (determined in `plot_varimp_heatmap`).
+#     extrema_thresh_pct : int
+#         The top and botton n percentage points to set as the maximum and minimum values for the heatmap colors.
+#         Stands for "extrema threshold percentage."
+#     RUN_TAG : int
+#         The identifying ID/KEY for the global configuration.
+#     annot : bool
+#         Whether the heatmap should be annotated (aka variable importances should be labelled).
+#         This should be turned off for very dense plots (lots of rows) or for minimzing runtime.
+#     annot_size : int
+#         The font size of the annotation. Only works if `annot` is not False.
+#     highlight : bool
+#         Whether or not Rectangles should be patched to show steam-preferred models and top models generated.
+#     FIGSIZE : tuple (of ints)
+#         The size of the ouputted heatmap figure. (width x length)
+#
+#     Returns
+#     -------
+#     None
+#         Nothing! Simply print out a heatmap.
+#         There are no new "ranking indices" like `ranked_steam` or `ranked_names` to be determined, anyways.
+#
+#     """
+#     """DATA SANITATION"""
+#     _provided_args = locals()
+#     name = sys._getframe(0).f_code.co_name
+#     _expected_type_args = {'perf_data': [pd.core.frame.DataFrame],
+#                            'FPATH': [str],
+#                            'mcmaps': [dict],
+#                            'centers': [dict],
+#                            'ranked_names': [list, type(None)],
+#                            'ranked_steam': [list, type(None)],
+#                            'extrema_thresh_pct': [int, float],
+#                            'RUN_TAG': [int],
+#                            'annot': [bool],
+#                            'annot_size': [int],
+#                            'highlight': [bool],
+#                            'FIGSIZE': [tuple]}
+#     _expected_value_args = {'perf_data': None,
+#                             'FPATH': None,
+#                             'mcmaps': None,
+#                             'centers': None,
+#                             'ranked_names': None,
+#                             'ranked_steam': None,
+#                             'extrema_thresh_pct': (0, 99),
+#                             'RUN_TAG': None,
+#                             'annot': None,
+#                             'annot_size': (0, np.inf),
+#                             'highlight': None,
+#                             'FIGSIZE': None}
+#     util_data_type_sanitation(_provided_args, _expected_type_args, name)
+#     util_data_range_sanitation(_provided_args, _expected_value_args, name)
+#     """END OF DATA SANITATION"""
+#
+#     new = len(perf_data) / CELL_RATIO
+#     if(new > 100):
+#         print(f'> WARNING: The height of this figure is {int(new)} units. Render may take significant time...')
+#     if(FIGSIZE[1] >= new):
+#         pass
+#     else:
+#         FIGSIZE = (FIGSIZE[0], new)
+#
+#     # CUSTOM DATA SANITATION
+#     if not (len(perf_data.select_dtypes(float).columns) <= len(perf_data.columns)):
+#         cat_var = list(perf_data.select_dtypes(object).columns)
+#         raise ValueError('> ERROR: Inputted data has categorical variables. {}'.format(cat_var))
+#
+#     fig, ax = plt.subplots(figsize=FIGSIZE, ncols=len(perf_data.columns), sharey=True)
+#     for col in perf_data.columns:
+#         cmap_local = mcmaps.get(col)
+#         center_local = centers.get(col)
+#         vmax_local = np.percentile(perf_data[col].dropna(), 100 - extrema_thresh_pct)
+#         vmin_local = np.percentile(perf_data[col].dropna(), extrema_thresh_pct)
+#
+#         if not (vmin_local < vmax_local):
+#             raise ValueError('> ERROR: Heatmap min, center, max have incompatible values {}-{}-{}'.format(vmin_local,
+#                                                                                                           center_local,
+#                                                                                                           vmax_local))
+#
+#         sns_fig = sns.heatmap(perf_data[[col]], ax=ax[list(perf_data.columns).index(col)],
+#                               annot=annot, annot_kws={"size": annot_size}, cbar=False,
+#                               center=center_local, cmap=cmap_local, mask=perf_data[[col]].isnull(),
+#                               vmax=vmax_local, vmin=vmin_local)
+#
+#         if(highlight):
+#             if(ranked_names is None or ranked_steam is None):
+#                 raise ValueError('STATUS: Improper ranked rect inputs.')
+#             for rtop in ranked_names:
+#                 y_loc = list(perf_data.index).index(rtop)
+#                 sns_fig.add_patch(Rectangle(xy=(0, y_loc), width=1, height=1,
+#                                             edgecolor='green', fill=False, lw=3))
+#             for rstm in ranked_steam:
+#                 y_loc = list(perf_data.index).index(rtop)
+#                 sns_fig.add_patch(Rectangle(xy=(0, y_loc), width=1, height=1,
+#                                             edgecolor='cyan', fill=False, lw=4))
+#         sns.set(font_scale=0.6)
+#
+#     sns_fig.get_figure().savefig(FPATH, bbox_inches='tight')
+#
+#     print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
+#
+
 @_context_managers.representation
-def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, ranked_steam, extrema_thresh_pct=5,
-                           RUN_TAG=RUN_TAG, annot=True, annot_size=4, highlight=True, FIGSIZE=(10, 50)):
-    """Plots a heatmap based on the inputted model performance data.
-
-    Parameters
-    ----------
-    perf_data : pandas.core.frame.DataFrame
-        The DataFrame with performance information for all of the inputted models.
-        Specifically, R^2, R (optionally), MSE, RMSE, RMSLE, and MAE.
-    FPATH : str
-        The file path where the heatmap should be saved.
-    mcmaps : dict
-        Different heatmap/AxesPlot color schemes dependent on performance metric.
-        Stands for "macro color maps."
-    centers : dict
-        Description of parameter `centers`.
-    ranked_names : list (of ints) OR None
-        The indices of the models which are ranked according to `TOP_MODELS` and the predictor rank.
-        `TOP_MODELS` and the predictor rank may be found in `plot_varimp_heatmap`.
-        NOTE DEPENDENCY: If `highlight` is False in `plot_varimp_heatmap`, then it MUST be locally False here.
-                         If it is True in THIS function, it will raise an Exception since control doesn't know which
-                         models to highlight, including for mean-ranks. (determined in `plot_varimp_heatmap`).
-    ranked_steam : list (of ints) OR None
-        The indices of the models which are ranked according to `preferred` and `preferred_importance`.
-        `preferred` and `preferred_importance` may be found in `plot_varimp_heatmap`.
-        NOTE DEPENDENCY: If `highlight` is False in `plot_varimp_heatmap`, then it MUST be locally False here.
-                         If it is True in THIS function, it will raise an Exception since control doesn't know which
-                         models to highlight, including for steam-ranks. (determined in `plot_varimp_heatmap`).
-    extrema_thresh_pct : int
-        The top and botton n percentage points to set as the maximum and minimum values for the heatmap colors.
-        Stands for "extrema threshold percentage."
-    RUN_TAG : int
-        The identifying ID/KEY for the global configuration.
-    annot : bool
-        Whether the heatmap should be annotated (aka variable importances should be labelled).
-        This should be turned off for very dense plots (lots of rows) or for minimzing runtime.
-    annot_size : int
-        The font size of the annotation. Only works if `annot` is not False.
-    highlight : bool
-        Whether or not Rectangles should be patched to show steam-preferred models and top models generated.
-    FIGSIZE : tuple (of ints)
-        The size of the ouputted heatmap figure. (width x length)
-
-    Returns
-    -------
-    None
-        Nothing! Simply print out a heatmap.
-        There are no new "ranking indices" like `ranked_steam` or `ranked_names` to be determined, anyways.
-
-    """
-    """DATA SANITATION"""
-    _provided_args = locals()
-    name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'perf_data': [pd.core.frame.DataFrame],
-                           'FPATH': [str],
-                           'mcmaps': [dict],
-                           'centers': [dict],
-                           'ranked_names': [list, type(None)],
-                           'ranked_steam': [list, type(None)],
-                           'extrema_thresh_pct': [int, float],
-                           'RUN_TAG': [int],
-                           'annot': [bool],
-                           'annot_size': [int],
-                           'highlight': [bool],
-                           'FIGSIZE': [tuple]}
-    _expected_value_args = {'perf_data': None,
-                            'FPATH': None,
-                            'mcmaps': None,
-                            'centers': None,
-                            'ranked_names': None,
-                            'ranked_steam': None,
-                            'extrema_thresh_pct': (0, 99),
-                            'RUN_TAG': None,
-                            'annot': None,
-                            'annot_size': (0, np.inf),
-                            'highlight': None,
-                            'FIGSIZE': None}
-    util_data_type_sanitation(_provided_args, _expected_type_args, name)
-    util_data_range_sanitation(_provided_args, _expected_value_args, name)
-    """END OF DATA SANITATION"""
-
-    new = len(perf_data) / CELL_RATIO
-    if(new > 100):
-        print(f'> WARNING: The height of this figure is {int(new)} units. Render may take significant time...')
-    if(FIGSIZE[1] >= new):
-        pass
-    else:
-        FIGSIZE = (FIGSIZE[0], new)
-
-    # CUSTOM DATA SANITATION
-    if not (len(perf_data.select_dtypes(float).columns) <= len(perf_data.columns)):
-        cat_var = list(perf_data.select_dtypes(object).columns)
-        raise ValueError('> ERROR: Inputted data has categorical variables. {}'.format(cat_var))
-
-    fig, ax = plt.subplots(figsize=FIGSIZE, ncols=len(perf_data.columns), sharey=True)
-    for col in perf_data.columns:
-        cmap_local = mcmaps.get(col)
-        center_local = centers.get(col)
-        vmax_local = np.percentile(perf_data[col].dropna(), 100 - extrema_thresh_pct)
-        vmin_local = np.percentile(perf_data[col].dropna(), extrema_thresh_pct)
-
-        if not (vmin_local < vmax_local):
-            raise ValueError('> ERROR: Heatmap min, center, max have incompatible values {}-{}-{}'.format(vmin_local,
-                                                                                                          center_local,
-                                                                                                          vmax_local))
-
-        sns_fig = sns.heatmap(perf_data[[col]], ax=ax[list(perf_data.columns).index(col)],
-                              annot=annot, annot_kws={"size": annot_size}, cbar=False,
-                              center=center_local, cmap=cmap_local, mask=perf_data[[col]].isnull(),
-                              vmax=vmax_local, vmin=vmin_local)
-
-        if(highlight):
-            if(ranked_names is None or ranked_steam is None):
-                raise ValueError('STATUS: Improper ranked rect inputs.')
-            for rtop in ranked_names:
-                y_loc = list(perf_data.index).index(rtop)
-                sns_fig.add_patch(Rectangle(xy=(0, y_loc), width=1, height=1,
-                                            edgecolor='green', fill=False, lw=3))
-            for rstm in ranked_steam:
-                y_loc = list(perf_data.index).index(rtop)
-                sns_fig.add_patch(Rectangle(xy=(0, y_loc), width=1, height=1,
-                                            edgecolor='cyan', fill=False, lw=4))
-        sns.set(font_scale=0.6)
-
-    sns_fig.get_figure().savefig(FPATH, bbox_inches='tight')
-
-    print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
-
-
-@_context_managers.representation
-def validate_models(perf_data, training_data_dict, benchline, validation_data_dict, order_by='Rel. RMSE',
-                    RUN_TAG=RUN_TAG, TOP_MODELS=TOP_MODELS):
+def validate_models(perf_data, training_data_dict, benchline, validation_data_dict, RUN_TAG, RESPONDER,
+                    order_by='Rel. RMSE', TOP_MODELS=TOP_MODELS):
     FIG_SCALAR = 5.33333333333333
 
     perf_data.sort_values(order_by, inplace=True)
@@ -1081,7 +1169,8 @@ def validate_models(perf_data, training_data_dict, benchline, validation_data_di
     for top_model in all_model_RMSE_H_to_L:
         # Extracting Model Configurations
         model_name = [c for c in list(perf_data.index) if top_model.key in c][0]
-        model_group = model_name.split('___GROUP-')[1]
+        model_group = perf_data[perf_data.index == model_name]['group'].values[0]
+        _accessories._print(f'Accesssing configurations and testing model {model_name} for group {model_group}')
         model_type = top_model.algo
         model_position = ax[all_model_RMSE_H_to_L.index(top_model)]
         models_iterated.append(model_name)
@@ -1093,6 +1182,7 @@ def validate_models(perf_data, training_data_dict, benchline, validation_data_di
         # print(model_group)
 
         # Determining training and validation predictions
+        print(training_data)
         prediction_on_training = top_model.predict(training_data).as_data_frame().infer_objects()
         prediction_on_validation = top_model.predict(validation_data).as_data_frame().infer_objects()
 
@@ -1102,7 +1192,7 @@ def validate_models(perf_data, training_data_dict, benchline, validation_data_di
 
         val_accuracy = (pd_data_validation[RESPONDER] - prediction_on_validation['predict'])
         val_rmse = np.sqrt(np.mean((pd_data_validation[RESPONDER] - prediction_on_validation['predict'])**2))
-        allowable_rmse = str(int(benchline.get(model_name.split('___GROUP-')[1])))
+        allowable_rmse = str(int(benchline.get(model_group)))
         rel_val_rmse = str(int(val_rmse - int(allowable_rmse)))
 
         # IDENTIFIERS FOR MODELING
@@ -1163,56 +1253,6 @@ _ = """
 #####################################################   WRAPPERS  #####################################################
 #######################################################################################################################
 """
-
-
-def record_hyperparameters(RUN_TAG):
-    # NOTE: Dependent on global, non-locally defined variables
-
-    # Ensure overwriting does not occur while making identifying experiment directory.
-    while not os.path.isdir(f'Modeling Reference Files/Round {RUN_TAG}'):
-        RUN_TAG: Final = random.randint(0, 10000)
-    _accessories.auto_make_path(f'Modeling Reference Files/Round {RUN_TAG}')
-
-    # Compartmentalize Hyperparameters
-    __LOCAL_VARS = locals().copy()
-    _SERVER_HYPERPARAMS = ('IP_LINK', 'SECURED', 'PORT', 'SERVER_FORCE')
-    _SERVER_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _SERVER_HYPERPARAMS}
-    _TRAIN_HYPERPARAMS = ('MAX_EXP_RUNTIME', 'RANDOM_SEED', 'EVAL_METRIC', 'RANK_METRIC', 'CV_FOLDS',
-                          'STOPPING_ROUNDS', 'WEIGHTS_COLUMN', 'EXPLOIT_RATIO', 'MODELING_PLAN')
-    _TRAIN_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _TRAIN_HYPERPARAMS}
-    _EXECUTION_HYPERPARAMS = ('FOLD_COLUMN', 'TOP_MODELS', 'PREFERRED_TOLERANCE', 'TRAINING_VERBOSITY')
-    _EXECUTION_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _EXECUTION_HYPERPARAMS}
-    _MISCELLANEOUS_HYPERPARAMS = ('MODEL_CMAPS', 'MODEL_CMAPS', 'HMAP_CENTERS', 'CELL_RATIO')
-    _MISCELLANEOUS_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _MISCELLANEOUS_HYPERPARAMS}
-
-    # Save hyperparameter configurations to file with TIMESTAMP
-    with open(f'Modeling Reference Files/Round {RUN_TAG}/hyperparams.txt', 'wt') as out:
-        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
-        print('JOB INITIALIZED: ', datetime.datetime.now(), file=out)
-        print('RUN ID:', RUN_TAG, file=out)
-        print(file=out)
-
-        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
-        print('SERVER HYPERPARAMETERS:', file=out)
-        pprint(_SERVER_HYPERPARAMS, stream=out)
-        print(file=out)
-
-        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
-        print('TRAINING HYPERPARAMETRS:', file=out)
-        pprint(_TRAIN_HYPERPARAMS, stream=out)
-        print(file=out)
-
-        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
-        print('EXECUTION HYPERPARAMETRS:', file=out)
-        pprint(_EXECUTION_HYPERPARAMS, stream=out)
-        print(file=out)
-
-        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
-        print('MISCELLANEOUS HYPERPARAMETRS:', file=out)
-        pprint(_MISCELLANEOUS_HYPERPARAMS, stream=out)
-        print(file=out)
-
-    _accessories._print('STATUS: Directory created for Round {RUN_TAG}')
 
 
 def setup_and_server(paths_to_check=[DATA_PATH_PAD, DATA_PATH_PAD_vanilla]):
@@ -1279,11 +1319,14 @@ def create_validation_splits(DATA_PATH_PAD, pd_data_pad, group_colname='PRO_Pad'
     return data_pad, pad_relationship_validation, pad_relationship_training
 
 
-def manual_selection_and_processing(data_pad, RESPONDER='PRO_Total_Fluid',
+def manual_selection_and_processing(data_pad, RUN_TAG, RESPONDER='PRO_Total_Fluid',
                                     EXCLUDE=['Bin_1', 'Bin_8', 'PRO_Alloc_Oil',
                                              'PRO_Pump_Speed', 'PRO_Alloc_Oil',
-                                             'PRO_Adj_Pump_Speed', 'PRO_Adj_Alloc_Oil']):
+                                             'PRO_Adj_Pump_Speed', 'PRO_Adj_Alloc_Oil'], weighting=False,
+                                    weights_column=WEIGHTS_COLUMN):
     EXCLUDE.extend(['C1', 'Date'])
+    if(weighting is False):
+        EXCLUDE.extend([WEIGHTS_COLUMN])
 
     data_pad, groupby_options_pad, PREDICTORS = data_refinement(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
 
@@ -1298,7 +1341,7 @@ def manual_selection_and_processing(data_pad, RESPONDER='PRO_Total_Fluid',
         return data_pad, groupby_options_pad, PREDICTORS
 
 
-def hyp_overview(PREDICTORS, RESPONDER):
+def hyp_overview(PREDICTORS, RESPONDER, MAX_EXP_RUNTIME):
     print(Fore.GREEN + 'STATUS: Hyperparameter Overview:')
     print(Fore.GREEN + '\t* max_runtime_secs\t-> ', MAX_EXP_RUNTIME,
           Fore.GREEN + '\t\tThe maximum runtime in seconds that you want to allot in order to complete the model.')
@@ -1338,17 +1381,20 @@ def get_benchlines(data_pad_pd, RESPONDER, grouper='PRO_Pad', PREFERRED_TOLERANC
 _ = """
 #######################################################################################################################
 ##################################################   CORE EXECUTION  ##################################################
-#######################################################################################################################
+######################################################################################################################
 """
 
+# TODO: Validation setup when feature engineering occurs
+# TODO: See iPhone notes for next steps.
 
-def _MODELING():
-    record_hyperparameters(RUN_TAG)
 
+def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=False):
     _accessories._print('Initializing server and checking data...')
+    RUN_TAG = record_hyperparameters(MAX_EXP_RUNTIME)
     setup_and_server()
 
     _accessories._print('Retreiving pre-model data...')
+    DATA_PATH_PAD = 'Data/combined_ipc_aggregates.csv'
     pd_data_pad = _accessories.retrieve_local_data_file(DATA_PATH_PAD)
 
     _accessories._print('Creating validation sets...')
@@ -1358,19 +1404,24 @@ def _MODELING():
 
     _accessories._print('Manual feature deletion and automatic processing...')
     RESPONDER = 'PRO_Total_Fluid'
-    data_pad, groupby_options_pad, PREDICTORS = manual_selection_and_processing(data_pad, RESPONDER=RESPONDER)
+    data_pad, groupby_options_pad, PREDICTORS = manual_selection_and_processing(data_pad,
+                                                                                RUN_TAG=RUN_TAG,
+                                                                                RESPONDER=RESPONDER,
+                                                                                weighting=weighting)
 
-    hyp_overview(PREDICTORS, RESPONDER)
+    hyp_overview(PREDICTORS, RESPONDER, MAX_EXP_RUNTIME)
     # if(input('Proceed with given hyperparameters? (Y/N)') != 'Y'):
     #     raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
 
     _accessories._print('Running the experiment...')
     project_names_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER,
-                                       validation_frames_dict=pad_relationship_validation)  # pad_relationship_validation
+                                       validation_frames_dict=pad_relationship_validation,
+                                       MAX_EXP_RUNTIME=MAX_EXP_RUNTIME,
+                                       ENGINEER_FEATURES=math_eng,
+                                       weighting=weighting)  # pad_relationship_validation
 
-    _accessories._print('Calculating variable importance...')
-    varimps_pad = varimps(project_names_pad)
-
+    # _accessories._print('Calculating variable importance...')
+    # varimps_pad = varimps(project_names_pad)
     # _accessories._print('Visualizing heatmap...')
     # ranked_names_pad, ranked_steam_pad = varimp_heatmap(varimps_pad,
     #                                                     'Modeling Reference Files/Round ' +
@@ -1385,10 +1436,10 @@ def _MODELING():
     #                        FPATH='Modeling Reference Files/Round {tag}/cross-correlations_PAD{tag}.pdf'.format(tag=RUN_TAG))
 
     _accessories._print('Determing RMSE Benchlines...')
-    benchline_pad = get_benchlines(pd_data_pad)
+    benchline_pad = get_benchlines(pd_data_pad, RESPONDER)
 
     _accessories._print('Calculating model performance...')
-    perf_pad = model_performance(varimps_pad, benchline_pad, sort_by='Rel. RMSE')
+    perf_pad = model_performance(project_names_pad, benchline_pad, pad_relationship_validation, sort_by='Rel. RMSE')
 
     # _accessories._print('Plotting model performance metrics...')
     # with _accessories.suppress_stdout():
@@ -1400,16 +1451,30 @@ def _MODELING():
     #                            annot_size=6,
     #                            FIGSIZE=(10, 1))
 
-    _ = os.system("say Validating Models")
+    _accessories._print('Saving performance data to file...')
+    with _accessories.suppress_stdout():
+        _accessories.save_local_data_file(perf_pad.drop('model_obj', axis=1),
+                                          f'Modeling Reference Files/Round {RUN_TAG}/MODELS_{RUN_TAG}.pkl')
 
-    # OPTIONAL VISUALIZATION: Validation metrics
-    # with _accessories.suppress_stdout():
-    #     validate_models(perf_pad, pad_relationship_training, benchline_pad, pad_relationship_validation,
-    #                     TOP_MODELS=30, order_by='Rel. Val. RMSE')
+    if(plot_for_ref is False):
+        # OPTIONAL VISUALIZATION: Validation metrics
+        with _accessories.suppress_stdout():
+            validate_models(perf_pad, pad_relationship_training,
+                            benchline_pad, pad_relationship_validation,
+                            TOP_MODELS=30, order_by='Rel. Val. RMSE', RUN_TAG=RUN_TAG, RESPONDER=RESPONDER)
+
+    _accessories._print('Renaming this file...')
+    new_config = f"ENG: {locals().get('math_eng')}, WEIGHT: {locals().get('weighting')}, TIME: {locals().get('MAX_EXP_RUNTIME')}"
+    os.rename(f'Modeling Reference Files/Round {RUN_TAG}',
+              f'Modeling Reference Files/{RUN_TAG} – {new_config}')
+
     # if(input('Shutdown Cluster? (Y/N)') == 'Y'):
     #     shutdown_confirm(h2o)
     _accessories._print('Shutting down server...')
     shutdown_confirm(h2o)
+
+
+_MODELING()
 
 # CSOR
 # Chlorides total pad

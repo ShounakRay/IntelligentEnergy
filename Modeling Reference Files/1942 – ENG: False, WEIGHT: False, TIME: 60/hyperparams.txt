@@ -1,0 +1,49 @@
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+JOB INITIALIZED:  2021-04-22 10:53:49.607694
+RUN ID: 1942
+
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+SERVER HYPERPARAMETERS:
+{'IP_LINK': None, 'PORT': None, 'SECURED': None, 'SERVER_FORCE': None}
+
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+TRAINING HYPERPARAMETRS:
+{'CV_FOLDS': None,
+ 'EVAL_METRIC': None,
+ 'EXPLOIT_RATIO': None,
+ 'MAX_EXP_RUNTIME': 60,
+ 'MODELING_PLAN': None,
+ 'RANDOM_SEED': None,
+ 'RANK_METRIC': None,
+ 'STOPPING_ROUNDS': None,
+ 'WEIGHTS_COLUMN': None}
+
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+EXECUTION HYPERPARAMETRS:
+{'FOLD_COLUMN': None,
+ 'PREFERRED_TOLERANCE': None,
+ 'TOP_MODELS': None,
+ 'TRAINING_VERBOSITY': None}
+
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+MISCELLANEOUS HYPERPARAMETRS:
+{'CELL_RATIO': None, 'HMAP_CENTERS': None, 'MODEL_CMAPS': None}
+
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+PREDICTORS
+['PRO_Pad',
+ 'PRO_Casing_Pressure',
+ 'PRO_Heel_Pressure',
+ 'PRO_Toe_Pressure',
+ 'PRO_Heel_Temp',
+ 'PRO_Toe_Temp',
+ 'Bin_2',
+ 'Bin_3',
+ 'Bin_4',
+ 'Bin_5',
+ 'Bin_6',
+ 'Bin_7',
+ 'Steam']
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+RESPONDER
+'PRO_Total_Fluid'
