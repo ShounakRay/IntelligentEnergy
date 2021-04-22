@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Apr-2021 16:04:47:475  GMT-0600
+# @Last modified time: 22-Apr-2021 01:04:62:622  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -109,10 +109,11 @@ def auto_make_path(path: str, **kwargs: bool) -> None:
     """
     # Sequentially create the directories and files specified in `path`, respectively
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    open(path, 'w').close()
+    if('.' in path):
+        open(path, 'w').close()
     # Confirm creation (waterfall)
     if not os.path.exists(path=path):
-        raise Exception(message='Something is TERRIBLY wrong.')
+        raise Exception('Something is TERRIBLY wrong.')
     _print(f'>> Created: \"{path}\"', color='green')
 
 

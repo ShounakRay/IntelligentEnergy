@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alt_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 22:04:76:760  GMT-0600
+# @Last modified time: 22-Apr-2021 01:04:83:831  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -25,46 +25,72 @@ import matplotlib.pyplot as plt  # Req. dep. for h2o.estimators.random_forest.H2
 import numpy as np
 import pandas as pd  # Req. dep. for h2o.estimators.random_forest.H2ORandomForestEstimator.varimp()
 import seaborn as sns
-import util_traversal
-from _context_managers import *
 from colorama import Fore, Style
 from h2o.automl import H2OAutoML
-from h2o.exceptions import *
+from h2o.exceptions import H2OConnectionError
 from matplotlib.patches import Rectangle
 
-# from h2o.estimators import H2OTargetEncoderEstimator
 
-# TODO: Drop old values (check that they're not here)
-# TODO: Check correct validation datasets
+def ensure_cwd(expected_parent):
+    init_cwd = os.getcwd()
+    sub_dir = init_cwd.split('/')[-1]
+
+    if(sub_dir != expected_parent):
+        new_cwd = init_cwd
+        print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
+              f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
+    else:
+        new_cwd = init_cwd.replace('/' + sub_dir, '')
+        print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
+        os.chdir(new_cwd)
+
+
+def check_java_dependency():
+    OUT_BLOCK = '»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»\n'
+    # Get the major java version in current environment
+    java_major_version = int(subprocess.check_output(['java', '-version'],
+                                                     stderr=subprocess.STDOUT).decode().split('"')[1].split('.')[0])
+
+    # Check if environment's java version complies with H2O requirements
+    # http://docs.h2o.ai/h2o/latest-stable/h2o-docs/welcome.html#requirements
+    if not (java_major_version >= 8 and java_major_version <= 14):
+        raise ValueError('STATUS: Java Version is not between 8 and 14 (inclusive).\n' +
+                         'H2O cluster will not be initialized.')
+
+    print("\x1b[32m" + 'STATUS: Java dependency versions checked and confirmed.')
+    print(OUT_BLOCK)
+
+
+if __name__ == '__main__':
+    try:
+        _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
+    except Exception:
+        _EXPECTED_PARENT_NAME = 'pipeline'
+        print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
+              f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
+    ensure_cwd(_EXPECTED_PARENT_NAME)
+    sys.path.insert(1, os.getcwd() + '/_references')
+    sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
+    import _accessories
+    import _context_managers
+
+    # Check java dependency
+    check_java_dependency()
+
+    # import _multiprocessed.defs as defs
+    # import _traversal
+
+
+# _traversal.print_tree_to_txt(PATH='_configs/FILE_STRUCTURE.txt')
+
 
 _ = """
 #######################################################################################################################
-#########################################   VERIFY VERSIONS OF DEPENDENCIES   #########################################
-#######################################################################################################################
-"""
-# Aesthetic Console Output constants
-OUT_BLOCK: Final = '»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»\n'
-
-# Get the major java version in current environment
-java_major_version = int(subprocess.check_output(['java', '-version'],
-                                                 stderr=subprocess.STDOUT).decode().split('"')[1].split('.')[0])
-
-# Check if environment's java version complies with H2O requirements
-# http://docs.h2o.ai/h2o/latest-stable/h2o-docs/welcome.html#requirements
-if not (java_major_version >= 8 and java_major_version <= 14):
-    raise ValueError('STATUS: Java Version is not between 8 and 14 (inclusive).\nH2O cluster will not be initialized.')
-
-print("\x1b[32m" + 'STATUS: Java dependency versions checked and confirmed.')
-print(OUT_BLOCK)
-
-_ = """
-#######################################################################################################################
-############################################  ASSIGNING HYPERPARAMTERS   ##############################################
+#############################################   HYPERPARAMETER SETTINGS   #############################################
 #######################################################################################################################
 """
 # Data Ingestion Constants
 DATA_PATH_PAD: Final = 'Data/combined_ipc_engineered_math.csv'    # Where the client-specific pad data is located
-DATA_PATH_WELL: Final = 'Data/combined_ipc_aggregates_PWELL.csv'  # Where the client-specific well data is located
 DATA_PATH_PAD_vanilla = 'Data/combined_ipc_aggregates.csv'        # No feature engineering
 
 # H2O Server Constants
@@ -74,7 +100,7 @@ PORT: Final = 54321                                           # Always specify t
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters
-MAX_EXP_RUNTIME: Final = 600                                  # The longest that the experiment will run (seconds)
+MAX_EXP_RUNTIME: Final = 5                                   # The longest that the experiment will run (seconds)
 RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments (caveats*)
 EVAL_METRIC: Final = 'rmse'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'rmse'                                   # Leaderboard ranking metric after all trainings
@@ -108,60 +134,8 @@ HMAP_CENTERS = {'R^2': None,
                 'MAE': None}                                        # For heatmap visualization
 CELL_RATIO = 4.666666666666667                                       # Scaling for visualizations
 
-_ = """
-#######################################################################################################################
-##############################################   SAVING HYPERPARAMTERS   ##############################################
-#######################################################################################################################
-"""
-
-# Ensure overwriting does not occur while making identifying experiment directory.
-while os.path.isdir(f'Modeling Reference Files/Round {RUN_TAG}'):
-    RUN_TAG: Final = random.randint(0, 10000)
-os.makedirs(f'Modeling Reference Files/Round {RUN_TAG}')
-
-# Compartmentalize Hyperparameters
-__LOCAL_VARS = locals().copy()
-_SERVER_HYPERPARAMS = ('IP_LINK', 'SECURED', 'PORT', 'SERVER_FORCE')
-_SERVER_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _SERVER_HYPERPARAMS}
-_TRAIN_HYPERPARAMS = ('MAX_EXP_RUNTIME', 'RANDOM_SEED', 'EVAL_METRIC', 'RANK_METRIC', 'CV_FOLDS', 'STOPPING_ROUNDS',
-                      'WEIGHTS_COLUMN', 'EXPLOIT_RATIO', 'MODELING_PLAN')
-_TRAIN_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _TRAIN_HYPERPARAMS}
-_EXECUTION_HYPERPARAMS = ('FOLD_COLUMN', 'TOP_MODELS', 'PREFERRED_TOLERANCE', 'TRAINING_VERBOSITY')
-_EXECUTION_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _EXECUTION_HYPERPARAMS}
-_MISCELLANEOUS_HYPERPARAMS = ('MODEL_CMAPS', 'MODEL_CMAPS', 'HMAP_CENTERS', 'CELL_RATIO')
-_MISCELLANEOUS_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _MISCELLANEOUS_HYPERPARAMS}
-
-# Save hyperparameter configurations to file with TIMESTAMP
-with open(f'Modeling Reference Files/Round {RUN_TAG}/hyperparams.txt', 'wt') as out:
-    print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
-    print('JOB INITIALIZED: ', datetime.datetime.now(), file=out)
-    print('RUN ID:', RUN_TAG, file=out)
-    print(file=out)
-
-    print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
-    print('SERVER HYPERPARAMETERS:', file=out)
-    pprint(_SERVER_HYPERPARAMS, stream=out)
-    print(file=out)
-
-    print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
-    print('TRAINING HYPERPARAMETRS:', file=out)
-    pprint(_TRAIN_HYPERPARAMS, stream=out)
-    print(file=out)
-
-    print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
-    print('EXECUTION HYPERPARAMETRS:', file=out)
-    pprint(_EXECUTION_HYPERPARAMS, stream=out)
-    print(file=out)
-
-    print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
-    print('MISCELLANEOUS HYPERPARAMETRS:', file=out)
-    pprint(_MISCELLANEOUS_HYPERPARAMS, stream=out)
-    print(file=out)
-
-print(Fore.GREEN + 'STATUS: Directory created for Round {}'.format(RUN_TAG) + Style.RESET_ALL)
-
-# Print file structure for reference every time this program is run
-util_traversal.print_tree_to_txt(skip_git=True)
+# Aesthetic Console Output constants
+OUT_BLOCK: Final = '»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»\n'
 
 _ = """
 #######################################################################################################################
@@ -170,7 +144,7 @@ _ = """
 """
 
 
-@server
+@_context_managers.server
 def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict:
     """Provides a snapshot of the H2O cluster and different status/performance indicators.
 
@@ -215,7 +189,7 @@ def snapshot(cluster: h2o.backend.cluster.H2OCluster, show: bool = True) -> dict
     return
 
 
-@server
+@_context_managers.server
 def shutdown_confirm(h2o_instance: type(h2o)) -> None:
     """Terminates the provided H2O cluster.
 
@@ -250,15 +224,7 @@ def shutdown_confirm(h2o_instance: type(h2o)) -> None:
         pass
 
 
-@server
-def get_aml_objects(project_names):
-    objs = []
-    for project_name in project_names:
-        objs.append(h2o.automl.get_automl(project_name))
-    return objs
-
-
-@utility
+@_context_managers.utility
 def util_data_type_sanitation(val_and_inputs, expected, name):
     """Generic performance of data sanitation. Specifically cross-checks expected and actual data types.
 
@@ -302,7 +268,7 @@ def util_data_type_sanitation(val_and_inputs, expected, name):
             f'> Invalid input for following pairs during data_type_sanitation for {name}.\n{mismatched}')
 
 
-@utility
+@_context_managers.utility
 def util_data_range_sanitation(val_and_inputs, expected, name):
     """Generic performance of data sanitation. Specifically cross-checks expected and actual data ranges.
 
@@ -358,45 +324,45 @@ def util_data_range_sanitation(val_and_inputs, expected, name):
             f'> Invalid input for following pairs during data_range_sanitation for {name}.\n{mismatched}')
 
 
-@utility
-def util_conditional_drop(data_frame, tbd_list):
-    """Drops the specified column(s) from the H2O Frame if it exists in the Frame.
-
-    Parameters
-    ----------
-    data_frame : h2o.frame.H2OFrame
-        The H20 Frame to be traversed through and potentially modified.
-    tbd_list : list (of str) OR any iterable (of str)
-        The column names which should be conditionally dropped.
-
-    Returns
-    -------
-    h2o.frame.H2OFrame
-        The (potentially) modified H20 Frame.
-
-    """
-    """DATA SANITATION"""
-    _provided_args = locals()
-    name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'data_frame': None,
-                           'tbd_list': [list]}
-    _expected_value_args = {'data_frame': None,
-                            'tbd_list': None}
-    util_data_type_sanitation(_provided_args, _expected_type_args, name)
-    util_data_range_sanitation(_provided_args, _expected_value_args, name)
-    """END OF DATA SANITATION"""
-
-    for tb_dropped in tbd_list:
-        if(tb_dropped in data_frame.columns):
-            data_frame = data_frame.drop(tb_dropped, axis=1)
-            print(Fore.GREEN + '> STATUS: {} dropped.'.format(tb_dropped) + Style.RESET_ALL)
-        else:
-            print(Fore.GREEN + '> STATUS: {} not in frame, skipping.'.format(tb_dropped) + Style.RESET_ALL)
-    return data_frame
-
-
-@analytics
+@_context_managers.analytics
 def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN):
+    _provided_args = locals().copy()
+
+    @_context_managers.utility
+    def util_conditional_drop(data_frame, tbd_list):
+        """Drops the specified column(s) from the H2O Frame if it exists in the Frame.
+
+        Parameters
+        ----------
+        data_frame : h2o.frame.H2OFrame
+            The H20 Frame to be traversed through and potentially modified.
+        tbd_list : list (of str) OR any iterable (of str)
+            The column names which should be conditionally dropped.
+
+        Returns
+        -------
+        h2o.frame.H2OFrame
+            The (potentially) modified H20 Frame.
+
+        """
+        """DATA SANITATION"""
+        _provided_args = locals()
+        name = sys._getframe(0).f_code.co_name
+        _expected_type_args = {'data_frame': None,
+                               'tbd_list': [list]}
+        _expected_value_args = {'data_frame': None,
+                                'tbd_list': None}
+        util_data_type_sanitation(_provided_args, _expected_type_args, name)
+        util_data_range_sanitation(_provided_args, _expected_value_args, name)
+        """END OF DATA SANITATION"""
+
+        for tb_dropped in tbd_list:
+            if(tb_dropped in data_frame.columns):
+                data_frame = data_frame.drop(tb_dropped, axis=1)
+                print(Fore.GREEN + '> STATUS: {} dropped.'.format(tb_dropped) + Style.RESET_ALL)
+            else:
+                print(Fore.GREEN + '> STATUS: {} not in frame, skipping.'.format(tb_dropped) + Style.RESET_ALL)
+        return data_frame
     """Return minimally modified H2OFrame, all possible categorical filtering options, and predictor variables.
 
     Parameters
@@ -422,7 +388,6 @@ def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN)
 
     """
     """DATA SANITATION"""
-    _provided_args = locals()
     name = sys._getframe(0).f_code.co_name
     _expected_type_args = {'data': None,
                            'groupby': [str],
@@ -463,7 +428,7 @@ def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN)
     return data, groupby_options, predictors
 
 
-@analytics
+@_context_managers.analytics
 def run_experiment(data, groupby_options, responder, validation_frames_dict,
                    MAX_EXP_RUNTIME=MAX_EXP_RUNTIME, EVAL_METRIC=EVAL_METRIC, RANK_METRIC=RANK_METRIC,
                    RANDOM_SEED=RANDOM_SEED, WEIGHTS_COLUMNS=WEIGHTS_COLUMN, CV_FOLDS=CV_FOLDS,
@@ -597,8 +562,17 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict,
     return initialized_projects
 
 
-@analytics
+@_context_managers.analytics
 def varimps(project_names):
+    _provided_args = locals().copy()
+
+    @_context_managers.server
+    def get_aml_objects(project_names):
+        objs = []
+        for project_name in project_names:
+            objs.append(h2o.automl.get_automl(project_name))
+        return objs
+
     """Determines variable importances for all models in an experiment.
 
     Parameters
@@ -614,7 +588,6 @@ def varimps(project_names):
 
     """
     """DATA SANITATION"""
-    _provided_args = locals()
     name = sys._getframe(0).f_code.co_name
     _expected_type_args = {'aml_obj': [h2o.automl.autoh2o.H2OAutoML]}
     _expected_value_args = {'aml_obj': None}
@@ -672,7 +645,7 @@ def varimps(project_names):
     return requested_varimps
 
 
-@analytics
+@_context_managers.analytics
 def model_performance(tracker_with_modelobj, adj_factor, sort_by='RMSE', modelobj_colname='model_object'):
     """Determine the model performance through a series of predefined metrics.
 
@@ -738,7 +711,7 @@ def model_performance(tracker_with_modelobj, adj_factor, sort_by='RMSE', modelob
     return perf_data
 
 
-@representation
+@_context_managers.representation
 def varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
                    preferred='Steam', preferred_importance=0.7, mean_importance_threshold=0.7,
                    top_color='green', chosen_color='cyan', RUN_TAG=RUN_TAG, FIGSIZE=(10, 55), annot=False,
@@ -860,7 +833,7 @@ def varimp_heatmap(final_cumulative_varimps, FPATH, highlight=True,
     return ranked_names, ranked_steam
 
 
-@representation
+@_context_managers.representation
 def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False,
                        type_corrs=['Pearson', 'Kendall', 'Spearman'],
                        cmap=sns.color_palette('flare', as_cmap=True), figsize=(24, 8), contrast_factor=1.0):
@@ -948,7 +921,7 @@ def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False
     return input_data
 
 
-@representation
+@_context_managers.representation
 def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, ranked_steam, extrema_thresh_pct=5,
                            RUN_TAG=RUN_TAG, annot=True, annot_size=4, highlight=True, FIGSIZE=(10, 50)):
     """Plots a heatmap based on the inputted model performance data.
@@ -1078,7 +1051,7 @@ def plot_model_performance(perf_data, FPATH, mcmaps, centers, ranked_names, rank
     print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
 
 
-@representation
+@_context_managers.representation
 def validate_models(perf_data, training_data_dict, benchline, validation_data_dict, order_by='Rel. RMSE',
                     RUN_TAG=RUN_TAG, TOP_MODELS=TOP_MODELS):
     FIG_SCALAR = 5.33333333333333
@@ -1185,210 +1158,258 @@ def validate_models(perf_data, training_data_dict, benchline, validation_data_di
                 bbox_inches='tight')
 
 
-print(Fore.GREEN + 'STATUS: Hyperparameters assigned and functions defined.' + Style.RESET_ALL)
-print(OUT_BLOCK)
-
 _ = """
 #######################################################################################################################
-##########################################   INITIALIZE SERVER AND SETUP   ############################################
-#######################################################################################################################
-"""
-# Initialize the cluster
-h2o.init(https=SECURED,
-         ip=IP_LINK,
-         port=PORT,
-         start_h2o=SERVER_FORCE)
-# Filter the complete, provided source data to only include info f')
-# Check the status of the cluster, just for reference
-process_log = snapshot(h2o.cluster(), show=False)
-
-# Confirm that the data path leads to an actual file
-for path in [DATA_PATH_PAD, DATA_PATH_WELL, DATA_PATH_PAD_vanilla]:
-    if not (os.path.isfile(path)):
-        raise ValueError('ERROR: {data} does not exist in the specificied location.'.format(data=path))
-
-_ = """
-####################################
-#######  VALIDATION SPLITING #######
-####################################
-"""
-# Split into train/test (CV) and holdout set (per each class of grouping)
-pd_data_pad = pd.read_csv(DATA_PATH_PAD).drop('Unnamed: 0', axis=1)
-# pd_data_pad = pd.read_csv(DATA_PATH_PAD_vanilla).drop('Unnamed: 0', axis=1)
-unique_pads = list(pd_data_pad['PRO_Pad'].unique())
-grouped_data_split = {}
-for u_pad in unique_pads:
-    filtered_by_group = pd_data_pad[pd_data_pad['PRO_Pad'] == u_pad].sort_values('Date').reset_index(drop=True)
-    data_pad_loop, data_pad_validation_loop = [dat.reset_index(drop=True).infer_objects()
-                                               for dat in np.split(filtered_by_group,
-                                                                   [int(TRAIN_VAL_SPLIT * len(filtered_by_group))])]
-    grouped_data_split[u_pad] = (data_pad_loop, data_pad_validation_loop)
-
-# Holdout and validation reformatting
-data_pad = pd.concat([v[0] for k, v in grouped_data_split.items()]).reset_index(drop=True).infer_objects()
-wanted_types = {k: 'real' if v == float or v == int else 'enum' for k, v in dict(data_pad.dtypes).items()}
-data_pad = h2o.H2OFrame(data_pad, column_types=wanted_types)
-data_pad_validation = pd.concat([v[1] for k, v in grouped_data_split.items()]).reset_index(drop=True).infer_objects()
-data_pad_validation = h2o.H2OFrame(data_pad_validation, column_types=wanted_types)
-
-# Create pad validation relationships
-pad_relationship_validation = {}
-for u_pad in unique_pads:
-    df_loop = data_pad_validation.as_data_frame()
-    df_loop = df_loop[df_loop['PRO_Pad'] == u_pad].drop(['Date'], axis=1).infer_objects().reset_index(drop=True)
-    local_wanted_types = {k: v for k, v in wanted_types.items() if k in df_loop.columns}
-    df_loop = h2o.H2OFrame(df_loop, column_types=local_wanted_types)
-    pad_relationship_validation[u_pad] = df_loop
-# Create pad training relationships
-pad_relationship_training = {}
-for u_pad in unique_pads:
-    df_loop = data_pad.as_data_frame()
-    df_loop = df_loop[df_loop['PRO_Pad'] == u_pad].drop(['PRO_Pad'], axis=1).infer_objects().reset_index(drop=True)
-    local_wanted_types = {k: v for k, v in wanted_types.items() if k in df_loop.columns}
-    df_loop = h2o.H2OFrame(df_loop, column_types=local_wanted_types)
-    pad_relationship_training[u_pad] = df_loop
-
-print(Fore.GREEN + 'STATUS: Server initialized and data imported.' + Style.RESET_ALL)
-print(OUT_BLOCK)
-
-_ = """
-#######################################################################################################################
-##########################################   MINOR DATA MANIPULATION/PREP   ###########################################
-#######################################################################################################################
-"""
-# Table diagnostics
-RESPONDER = 'PRO_Total_Fluid'  # OR 'PRO_Adj_Alloc_Oil'
-
-EXCLUDE = ['C1', 'Bin_1', 'Bin_8', 'Date']
-EXCLUDE.extend(['PRO_Alloc_Oil', 'PRO_Pump_Speed', 'PRO_Alloc_Oil', 'PRO_Adj_Pump_Speed', 'PRO_Adj_Alloc_Oil'])
-
-data_pad, groupby_options_pad, PREDICTORS = data_refinement(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
-
-with open(f'Modeling Reference Files/Round {RUN_TAG}/hyperparams.txt', 'a') as out:
-    print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
-    print('PREDICTORS', file=out)
-    pprint(PREDICTORS, stream=out)
-    print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
-    print('RESPONDER', file=out)
-    pprint(RESPONDER, stream=out)
-
-_ = """
-#######################################################################################################################
-#########################################   MODEL TRAINING AND DEVELOPMENT   ##########################################
+#####################################################   WRAPPERS  #####################################################
 #######################################################################################################################
 """
 
-print(Fore.GREEN + 'STATUS: Hyperparameter Overview:')
-print(Fore.GREEN + '\t* max_runtime_secs\t-> ', MAX_EXP_RUNTIME,
-      Fore.GREEN + '\t\tThe maximum runtime in seconds that you want to allot in order to complete the model.')
-print(Fore.GREEN + '\t* stopping_metric\t-> ', EVAL_METRIC,
-      Fore.GREEN + '\t\tThis option specifies the metric to consider when early stopping is specified')
-print(Fore.GREEN + '\t* sort_metric\t\t-> ', RANK_METRIC,
-      Fore.GREEN + '\t\tThis option specifies the metric used to sort the Leaderboard by at the end of an AutoML run.')
-print(Fore.GREEN + '\t* weights_column\t-> ', WEIGHTS_COLUMN,
-      Fore.GREEN + '\t\tThe name of the column with the weights')
-print(Fore.GREEN + '\t* n_folds\t\t-> ', CV_FOLDS,
-      Fore.GREEN + '\t\t\tThis is the number of cross-validation folds for each model in the experiment.')
-print(Fore.GREEN + '\t* stopping_rounds\t-> ', STOPPING_ROUNDS,
-      Fore.GREEN + '\t\t\tThis is the tolerated number of training rounds until `stopping_metric` stops improving.')
-print(Fore.GREEN + '\t* exploitation\t\t-> ', EXPLOIT_RATIO,
-      Fore.GREEN + '\t\t\tThe "budget ratio" dedicated to exploiting vs. exploring for fine-tuning XGBoost and GBM. ' +
-      '**Experimental**')
-print(Fore.GREEN + '\t* tolerance\t\t-> ', PREFERRED_TOLERANCE,
-      Fore.GREEN + '\t\tThis is the two-tailed value for RMSE.')
-print(Fore.GREEN + '\t* top_models\t\t-> ', TOP_MODELS,
-      Fore.GREEN + '\t\t\tThis is the top "n" models to visually filter when plotting the variable importance heatmap.')
-print(Fore.GREEN + '\t* seed\t\t\t-> ', RANDOM_SEED,
-      Fore.GREEN + '\t\tRandom seed for reproducibility. There are caveats.')
-print(Fore.GREEN + '\t* Predictors\t\t-> ', PREDICTORS,
-      Fore.GREEN + '\t\tThese are the variables which will be used to predict the responder.')
-print(Fore.GREEN + '\t* Responder\t\t-> ', RESPONDER,
-      Fore.GREEN + '\tThis is what is being predicted.\n' + Style.RESET_ALL)
 
-# if(input('Proceed with given hyperparameters? (Y/N)') != 'Y'):
-#     raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
+def record_hyperparameters(RUN_TAG):
+    # NOTE: Dependent on global, non-locally defined variables
 
-# Run the experiment
-project_names_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER,
-                                   validation_frames_dict=pad_relationship_validation)  # pad_relationship_validation
+    # Ensure overwriting does not occur while making identifying experiment directory.
+    while not os.path.isdir(f'Modeling Reference Files/Round {RUN_TAG}'):
+        RUN_TAG: Final = random.randint(0, 10000)
+    _accessories.auto_make_path(f'Modeling Reference Files/Round {RUN_TAG}')
 
-_ = os.system("say Done Training")
+    # Compartmentalize Hyperparameters
+    __LOCAL_VARS = locals().copy()
+    _SERVER_HYPERPARAMS = ('IP_LINK', 'SECURED', 'PORT', 'SERVER_FORCE')
+    _SERVER_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _SERVER_HYPERPARAMS}
+    _TRAIN_HYPERPARAMS = ('MAX_EXP_RUNTIME', 'RANDOM_SEED', 'EVAL_METRIC', 'RANK_METRIC', 'CV_FOLDS',
+                          'STOPPING_ROUNDS', 'WEIGHTS_COLUMN', 'EXPLOIT_RATIO', 'MODELING_PLAN')
+    _TRAIN_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _TRAIN_HYPERPARAMS}
+    _EXECUTION_HYPERPARAMS = ('FOLD_COLUMN', 'TOP_MODELS', 'PREFERRED_TOLERANCE', 'TRAINING_VERBOSITY')
+    _EXECUTION_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _EXECUTION_HYPERPARAMS}
+    _MISCELLANEOUS_HYPERPARAMS = ('MODEL_CMAPS', 'MODEL_CMAPS', 'HMAP_CENTERS', 'CELL_RATIO')
+    _MISCELLANEOUS_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _MISCELLANEOUS_HYPERPARAMS}
 
-# Calculate Variable Importance (also stores the model object)
-varimps_pad = varimps(project_names_pad)
+    # Save hyperparameter configurations to file with TIMESTAMP
+    with open(f'Modeling Reference Files/Round {RUN_TAG}/hyperparams.txt', 'wt') as out:
+        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+        print('JOB INITIALIZED: ', datetime.datetime.now(), file=out)
+        print('RUN ID:', RUN_TAG, file=out)
+        print(file=out)
 
-# OPTIONAL VISUALIZATION: Configure filtering for variable importance
-ranked_names_pad, ranked_steam_pad = varimp_heatmap(varimps_pad,
-                                                    'Modeling Reference Files/Round ' +
-                                                    '{tag}/variable_importances_PAD{tag}.pdf'.format(tag=RUN_TAG),
-                                                    FIGSIZE=(10, 50),
-                                                    highlight=False,
-                                                    annot=False)
+        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+        print('SERVER HYPERPARAMETERS:', file=out)
+        pprint(_SERVER_HYPERPARAMS, stream=out)
+        print(file=out)
 
-# OPTIONAL VISUALIZATION: Plot predictor/regressor correlation matrix
-# with _accessories.suppress_stdout():
-#     correlation_matrix(varimps_pad,
-#                        EXP_NAME='Aggregated Experiment Results - Pad-Level',
-#                        FPATH='Modeling Reference Files/Round {tag}/cross-correlations_PAD{tag}.pdf'.format(tag=RUN_TAG))
+        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+        print('TRAINING HYPERPARAMETRS:', file=out)
+        pprint(_TRAIN_HYPERPARAMS, stream=out)
+        print(file=out)
 
-_ = os.system("say done variable importances")
+        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+        print('EXECUTION HYPERPARAMETRS:', file=out)
+        pprint(_EXECUTION_HYPERPARAMS, stream=out)
+        print(file=out)
 
-print(Fore.GREEN + 'STATUS: Saved variable importance configurations.' + Style.RESET_ALL)
-print(OUT_BLOCK)
+        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+        print('MISCELLANEOUS HYPERPARAMETRS:', file=out)
+        pprint(_MISCELLANEOUS_HYPERPARAMS, stream=out)
+        print(file=out)
+
+    _accessories._print('STATUS: Directory created for Round {RUN_TAG}')
+
+
+def setup_and_server(paths_to_check=[DATA_PATH_PAD, DATA_PATH_PAD_vanilla]):
+    # Initialize the cluster
+    h2o.init(https=SECURED,
+             ip=IP_LINK,
+             port=PORT,
+             start_h2o=SERVER_FORCE)
+    # # Check the status of the cluster, just for reference
+    # process_log = snapshot(h2o.cluster(), show=False)
+
+    # Confirm that the data path leads to an actual file
+    for path in paths_to_check:
+        if not (os.path.isfile(path)):
+            raise ValueError('ERROR: {data} does not exist in the specificied location.'.format(data=path))
+
+
+def create_validation_splits(DATA_PATH_PAD, pd_data_pad, group_colname='PRO_Pad'):
+    # NOTE: Global Dependencies:
+    # > TRAIN_VAL_SPLIT
+
+    # Split into train/test (CV) and holdout set (per each class of grouping)
+    # pd_data_pad = pd.read_csv(DATA_PATH_PAD_vanilla).drop('Unnamed: 0', axis=1)
+    unique_pads = list(pd_data_pad[group_colname].unique())
+    grouped_data_split = {}
+    for u_pad in unique_pads:
+        filtered_by_group = pd_data_pad[pd_data_pad[group_colname] == u_pad].sort_values('Date').reset_index(drop=True)
+        data_pad_loop, data_pad_validation_loop = [dat.reset_index(drop=True).infer_objects()
+                                                   for dat in np.split(filtered_by_group,
+                                                                       [int(TRAIN_VAL_SPLIT *
+                                                                            len(filtered_by_group))])]
+        grouped_data_split[u_pad] = (data_pad_loop, data_pad_validation_loop)
+
+    # Holdout and validation reformatting
+    data_pad = pd.concat([v[0] for k, v in grouped_data_split.items()]).reset_index(drop=True).infer_objects()
+    wanted_types = {k: 'real' if v == float or v == int else 'enum' for k, v in dict(data_pad.dtypes).items()}
+    data_pad = h2o.H2OFrame(data_pad, column_types=wanted_types)
+    data_pad_validation = pd.concat([v[1] for k, v in grouped_data_split.items()]
+                                    ).reset_index(drop=True).infer_objects()
+    data_pad_validation = h2o.H2OFrame(data_pad_validation, column_types=wanted_types)
+
+    # Create pad validation relationships
+    pad_relationship_validation = {}
+    for u_pad in unique_pads:
+        df_loop = data_pad_validation.as_data_frame()
+        df_loop = df_loop[df_loop[group_colname] == u_pad].drop(
+            ['Date'], axis=1).infer_objects().reset_index(drop=True)
+        local_wanted_types = {k: v for k, v in wanted_types.items() if k in df_loop.columns}
+        df_loop = h2o.H2OFrame(df_loop, column_types=local_wanted_types)
+        pad_relationship_validation[u_pad] = df_loop
+    # Create pad training relationships
+    pad_relationship_training = {}
+    for u_pad in unique_pads:
+        df_loop = data_pad.as_data_frame()
+        df_loop = df_loop[df_loop[group_colname] == u_pad].drop(
+            [group_colname], axis=1).infer_objects().reset_index(drop=True)
+        local_wanted_types = {k: v for k, v in wanted_types.items() if k in df_loop.columns}
+        df_loop = h2o.H2OFrame(df_loop, column_types=local_wanted_types)
+        pad_relationship_training[u_pad] = df_loop
+
+    _accessories._print('STATUS: Server initialized and data imported.')
+    print(OUT_BLOCK)
+
+    return data_pad, pad_relationship_validation, pad_relationship_training
+
+
+def manual_selection_and_processing(data_pad, RESPONDER='PRO_Total_Fluid',
+                                    EXCLUDE=['Bin_1', 'Bin_8', 'PRO_Alloc_Oil',
+                                             'PRO_Pump_Speed', 'PRO_Alloc_Oil',
+                                             'PRO_Adj_Pump_Speed', 'PRO_Adj_Alloc_Oil']):
+    EXCLUDE.extend(['C1', 'Date'])
+
+    data_pad, groupby_options_pad, PREDICTORS = data_refinement(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
+
+    with open(f'Modeling Reference Files/Round {RUN_TAG}/hyperparams.txt', 'a') as out:
+        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+        print('PREDICTORS', file=out)
+        pprint(PREDICTORS, stream=out)
+        print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
+        print('RESPONDER', file=out)
+        pprint(RESPONDER, stream=out)
+
+        return data_pad, groupby_options_pad, PREDICTORS
+
+
+def hyp_overview(PREDICTORS, RESPONDER):
+    print(Fore.GREEN + 'STATUS: Hyperparameter Overview:')
+    print(Fore.GREEN + '\t* max_runtime_secs\t-> ', MAX_EXP_RUNTIME,
+          Fore.GREEN + '\t\tThe maximum runtime in seconds that you want to allot in order to complete the model.')
+    print(Fore.GREEN + '\t* stopping_metric\t-> ', EVAL_METRIC,
+          Fore.GREEN + '\t\tThis option specifies the metric to consider when early stopping is specified')
+    print(Fore.GREEN + '\t* sort_metric\t\t-> ', RANK_METRIC,
+          Fore.GREEN + '\t\tThis option specifies the metric used to sort the Leaderboard by at the end of an AutoML run.')
+    print(Fore.GREEN + '\t* weights_column\t-> ', WEIGHTS_COLUMN,
+          Fore.GREEN + '\t\tThe name of the column with the weights')
+    print(Fore.GREEN + '\t* n_folds\t\t-> ', CV_FOLDS,
+          Fore.GREEN + '\t\t\tThis is the number of cross-validation folds for each model in the experiment.')
+    print(Fore.GREEN + '\t* stopping_rounds\t-> ', STOPPING_ROUNDS,
+          Fore.GREEN + '\t\t\tThis is the tolerated number of training rounds until `stopping_metric` stops improving.')
+    print(Fore.GREEN + '\t* exploitation\t\t-> ', EXPLOIT_RATIO,
+          Fore.GREEN + '\t\t\tThe "budget ratio" dedicated to exploiting vs. exploring for fine-tuning XGBoost and GBM. ' +
+          '**Experimental**')
+    print(Fore.GREEN + '\t* tolerance\t\t-> ', PREFERRED_TOLERANCE,
+          Fore.GREEN + '\t\tThis is the two-tailed value for RMSE.')
+    print(Fore.GREEN + '\t* top_models\t\t-> ', TOP_MODELS,
+          Fore.GREEN + '\t\t\tThis is the top "n" models to visually filter when plotting the variable importance heatmap.')
+    print(Fore.GREEN + '\t* seed\t\t\t-> ', RANDOM_SEED,
+          Fore.GREEN + '\t\tRandom seed for reproducibility. There are caveats.')
+    print(Fore.GREEN + '\t* Predictors\t\t-> ', PREDICTORS,
+          Fore.GREEN + '\t\tThese are the variables which will be used to predict the responder.')
+    print(Fore.GREEN + '\t* Responder\t\t-> ', RESPONDER,
+          Fore.GREEN + '\tThis is what is being predicted.\n' + Style.RESET_ALL)
+
+
+def get_benchlines(data_pad_pd, RESPONDER, grouper='PRO_Pad', PREFERRED_TOLERANCE=PREFERRED_TOLERANCE):
+    benchline_pad = list(data_pad_pd[data_pad_pd[RESPONDER] > 0].groupby(
+        ['Date', grouper])[RESPONDER].sum().reset_index().groupby(grouper).median().to_dict().values())[0]
+    benchline_pad.update((x, y * PREFERRED_TOLERANCE) for x, y in benchline_pad.items())
+
+    return benchline_pad
+
 
 _ = """
 #######################################################################################################################
-#########################################   EVALUATE MODEL PERFORMANCE   ##############################################
+##################################################   CORE EXECUTION  ##################################################
 #######################################################################################################################
 """
 
-_ = os.system("say determining model performance")
 
-data_pad_pd = pd_data_pad.copy()
-benchline_pad = list(data_pad_pd[data_pad_pd[RESPONDER] > 0].groupby(
-    ['Date', 'PRO_Pad'])[RESPONDER].sum().reset_index().groupby('PRO_Pad').median().to_dict().values())[0]
-benchline_pad.update((x, y * PREFERRED_TOLERANCE) for x, y in benchline_pad.items())
-# Calculate model performance metrics
-perf_pad = model_performance(varimps_pad, benchline_pad, sort_by='Rel. RMSE')
+def _MODELING():
+    record_hyperparameters(RUN_TAG)
 
-# OPTIONAL VISUALIZATION: Plot model performance metrics
-# with _accessories.suppress_stdout():
-#     plot_model_performance(perf_pad.select_dtypes(float),
-#                            'Modeling Reference Files/Round {tag}/model_performance_PAD{tag}.pdf'.format(tag=RUN_TAG),
-#                            MODEL_CMAPS, HMAP_CENTERS, ranked_names_pad, ranked_steam_pad,
-#                            highlight=False,
-#                            annot=True,
-#                            annot_size=6,
-#                            FIGSIZE=(10, 1))
+    _accessories._print('Initializing server and checking data...')
+    setup_and_server()
 
-_ = """
-#######################################################################################################################
-###############################   EVALUATE MODEL PERFORMANCE | VIZUALIZATION   ########################################
-#######################################################################################################################
-"""
+    _accessories._print('Retreiving pre-model data...')
+    pd_data_pad = _accessories.retrieve_local_data_file(DATA_PATH_PAD)
 
-_ = os.system("say Validating Models")
+    _accessories._print('Creating validation sets...')
+    data_pad, pad_relationship_validation, pad_relationship_training = create_validation_splits(DATA_PATH_PAD,
+                                                                                                pd_data_pad,
+                                                                                                'PRO_Pad')
 
-# OPTIONAL VISUALIZATION: Validation metrics
-with _accessories.suppress_stdout():
-    validate_models(perf_pad, pad_relationship_training, benchline_pad, pad_relationship_validation,
-                    TOP_MODELS=30, order_by='Rel. Val. RMSE')
+    _accessories._print('Manual feature deletion and automatic processing...')
+    RESPONDER = 'PRO_Total_Fluid'
+    data_pad, groupby_options_pad, PREDICTORS = manual_selection_and_processing(data_pad, RESPONDER=RESPONDER)
 
-_ = """
-#######################################################################################################################
-########################################   SHUTDOWN THE SESSION/CLUSTER   #############################################
-#######################################################################################################################
-"""
+    hyp_overview(PREDICTORS, RESPONDER)
+    # if(input('Proceed with given hyperparameters? (Y/N)') != 'Y'):
+    #     raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
 
-_ = os.system("say Finished")
+    _accessories._print('Running the experiment...')
+    project_names_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER,
+                                       validation_frames_dict=pad_relationship_validation)  # pad_relationship_validation
 
-# _temp = data_pad.as_data_frame()
-# _temp['weight'].plot(figsize=(10, 5))
+    _accessories._print('Calculating variable importance...')
+    varimps_pad = varimps(project_names_pad)
 
-# if(input('Shutdown Cluster? (Y/N)') == 'Y'):
-#     shutdown_confirm(h2o)
-shutdown_confirm(h2o)
-print(OUT_BLOCK)
+    # _accessories._print('Visualizing heatmap...')
+    # ranked_names_pad, ranked_steam_pad = varimp_heatmap(varimps_pad,
+    #                                                     'Modeling Reference Files/Round ' +
+    #                                                     '{tag}/variable_importances_PAD{tag}.pdf'.format(tag=RUN_TAG),
+    #                                                     FIGSIZE=(10, 50),
+    #                                                     highlight=False,
+    #                                                     annot=False)
+    # _accessories._print('Plot predictor correlation matrix...')
+    # with _accessories.suppress_stdout():
+    #     correlation_matrix(varimps_pad,
+    #                        EXP_NAME='Aggregated Experiment Results - Pad-Level',
+    #                        FPATH='Modeling Reference Files/Round {tag}/cross-correlations_PAD{tag}.pdf'.format(tag=RUN_TAG))
+
+    _accessories._print('Determing RMSE Benchlines...')
+    benchline_pad = get_benchlines(pd_data_pad)
+
+    _accessories._print('Calculating model performance...')
+    perf_pad = model_performance(varimps_pad, benchline_pad, sort_by='Rel. RMSE')
+
+    # _accessories._print('Plotting model performance metrics...')
+    # with _accessories.suppress_stdout():
+    #     plot_model_performance(perf_pad.select_dtypes(float),
+    #                            'Modeling Reference Files/Round {tag}/model_performance_PAD{tag}.pdf'.format(tag=RUN_TAG),
+    #                            MODEL_CMAPS, HMAP_CENTERS, ranked_names_pad, ranked_steam_pad,
+    #                            highlight=False,
+    #                            annot=True,
+    #                            annot_size=6,
+    #                            FIGSIZE=(10, 1))
+
+    _ = os.system("say Validating Models")
+
+    # OPTIONAL VISUALIZATION: Validation metrics
+    # with _accessories.suppress_stdout():
+    #     validate_models(perf_pad, pad_relationship_training, benchline_pad, pad_relationship_validation,
+    #                     TOP_MODELS=30, order_by='Rel. Val. RMSE')
+    # if(input('Shutdown Cluster? (Y/N)') == 'Y'):
+    #     shutdown_confirm(h2o)
+    _accessories._print('Shutting down server...')
+    shutdown_confirm(h2o)
 
 # CSOR
 # Chlorides total pad
