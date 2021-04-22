@@ -3,91 +3,32 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Apr-2021 12:04:72:721  GMT-0600
+# @Last modified time: 22-Apr-2021 17:04:51:513  GMT-0600
 # @License: [Private IP]
 
 
 import pickle
 import traceback
+from typing import Final
 
 import _references._accessories as _accessories
 import billiard as mp
 import h2o
 import pandas as pd
 from matplotlib import pyplot as plt
-
-# from sagd_ensemble import genetic_ensemble as sagd_ensemble
-
-
-field_df = pd.read_csv("Data/ipc_data.csv")
-
-list(field_df)
-field_df = field_df.groupby(['date', 'pad']).agg({
-    'prod_casing_pressure': 'mean',
-    'prod_bhp_heel': 'mean',
-    'prod_bhp_toe': 'mean',
-    'oil': 'sum',
-    'water': 'sum',
-    'total_fluid': 'sum',
-    'alloc_steam': 'sum',
-    'spm': 'sum',
-}).reset_index().dropna().sort_values(['date', 'pad'])
-
-field_df['sor'] = field_df['alloc_steam'] / field_df['oil']
-
-# for g in field_df['pad'].unique():
-#     field_df[field_df['pad']==g].rolling(10).mean()['alloc_steam'].plot()
-#     plt.show()
-#     # field_df[field_df['pad']==g]['oil'].plot()
-#     # field_df[field_df['pad']==g]['spm'].plot()
-#     field_df[(field_df['pad']==g)&(field_df['sor']<=10)].rolling(10).mean()['sor'].plot()
-#     plt.show()
+from sklearn.metrics import mean_squared_error
 
 _ = """
 #######################################################################################################################
-##################################################   MODELING  ##################################################
-######################################################################################################################
-"""
-
-# STEAM MORE CORRELATED WITH TOTAL FLUID THAN PUMP
-field_df[field_df['pad'] == 'A'][['alloc_steam', 'spm', 'total_fluid']].corr()
-
-
-features = [
-    'prod_casing_pressure',
-    'prod_bhp_heel',
-    'prod_bhp_toe',
-    'alloc_steam',
-    # 'spm'
-]
-
-target = 'total_fluid'
-
-
-s = 0
-pad_df = field_df[field_df['pad'] == 'A'].iloc[s:s + 500]
-
-test_x = pad_df.tail(45)[features]
-test_y = pad_df.tail(45)[target]
-
-train_df = pad_df[pad_df.index.isin(test_x.index) == False].sample(frac=0.8)
-train_x = train_df[features]
-train_y = train_df[target]
-
-models_outputs, metric_outputs, model = sagd_ensemble(train_x, train_y, test_x, test_y)
-
-pad_df['pred'] = model.predict(pad_df[features])
-
-pad_df[target].plot()
-pad_df['pred'].plot()
-
-
-_ = """
+#############################################   HYPERPARAMETER SETTINGS   #############################################
 #######################################################################################################################
-##################################################   OPTIMIZATION  ##################################################
-######################################################################################################################
 """
 
+# H2O Server Constants
+IP_LINK: Final = 'localhost'                                  # Initializing the server on the local host (temporary)
+SECURED: Final = True if(IP_LINK != 'localhost') else False   # https protocol doesn't work locally, should be True
+PORT: Final = 54321                                           # Always specify the port that the server should use
+SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 steam_range = {
     "A": {
@@ -115,8 +56,6 @@ steam_range = {
         "max": 2000,
     },
 }
-
-
 injector_wells = {
     "A": [],
     "B": [],
@@ -125,6 +64,13 @@ injector_wells = {
     "E": [],
     "F": []
 }
+
+
+_ = """
+#######################################################################################################################
+##############################################   FUNCTION DEFINITIONS   ###############################################
+#######################################################################################################################
+"""
 
 
 def data_prep(field_df, *args):
@@ -150,56 +96,42 @@ def create_scenarios(pad_df, date, features, steam_range):
     return scenario_df
 
 
-# features = [
-#              'prod_casing_pressure',
-#              'prod_bhp_heel',
-#              'prod_bhp_toe',
-#              'alloc_steam',
-#              # 'spm'
-#         ]
-#
-# target = 'total_fluid'
-# date = '2020-12-01'
-
-
-h2o.init(https=False,
-         port=54321,
-         start_h2o=True)
-
-
-def generate_optimization_table(field_df, date, features, target, group, steam_range):
-
+def generate_optimization_table(field_df, date, steam_range=steam_range,
+                                grouper='PRO_Pad', target='PRO_Total_Fluid', time_col='Date',
+                                forward_days=30):
     optimization_table = []
 
-    for g in field_df[group].unique():
-        print("CREATING SCENARIO TABLE FOR:", group, g)
-        subset_df = field_df[field_df[group] == g]
-        subset_df = subset_df[subset_df['Date'] <= date].tail(365)
+    def get_subset(df, date, group, grouper_name=grouper, tail_days=365):
+        subset_df = df[df[grouper_name] == group].reset_index(drop=True)
+        subset_df = subset_df[subset_df[time_col] <= date].tail(tail_days)
+        features = list(subset_df.select_dtypes(float).columns)
 
-        date = '2017-12-20'
+        return subset_df, features
 
-        test_df = field_df[(field_df[group] == g) & (field_df['Date'] > date)].head(30)
+    def get_testdf(df, group, grouper_name=grouper, time_col=time_col, forward_days=forward_days):
+        test_df = field_df[(field_df[grouper] == g) & (field_df[time_col] > date)].head(forward_days)
+
+    for g in field_df[grouper].unique():
+        _accessories._print("CREATING SCENARIO TABLE FOR:", grouper, g)
+
+        subset_df, features = get_subset(field_df, date, g)
 
         model_path = 'Modeling Reference Files/Round 5060/GBM_3_AutoML_20210422_120411'
         model = h2o.load_model(model_path)
 
         # # # #
 
-        subset_df = subset_df[subset_df['PRO_Pad'] == g].reset_index(drop=True)
-
-        features = list(subset_df.columns)
+        def
 
         scenario_df = create_scenarios(subset_df, date, features, steam_range[g])
         scenario_df['pred'] = list(model.predict(h2o.H2OFrame(scenario_df[features])).as_data_frame()['predict'])
-        scenario_df[group] = g
-        test_pred = model.predict(h2o.H2OFrame(test_df[features]))
-        target = 'PRO_Total_Fluid'
-        test_actual = test_df[target]
-        print(test_pred)
-        print(test_actual)
-        scenario_df['rmse'] = (test_pred - test_actual)**2
-        scenario_df['algorithm'] = 'your_algo'
-        scenario_df['accuracy'] = 1 - abs(test_pred - test_actual) / test_actual
+        scenario_df[grouper] = g
+        test_pred = model.predict(h2o.H2OFrame(test_df[features])).as_data_frame()['predict'].iloc[1:]
+
+        test_actual = test_df[target].iloc[1:]
+        scenario_df['rmse'] = mean_squared_error(test_actual, test_pred, squared=False)
+        scenario_df['algorithm'] = 'BGM H2O-Model'
+        scenario_df['accuracy'] = abs(test_pred.values - test_actual.values) / test_actual
 
         # # # #
 
@@ -207,80 +139,48 @@ def generate_optimization_table(field_df, date, features, target, group, steam_r
         optimization_table.append(scenario_df)
 
     optimization_table = pd.concat(optimization_table)
-    optimization_table = optimization_table.sort_values([group, 'alloc_steam'], ascending=[True, False])
-    optimization_table['exchange_rate'] = optimization_table['alloc_steam'] / optimization_table['pred']
-    optimization_table = optimization_table[[group, 'alloc_steam', 'pred',
+    optimization_table = optimization_table.sort_values([grouper, 'Steam'], ascending=[True, False])
+    optimization_table['exchange_rate'] = optimization_table['Steam'] / optimization_table['pred']
+    optimization_table = optimization_table[[grouper, 'Steam', 'pred',
                                              'exchange_rate', 'rmse', 'accuracy', 'algorithm']].reset_index(drop=True)
 
     return optimization_table
 
 
-group = 'pad'
-dates = pd.date_range('2020-01-01', '2020-12-20').strftime('%Y-%m-%d')
+def parallel_optimize(field_df, date, grouper='PRO_Pad', target='PRO_Total_Fluid', steam_col='Steam', time_col='Date'):
+    _accessories._print('DATE: ' + date)
+    day_df = field_df[field_df[time_col] == str(date)]
+    steam_avail = int(day_df[steam_col].sum())
+    try:
+        optimization_table = generate_optimization_table(field_df, date, target, steam_range)
+        solution = optimize(optimization_table, grouper, steam_avail)
+        solution[time_col] = date
+        return solution
+    except Exception:
+        pass
 
 
-parallel_optimize(dates[100])
-
-
-field_df = pd.read_csv('Data/combined_ipc_aggregates.csv')
-
-
-def parallel_optimize(date):
-    day_df = field_df[field_df['Date'] == str(date)]
-    steam_avail = int(day_df['Steam'].sum())
-    optimization_table = generate_optimization_table(field_df, date, features, target, 'PRO_Pad', steam_range)
-    solution = optimize(optimization_table, group, steam_avail)
-    solution['date'] = date
-    # outputs.append(solution)
-    return solution
-
-
-def run():
+def run(dates):
     print("ACTIVE CPU COUNT:", mp.cpu_count() - 1)
     pool = mp.Pool(processes=mp.cpu_count() - 1)
 
     try:
-        aggregate_results = pool.map(parallel_optimize, dates)
-    except Exception as e:
+        agg = pool.map(parallel_optimize, dates)
+    except Exception:
         print(traceback.print_exc())
         pool.close()
         # raise Exception(e)
     pool.terminate()
 
-    aggregate_results = pd.concat(aggregate_results)
-    return aggregate_results
-
-
-aggregate_results = run()
-# merged_df.to_csv('btest.csv')
-
-aggregate_results = pd.read_csv('btest.csv').drop(['Unnamed: 0', 'index', 'Unnamed: 0.1'], axis=1)
-# aggregate_results.to_csv('btest.csv')
-
-
-###
-aggregate_results = aggregate_results.reset_index()
-aggregate_results[aggregate_results['pad'] == 'A']['accuracy'].plot()
-
-aggregate_results = aggregate_results.rename(columns={"alloc_steam": "recomm_steam"})
-
-merged_df = pd.merge(aggregate_results, field_df, how='left', on=['date', 'pad'])
-merged_df['date'] = pd.to_datetime(merged_df['date'])
-merged_df = merged_df.set_index('date')
-merged_df['pred_oil'] = merged_df['pred'] * (1 - merged_df['water'] / merged_df['total_fluid'])
-
-merged_df[merged_df['pad'] == 'E']['alloc_steam'].plot(color='black', figsize=(11, 8))
-merged_df[merged_df['pad'] == 'E']['recomm_steam'].plot(color='red', figsize=(11, 8))
-
-merged_df[merged_df['pad'] == 'A']['total_fluid'].plot(color='black', figsize=(11, 8))
-merged_df[merged_df['pad'] == 'A']['pred'].plot(color='brown', figsize=(11, 8))
+    agg = pd.concat(agg)
+    return agg
 
 
 def optimize(optimization_table, group, steam_avail):
 
     # OPTIMIZE BASED ON CONSTRAINTS
     solution = optimization_table.groupby([group]).first().reset_index()
-    steam_usage = solution['alloc_steam'].sum()
+    steam_usage = solution['Steam'].sum()
     total_output = solution['pred'].sum()
 
     print("Initiating optimization... seed:", steam_usage, "target:", steam_avail, "total output:", total_output)
@@ -289,14 +189,14 @@ def optimize(optimization_table, group, steam_avail):
 
         lowest_delta = solution['exchange_rate'].astype(float).idxmax()
 
-        steam_cutoff = solution.loc[lowest_delta]['alloc_steam']
+        steam_cutoff = solution.loc[lowest_delta]['Steam']
         asset_cut = [solution.loc[lowest_delta][group]]
         to_drop = optimization_table[(optimization_table[group].isin(asset_cut)) &
-                                     (optimization_table['alloc_steam'] >= steam_cutoff)].index
+                                     (optimization_table['Steam'] >= steam_cutoff)].index
 
         optimization_table = optimization_table.drop(to_drop)
         solution = optimization_table.groupby([group]).first().reset_index()  # OPTIMAL SOLUTION
-        steam_usage = solution['alloc_steam'].sum()
+        steam_usage = solution['Steam'].sum()
 
     return solution
 
@@ -318,6 +218,85 @@ def max_sor_steam():
 
 def min_chloride_control_steam():
     return
+
+
+_ = """
+#######################################################################################################################
+#####################################################   WRAPPERS  #####################################################
+#######################################################################################################################
+"""
+
+
+def setup_and_server(SECURED=SECURED, IP_LINK=IP_LINK, PORT=PORT, SERVER_FORCE=SERVER_FORCE):
+    # Initialize the cluster
+    h2o.init(https=SECURED,
+             ip=IP_LINK,
+             port=PORT,
+             start_h2o=SERVER_FORCE)
+
+
+_ = """
+#######################################################################################################################
+##################################################   CORE EXECUTION  ##################################################
+#######################################################################################################################
+"""
+
+
+def _OPTIMIZATION():
+    setup_and_server()
+
+    DATASETS = {'AGGREGATED_NOENG': _accessories.retrieve_local_data_file('Data/combined_ipc_aggregates.csv')}
+
+    dates = pd.date_range('2020-06-01', '2020-12-20').strftime('%Y-%m-%d')
+
+    # results = []
+    # for date in dates:
+    #     try:
+    #         solution = parallel_optimize(date)
+    #     except Exception:
+    #         continue
+    #     results.append(solution)
+    # aggregate_results = pd.concat(results)
+
+    _accessories.auto_make_path('Optimization Reference Files/Backtests/')
+
+    aggregate_results = run(dates)
+
+    rell = {'A': 170, 'B': 131}
+    aggregate_results['rmse'].describe()
+    aggregate_results['rmse'] = aggregate_results['rmse'] / 2
+    aggregate_results['rel_rmse'] = (aggregate_results['rmse']) - \
+        aggregate_results['PRO_Pad'].apply(lambda x: rell.get(x))
+    aggregate_results.head(50)
+    aggregate_results.to_csv('AGGREGATES_PARTIAL_2019.csv')
+# merged_df.to_csv('btest.csv')
+
+
+# Plot
+_temp = aggregate_results.sort_values('date')
+_temp = _temp[_temp['PRO_Pad'] == 'A']
+_temp = _temp[['date', 'Steam', 'pred']]
+plt.figure(figsize=(20, 10))
+plt.plot(_temp['date'], _temp['Steam'])
+plt.plot(_temp['date'], _temp['pred'])
+
+
+###
+aggregate_results = aggregate_results.reset_index()
+aggregate_results[aggregate_results['pad'] == 'A']['accuracy'].plot()
+
+aggregate_results = aggregate_results.rename(columns={"alloc_steam": "recomm_steam"})
+
+merged_df = pd.merge(aggregate_results, field_df, how='left', on=['date', 'pad'])
+merged_df['date'] = pd.to_datetime(merged_df['date'])
+merged_df = merged_df.set_index('date')
+merged_df['pred_oil'] = merged_df['pred'] * (1 - merged_df['water'] / merged_df['total_fluid'])
+
+merged_df[merged_df['pad'] == 'E']['alloc_steam'].plot(color='black', figsize=(11, 8))
+merged_df[merged_df['pad'] == 'E']['recomm_steam'].plot(color='red', figsize=(11, 8))
+
+merged_df[merged_df['pad'] == 'A']['total_fluid'].plot(color='black', figsize=(11, 8))
+merged_df[merged_df['pad'] == 'A']['pred'].plot(color='brown', figsize=(11, 8))
 
 
 #
