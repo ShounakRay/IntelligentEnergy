@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Apr-2021 14:04:40:407  GMT-0600
+# @Last modified time: 23-Apr-2021 16:04:77:776  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -34,11 +34,14 @@ def _print(txt: str, color: str = 'LIGHTGREEN_EX') -> None:
         While nothing is returned, this function prints to the console.
 
     """
-    # Format the provided string
     fcolor = color.upper()
-    txt = txt.replace("'", "\\'").replace('"', '\\"')
-    output = f'print(Fore.{fcolor} + """{txt}""" + Style.RESET_ALL)'
-    # Print the specified string to the console
+    if(type(txt) == str):
+        # Format the provided string
+        txt = txt.replace("'", "\\'").replace('"', '\\"')
+        output = f'print(Fore.{fcolor} + """{txt}""" + Style.RESET_ALL)'
+        # Print the specified string to the console
+    else:
+        output = f'print(Fore.{fcolor} + "\n" + {txt} + Style.RESET_ALL)'
     exec(output)
 
 

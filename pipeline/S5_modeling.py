@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Apr-2021 16:04:79:794  GMT-0600
+# @Last modified time: 23-Apr-2021 16:04:36:361  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -1413,7 +1413,7 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
 
     _accessories._print('Manual feature deletion and automatic processing...')
     RESPONDER = 'PRO_Total_Fluid'
-    data_pad, groupby_options_pad, PREDICTORS = manual_selection_and_processing(h2o.deep_copy(data_pad),
+    data_pad, groupby_options_pad, PREDICTORS = manual_selection_and_processing(h2o.deep_copy(data_pad, '_' + str(RUN_TAG)),
                                                                                 RUN_TAG=RUN_TAG,
                                                                                 RESPONDER=RESPONDER,
                                                                                 weighting=weighting)
@@ -1423,7 +1423,7 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     #     raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
 
     _accessories._print('Running the experiment...')
-    project_names_pad = run_experiment(h2o.deep_copy(data_pad), groupby_options_pad, RESPONDER,
+    project_names_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER,
                                        validation_frames_dict=pad_relationship_validation,
                                        MAX_EXP_RUNTIME=MAX_EXP_RUNTIME,
                                        ENGINEER_FEATURES=math_eng,

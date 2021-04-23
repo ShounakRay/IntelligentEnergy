@@ -1,50 +1,43 @@
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
-JOB INITIALIZED:  2021-04-23 15:07:44.757701
-RUN ID: 7685
+JOB INITIALIZED:  2021-04-23 16:37:26.527546
+RUN ID: 7044
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 SERVER HYPERPARAMETERS:
-{'IP_LINK': None, 'PORT': None, 'SECURED': None, 'SERVER_FORCE': None}
+{'IP_LINK': 'localhost', 'PORT': 54321, 'SECURED': False, 'SERVER_FORCE': True}
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 TRAINING HYPERPARAMETRS:
-{'CV_FOLDS': None,
- 'EVAL_METRIC': None,
- 'EXPLOIT_RATIO': None,
- 'MAX_EXP_RUNTIME': 10,
+{'CV_FOLDS': 50,
+ 'EVAL_METRIC': 'rmse',
+ 'EXPLOIT_RATIO': 0.0,
+ 'MAX_EXP_RUNTIME': 20,
  'MODELING_PLAN': None,
- 'RANDOM_SEED': None,
- 'RANK_METRIC': None,
- 'STOPPING_ROUNDS': None,
- 'WEIGHTS_COLUMN': None}
+ 'RANDOM_SEED': 2381125,
+ 'RANK_METRIC': 'rmse',
+ 'STOPPING_ROUNDS': 4,
+ 'WEIGHTS_COLUMN': 'weight'}
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 EXECUTION HYPERPARAMETRS:
-{'FOLD_COLUMN': None,
- 'PREFERRED_TOLERANCE': None,
- 'TOP_MODELS': None,
- 'TRAINING_VERBOSITY': None}
+{'FOLD_COLUMN': 'kfold_column',
+ 'PREFERRED_TOLERANCE': 0.1,
+ 'TOP_MODELS': 15,
+ 'TRAINING_VERBOSITY': 'warn'}
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 MISCELLANEOUS HYPERPARAMETRS:
-{'CELL_RATIO': None, 'HMAP_CENTERS': None, 'MODEL_CMAPS': None}
+{'CELL_RATIO': 4.666666666666667,
+ 'HMAP_CENTERS': {'MAE': None,
+                  'MSE': 400,
+                  'RMSE': 20,
+                  'RMSLE': None,
+                  'R^2': None,
+                  'Rel. RMSE': 0},
+ 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x114914e50>,
+                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x114914e50>,
+                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x114914e50>,
+                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x114914e50>,
+                 'R^2': <matplotlib.colors.ListedColormap object at 0x123b22c10>,
+                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x114914e50>}}
 
-»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
-PREDICTORS
-['PRO_Pad',
- 'PRO_Casing_Pressure',
- 'PRO_Heel_Pressure',
- 'PRO_Toe_Pressure',
- 'PRO_Heel_Temp',
- 'PRO_Toe_Temp',
- 'Bin_2',
- 'Bin_3',
- 'Bin_4',
- 'Bin_5',
- 'Bin_6',
- 'Bin_7',
- 'weight',
- 'Steam']
-»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
-RESPONDER
-'PRO_Total_Fluid'
