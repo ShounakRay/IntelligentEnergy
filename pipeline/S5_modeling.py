@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Apr-2021 15:04:38:386  GMT-0600
+# @Last modified time: 23-Apr-2021 15:04:79:794  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -163,7 +163,7 @@ def record_hyperparameters(MAX_EXP_RUNTIME):
     _accessories.auto_make_path(f'Modeling Reference Files/Round {RUN_TAG}/')
 
     # Compartmentalize Hyperparameters
-    __LOCAL_VARS = locals().copy()
+    __LOCAL_VARS = globals().copy()
     _SERVER_HYPERPARAMS = ('IP_LINK', 'SECURED', 'PORT', 'SERVER_FORCE')
     _SERVER_HYPERPARAMS = {var: __LOCAL_VARS.get(var) for var in _SERVER_HYPERPARAMS}
     _TRAIN_HYPERPARAMS = ('MAX_EXP_RUNTIME', 'RANDOM_SEED', 'EVAL_METRIC', 'RANK_METRIC', 'CV_FOLDS',
@@ -472,6 +472,8 @@ def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN)
     groupby_options = data.as_data_frame()[groupby].unique()
 
     # Warns user that certain categorical features will be auto-encoded by H2O if not dropped
+    print(data)
+    print(data.as_data_frame())
     categorical_names = list(data.as_data_frame().select_dtypes(object).columns)
     if(len(categorical_names) > 0):
         print(Fore.LIGHTRED_EX +
