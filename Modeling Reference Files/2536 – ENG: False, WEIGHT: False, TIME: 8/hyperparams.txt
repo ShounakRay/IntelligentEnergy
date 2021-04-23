@@ -1,6 +1,6 @@
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
-JOB INITIALIZED:  2021-04-23 14:37:57.016296
-RUN ID: 6493
+JOB INITIALIZED:  2021-04-23 14:48:50.712593
+RUN ID: 2536
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 SERVER HYPERPARAMETERS:
@@ -11,7 +11,7 @@ TRAINING HYPERPARAMETRS:
 {'CV_FOLDS': None,
  'EVAL_METRIC': None,
  'EXPLOIT_RATIO': None,
- 'MAX_EXP_RUNTIME': 5,
+ 'MAX_EXP_RUNTIME': 8,
  'MODELING_PLAN': None,
  'RANDOM_SEED': None,
  'RANK_METRIC': None,

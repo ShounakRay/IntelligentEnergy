@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Apr-2021 14:04:43:433  GMT-0600
+# @Last modified time: 23-Apr-2021 14:04:40:407  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -171,8 +171,8 @@ class timeit:
             auto_make_path(path)
             with open(path, 'a') as file:
                 content = str(kwargs.get('math_eng')) + ',' + \
-                    str(kwargs.get('weighting')) + ',' + str(kwargs.get('MAX_EXP_RUNTIME') + ',' + str(t2 - t1) + ',' +
-                                                             str(res))
+                    str(kwargs.get('weighting')) + ',' + str(kwargs.get('MAX_EXP_RUNTIME')) + ',' + str(t2 - t1) + \
+                    ',' + str(res)
                 file.write(content)
 
             return res

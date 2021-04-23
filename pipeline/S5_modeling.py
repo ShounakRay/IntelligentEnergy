@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Apr-2021 14:04:70:700  GMT-0600
+# @Last modified time: 23-Apr-2021 15:04:08:087  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -12,6 +12,7 @@
 # > https://seaborn.pydata.org/generated/seaborn.color_palette.html
 
 import datetime
+import itertools
 import os
 import random
 import subprocess
@@ -626,6 +627,8 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict, wei
         if(weighting is False):
             WEIGHTS_COLUMN = None
 
+        print('THIS IS THE WEIGHTS COLUMN: ', WEIGHTS_COLUMNS)
+
         aml_obj.train(y=responder,                                # A single responder
                       weights_column=WEIGHTS_COLUMN,              # What is the weights column in the H2O frame?
                       training_frame=MODEL_DATA,                  # All the data is used for training, cross-validation
@@ -793,7 +796,8 @@ def model_performance(project_names_pad, adj_factor, validation_data_dict, RUN_T
 
     for model_obj in perf_data.sort_values(['RMSE', 'Rel. Val. RMSE'])['model_obj'][:10]:
         mpath = f'Modeling Reference Files/Round {RUN_TAG}/Models/'
-        _accessories.auto_make_path(mpath)
+        with _accessories.suppress_stdout():
+            _accessories.auto_make_path(mpath)
         model_path = h2o.save_model(model=model_obj, path=f'Modeling Reference Files/Round {RUN_TAG}/Models',
                                     force=True)
         _accessories._print('MODEL PATH: ' + model_path)
@@ -1393,6 +1397,7 @@ _ = """
 # TODO: See iPhone notes for next steps.
 
 
+@_accessories.timeit()
 def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=False):
     _accessories._print('Initializing server and checking data...')
     RUN_TAG = record_hyperparameters(MAX_EXP_RUNTIME)
@@ -1484,18 +1489,20 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
 
 def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
     combos = list(itertools.product(*[math_eng, weighting, MAX_EXP_RUNTIME]))
-    _accessories._print(f'{len(combos)} hyperparameter combinations to run...')
+    _accessories._print(f'{len(combos)} hyperparameter combinations to run...', color='LIGHTCYAN_EX')
     for math_eng, weighting, MAX_EXP_RUNTIME in combos:
+        _accessories._print(f'Engineered: {math_eng}, Weighting: {weighting}, Run-Time: {MAX_EXP_RUNTIME}',
+                            color='LIGHTCYAN_EX')
         tag = _MODELING(math_eng, weighting, MAX_EXP_RUNTIME.item(), False)
 
 
 if __name__ == '__main__':
-    math_eng_options = [True, False],
-    weighting_options = [True, False],
+    math_eng_options = [True, False]
+    weighting_options = [True, False]
     MAX_EXP_RUNTIME_options = np.arange(10, 210, 10)
     benchmark(math_eng_options, weighting_options, MAX_EXP_RUNTIME_options)
 
-_MODELING(MAX_EXP_RUNTIME=10)
+_MODELING(MAX_EXP_RUNTIME=8)
 
 # CSOR
 # Chlorides total pad
