@@ -3,11 +3,12 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Apr-2021 17:04:51:513  GMT-0600
+# @Last modified time: 22-Apr-2021 23:04:71:711  GMT-0600
 # @License: [Private IP]
 
 
 import pickle
+import sys
 import traceback
 from typing import Final
 
@@ -90,10 +91,13 @@ def create_scenarios(pad_df, date, features, steam_range):
 
     # GET CURRENT CONDITIONS
     for f in features:
-        if f not in scenario_df.columns:
+        if f not in list(scenario_df.columns):
             scenario_df[f] = op_condition.iloc[-1][f]
 
     return scenario_df
+
+
+# date = dates[0]
 
 
 def generate_optimization_table(field_df, date, steam_range=steam_range,
@@ -106,74 +110,55 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
         subset_df = subset_df[subset_df[time_col] <= date].tail(tail_days)
         features = list(subset_df.select_dtypes(float).columns)
 
-        return subset_df, features
+        return subset_df.reset_index(drop=True), features
 
-    def get_testdf(df, group, grouper_name=grouper, time_col=time_col, forward_days=forward_days):
-        test_df = field_df[(field_df[grouper] == g) & (field_df[time_col] > date)].head(forward_days)
+    def get_testdfs(df, group, features, grouper_name=grouper, time_col=time_col, forward_days=forward_days):
+        test_df = df[(df[grouper] == group) & (df[time_col] > date)].head(forward_days)
+        test_pred = model.predict(h2o.H2OFrame(test_df[features])).as_data_frame()['predict']
+        test_actual = test_df[target]
 
-    for g in field_df[grouper].unique():
-        _accessories._print("CREATING SCENARIO TABLE FOR:", grouper, g)
+        return test_pred.reset_index(drop=True), test_actual.reset_index(drop=True)
 
-        subset_df, features = get_subset(field_df, date, g)
-
-        model_path = 'Modeling Reference Files/Round 5060/GBM_3_AutoML_20210422_120411'
-        model = h2o.load_model(model_path)
-
-        # # # #
-
-        def
-
+    def configure_scenario_locally(subset_df, date, model, g, features, steam_range=steam_range):
         scenario_df = create_scenarios(subset_df, date, features, steam_range[g])
-        scenario_df['pred'] = list(model.predict(h2o.H2OFrame(scenario_df[features])).as_data_frame()['predict'])
+        scenario_df['Total_Fluid'] = list(model.predict(
+            h2o.H2OFrame(scenario_df[features])).as_data_frame()['predict'])
         scenario_df[grouper] = g
-        test_pred = model.predict(h2o.H2OFrame(test_df[features])).as_data_frame()['predict'].iloc[1:]
 
-        test_actual = test_df[target].iloc[1:]
         scenario_df['rmse'] = mean_squared_error(test_actual, test_pred, squared=False)
         scenario_df['algorithm'] = 'BGM H2O-Model'
         scenario_df['accuracy'] = abs(test_pred.values - test_actual.values) / test_actual
 
-        # # # #
+        return scenario_df
 
-        # scenario_df.plot(x='alloc_steam', y='pred')
+    for d_col in ['PRO_Adj_Pump_Speed', 'Bin_1', 'Bin_8', 'PRO_Adj_Alloc_Oil']:
+        if d_col in field_df.columns:
+            field_df.drop(d_col, axis=1, inplace=True)
+
+    for g in field_df[grouper].unique():
+        _accessories._print(f"CREATING SCENARIO TABLE FOR: {grouper} and {g}.")
+
+        subset_df, features = get_subset(field_df, date, g)
+
+        # file = open('Modeling Reference Files/6086 – ENG: True, WEIGHT: False, TIME: 20/MODELS_6086.pkl', 'rb')
+
+        model_path = 'Modeling Reference Files/Round 5060/GBM_3_AutoML_20210422_120411'
+        model = h2o.load_model(model_path)
+
+        with _accessories.suppress_stdout():
+            test_pred, test_actual = get_testdfs(field_df, g, features)
+            scenario_df = configure_scenario_locally(subset_df, date, model, g, features)
+
         optimization_table.append(scenario_df)
 
-    optimization_table = pd.concat(optimization_table)
+    _accessories._print(f"Finished optimization table for all groups on {date}")
+    optimization_table = pd.concat(optimization_table).infer_objects()
     optimization_table = optimization_table.sort_values([grouper, 'Steam'], ascending=[True, False])
-    optimization_table['exchange_rate'] = optimization_table['Steam'] / optimization_table['pred']
-    optimization_table = optimization_table[[grouper, 'Steam', 'pred',
+    optimization_table['exchange_rate'] = optimization_table['Steam'] / optimization_table['Total_Fluid']
+    optimization_table = optimization_table[[grouper, 'Steam', 'Total_Fluid',
                                              'exchange_rate', 'rmse', 'accuracy', 'algorithm']].reset_index(drop=True)
 
     return optimization_table
-
-
-def parallel_optimize(field_df, date, grouper='PRO_Pad', target='PRO_Total_Fluid', steam_col='Steam', time_col='Date'):
-    _accessories._print('DATE: ' + date)
-    day_df = field_df[field_df[time_col] == str(date)]
-    steam_avail = int(day_df[steam_col].sum())
-    try:
-        optimization_table = generate_optimization_table(field_df, date, target, steam_range)
-        solution = optimize(optimization_table, grouper, steam_avail)
-        solution[time_col] = date
-        return solution
-    except Exception:
-        pass
-
-
-def run(dates):
-    print("ACTIVE CPU COUNT:", mp.cpu_count() - 1)
-    pool = mp.Pool(processes=mp.cpu_count() - 1)
-
-    try:
-        agg = pool.map(parallel_optimize, dates)
-    except Exception:
-        print(traceback.print_exc())
-        pool.close()
-        # raise Exception(e)
-    pool.terminate()
-
-    agg = pd.concat(agg)
-    return agg
 
 
 def optimize(optimization_table, group, steam_avail):
@@ -181,7 +166,7 @@ def optimize(optimization_table, group, steam_avail):
     # OPTIMIZE BASED ON CONSTRAINTS
     solution = optimization_table.groupby([group]).first().reset_index()
     steam_usage = solution['Steam'].sum()
-    total_output = solution['pred'].sum()
+    total_output = solution['Total_Fluid'].sum()
 
     print("Initiating optimization... seed:", steam_usage, "target:", steam_avail, "total output:", total_output)
 
@@ -199,6 +184,41 @@ def optimize(optimization_table, group, steam_avail):
         steam_usage = solution['Steam'].sum()
 
     return solution
+
+
+def parallel_optimize(field_df, date, grouper='PRO_Pad', target='PRO_Total_Fluid', steam_col='Steam', time_col='Date'):
+    # field_df = data.copy()
+    # data = dates[0]
+    _accessories._print('DATE: ' + date)
+    day_df = field_df[field_df[time_col] == str(date)]
+    steam_avail = int(day_df[steam_col].sum())
+    try:
+        optimization_table = generate_optimization_table(field_df, date, steam_range)
+        solution = optimize(optimization_table, grouper, steam_avail)
+        solution[time_col] = date
+        return solution
+    except Exception as e:
+        _accessories._print(e)
+        return
+        # print(traceback.print_exc())
+        # pass
+
+
+def run(data, dates):
+    # data = DATASETS['AGGREGATED_NOENG'].copy()
+    print("ACTIVE CPU COUNT:", mp.cpu_count() - 1)
+
+    with mp.Pool(processes=mp.cpu_count() - 1) as pool:
+        # try:
+        args = list(zip([data.copy()] * len(dates), dates))
+        agg = pool.starmap(parallel_optimize, args)
+        # except Exception as e:
+        #     raise Exception(e)
+        pool.close()
+        pool.terminate()
+
+    agg_final = pd.concat(agg)
+    return agg_final
 
 
 def well_setpoints(solution, well_constraints):
@@ -235,6 +255,40 @@ def setup_and_server(SECURED=SECURED, IP_LINK=IP_LINK, PORT=PORT, SERVER_FORCE=S
              start_h2o=SERVER_FORCE)
 
 
+def shutdown_confirm(h2o_instance: type(h2o)) -> None:
+    """Terminates the provided H2O cluster.
+
+    Parameters
+    ----------
+    cluster : type(h2o)
+        The H2O instance where the server was initialized.
+
+    Returns
+    -------
+    None
+        Nothing. ValueError may be raised during processing and cluster metrics may be printed.
+
+    """
+    # """DATA SANITATION"""
+    # _provided_args = locals()
+    # name = sys._getframe(0).f_code.co_name
+    # _expected_type_args = {'h2o_instance': [type(h2o)]}
+    # _expected_value_args = {'h2o_instance': None}
+    # util_data_type_sanitation(_provided_args, _expected_type_args, name)
+    # util_data_range_sanitation(_provided_args, _expected_value_args, name)
+    # """END OF DATA SANITATION"""
+
+    # SHUT DOWN the cluster after you're done working with it
+    h2o_instance.remove_all()
+    h2o_instance.cluster().shutdown()
+    # Double checking...
+    try:
+        snapshot(h2o_instance.cluster)
+        raise ValueError('ERROR: H2O cluster improperly closed!')
+    except Exception:
+        pass
+
+
 _ = """
 #######################################################################################################################
 ##################################################   CORE EXECUTION  ##################################################
@@ -247,8 +301,8 @@ def _OPTIMIZATION():
 
     DATASETS = {'AGGREGATED_NOENG': _accessories.retrieve_local_data_file('Data/combined_ipc_aggregates.csv')}
 
-    dates = pd.date_range('2020-06-01', '2020-12-20').strftime('%Y-%m-%d')
-
+    start_date, end_date = ('2020-06-01', '2020-12-20')
+    dates = pd.date_range(*(start_date, end_date)).strftime('%Y-%m-%d')
     # results = []
     # for date in dates:
     #     try:
@@ -260,7 +314,7 @@ def _OPTIMIZATION():
 
     _accessories.auto_make_path('Optimization Reference Files/Backtests/')
 
-    aggregate_results = run(dates)
+    aggregate_results = run(DATASETS['AGGREGATED_NOENG'].copy(), dates)
 
     rell = {'A': 170, 'B': 131}
     aggregate_results['rmse'].describe()
@@ -268,35 +322,38 @@ def _OPTIMIZATION():
     aggregate_results['rel_rmse'] = (aggregate_results['rmse']) - \
         aggregate_results['PRO_Pad'].apply(lambda x: rell.get(x))
     aggregate_results.head(50)
-    aggregate_results.to_csv('AGGREGATES_PARTIAL_2019.csv')
+    aggregate_results.to_csv('Optimization Reference Files/Backtests/Aggregates_{start_date}_{end_date}.csv')
+
+    shutdown_confirm(h2o)
+
 # merged_df.to_csv('btest.csv')
 
 
-# Plot
-_temp = aggregate_results.sort_values('date')
-_temp = _temp[_temp['PRO_Pad'] == 'A']
-_temp = _temp[['date', 'Steam', 'pred']]
-plt.figure(figsize=(20, 10))
-plt.plot(_temp['date'], _temp['Steam'])
-plt.plot(_temp['date'], _temp['pred'])
+# # Plot
+# _temp = aggregate_results.sort_values('Date')
+# _temp = _temp[_temp['PRO_Pad'] == 'A']
+# _temp = _temp[['Date', 'Steam', 'Pred_Steam']]
+# plt.figure(figsize=(20, 10))
+# plt.plot(_temp['Date'], _temp['Steam'])
+# plt.plot(_temp['Date'], _temp['Pred_Steam'])
 
 
-###
-aggregate_results = aggregate_results.reset_index()
-aggregate_results[aggregate_results['pad'] == 'A']['accuracy'].plot()
-
-aggregate_results = aggregate_results.rename(columns={"alloc_steam": "recomm_steam"})
-
-merged_df = pd.merge(aggregate_results, field_df, how='left', on=['date', 'pad'])
-merged_df['date'] = pd.to_datetime(merged_df['date'])
-merged_df = merged_df.set_index('date')
-merged_df['pred_oil'] = merged_df['pred'] * (1 - merged_df['water'] / merged_df['total_fluid'])
-
-merged_df[merged_df['pad'] == 'E']['alloc_steam'].plot(color='black', figsize=(11, 8))
-merged_df[merged_df['pad'] == 'E']['recomm_steam'].plot(color='red', figsize=(11, 8))
-
-merged_df[merged_df['pad'] == 'A']['total_fluid'].plot(color='black', figsize=(11, 8))
-merged_df[merged_df['pad'] == 'A']['pred'].plot(color='brown', figsize=(11, 8))
+# ###
+# aggregate_results = aggregate_results.reset_index()
+# aggregate_results[aggregate_results['pad'] == 'A']['accuracy'].plot()
+#
+# aggregate_results = aggregate_results.rename(columns={"alloc_steam": "recomm_steam"})
+#
+# merged_df = pd.merge(aggregate_results, field_df, how='left', on=['date', 'pad'])
+# merged_df['date'] = pd.to_datetime(merged_df['date'])
+# merged_df = merged_df.set_index('date')
+# merged_df['pred_oil'] = merged_df['pred'] * (1 - merged_df['water'] / merged_df['total_fluid'])
+#
+# merged_df[merged_df['pad'] == 'E']['alloc_steam'].plot(color='black', figsize=(11, 8))
+# merged_df[merged_df['pad'] == 'E']['recomm_steam'].plot(color='red', figsize=(11, 8))
+#
+# merged_df[merged_df['pad'] == 'A']['total_fluid'].plot(color='black', figsize=(11, 8))
+# merged_df[merged_df['pad'] == 'A']['pred'].plot(color='brown', figsize=(11, 8))
 
 
 #

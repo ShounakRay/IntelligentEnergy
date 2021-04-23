@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Apr-2021 02:04:04:045  GMT-0600
+# @Last modified time: 22-Apr-2021 22:04:64:648  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -119,7 +119,7 @@ def auto_make_path(path: str, **kwargs: bool) -> None:
 
 @contextmanager
 def suppress_stdout():
-    _print('Atteming to supress plot output using context manager...', color='LIGHTRED_EX')
+    _print('Attemping to suppress output using context manager...', color='LIGHTRED_EX')
     with open(os.devnull, "w") as devnull:
         old_stdout = sys.stdout
         sys.stdout = devnull
