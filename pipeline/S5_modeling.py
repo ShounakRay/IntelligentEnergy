@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Apr-2021 15:04:79:794  GMT-0600
+# @Last modified time: 23-Apr-2021 16:04:79:794  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -472,8 +472,6 @@ def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN)
     groupby_options = data.as_data_frame()[groupby].unique()
 
     # Warns user that certain categorical features will be auto-encoded by H2O if not dropped
-    print(data)
-    print(data.as_data_frame())
     categorical_names = list(data.as_data_frame().select_dtypes(object).columns)
     if(len(categorical_names) > 0):
         print(Fore.LIGHTRED_EX +
@@ -929,92 +927,92 @@ def model_performance(project_names_pad, adj_factor, validation_data_dict, RUN_T
 #     return ranked_names, ranked_steam
 
 
-@_context_managers.representation
-def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False,
-                       type_corrs=['Pearson', 'Kendall', 'Spearman'],
-                       cmap=sns.color_palette('flare', as_cmap=True), figsize=(24, 8), contrast_factor=1.0):
-    """Outputs to console and saves to file correlation matrices given data with input features.
-    Intended to represent the parameter space and different relationships within. Tool for modeling.
-
-    Parameters
-    ----------
-    df : pandas.core.frame.DataFrame
-        Input dataframe where each column is a feature that is to be correlated.
-    FPATH : str
-        Where the file should be saved. If directory is provided, it should already be created.
-    abs_arg : bool
-        Whether the absolute value of the correlations should be plotted (for strength magnitude).
-        Impacts cmap, switches to diverging instead of sequential.
-    mask : bool
-        Whether only the bottom left triange of the matrix should be rendered.
-    annot : bool
-        Whether each cell should be annotated with its numerical value.
-    type_corrs : list
-        All the different correlations that should be provided. Default to all built-in pandas options for df.corr().
-    cmap : child of matplotlib.colors
-        The color map which should be used for the heatmap. Dependent on abs_arg.
-    figsize : tuple
-        The size of the outputted/saved heatmap (width, height).
-    contrast_factor:
-        The factor/exponent by which all the correlationed should be raised to the power of.
-        Purpose is for high-contrast, better identification of highly correlated features.
-
-    Returns
-    -------
-    pandas.core.frame.DataFrame
-        The correlations given the input data, and other transformation arguments (abs_arg, contrast_factor)
-        Furthermore, heatmap is saved in specifid format and printed to console.
-
-    """
-    """DATA SANITATION"""
-    _provided_args = locals()
-    name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'df': [pd.core.frame.DataFrame],
-                           'FPATH': [str],
-                           'EXP_NAME': [str],
-                           'abs_arg': [bool],
-                           'mask': [bool],
-                           'annot': [bool],
-                           'type_corrs': [list],
-                           'cmap': [matplotlib.colors.ListedColormap, matplotlib.colors.LinearSegmentedColormap],
-                           'figsize': [tuple],
-                           'contrast_factor': [float]}
-    _expected_value_args = {'df': None,
-                            'FPATH': None,
-                            'EXP_PATH': None,
-                            'abs_arg': [True, False],
-                            'mask': [True, False],
-                            'annot': [True, False],
-                            'type_corrs': None,
-                            'cmap': None,
-                            'figsize': None,
-                            'contrast_factor': [0.0000001, np.inf]}
-    util_data_type_sanitation(_provided_args, _expected_type_args, name)
-    util_data_range_sanitation(_provided_args, _expected_value_args, name)
-    """END OF DATA SANITATION"""
-
-    input_data = {}
-
-    # NOTE: Conditional assignment of sns.heatmap based on parameters
-    # > Mask sns.heatmap parameter is conditionally controlled
-    # > If absolute value is not chosen by the user, switch to divergent heatmap. Otherwise keep it as sequential.
-    fig, ax = plt.subplots(ncols=len(type_corrs), sharey=True, figsize=figsize)
-    for typec in type_corrs:
-        input_data[typec] = (df.corr(typec.lower()).abs()**contrast_factor if abs_arg
-                             else df.corr(typec.lower())**contrast_factor)
-        sns_fig = sns.heatmap(input_data[typec],
-                              mask=np.triu(df.corr().abs()) if mask else None,
-                              ax=ax[type_corrs.index(typec)],
-                              annot=annot,
-                              cmap=cmap if abs_arg else sns.diverging_palette(240, 10, n=9, as_cmap=True)
-                              ).set_title("{cortype}'s Correlation Matrix\n{EXP_NAME}".format(cortype=typec,
-                                                                                              EXP_NAME=EXP_NAME))
-    plt.tight_layout()
-    sns_fig.get_figure().savefig(FPATH, bbox_inches='tight')
-
-    plt.clf()
-
-    return input_data
+# @_context_managers.representation
+# def correlation_matrix(df, FPATH, EXP_NAME, abs_arg=True, mask=True, annot=False,
+#                        type_corrs=['Pearson', 'Kendall', 'Spearman'],
+#                        cmap=sns.color_palette('flare', as_cmap=True), figsize=(24, 8), contrast_factor=1.0):
+#     """Outputs to console and saves to file correlation matrices given data with input features.
+#     Intended to represent the parameter space and different relationships within. Tool for modeling.
+#
+#     Parameters
+#     ----------
+#     df : pandas.core.frame.DataFrame
+#         Input dataframe where each column is a feature that is to be correlated.
+#     FPATH : str
+#         Where the file should be saved. If directory is provided, it should already be created.
+#     abs_arg : bool
+#         Whether the absolute value of the correlations should be plotted (for strength magnitude).
+#         Impacts cmap, switches to diverging instead of sequential.
+#     mask : bool
+#         Whether only the bottom left triange of the matrix should be rendered.
+#     annot : bool
+#         Whether each cell should be annotated with its numerical value.
+#     type_corrs : list
+#         All the different correlations that should be provided. Default to all built-in pandas options for df.corr().
+#     cmap : child of matplotlib.colors
+#         The color map which should be used for the heatmap. Dependent on abs_arg.
+#     figsize : tuple
+#         The size of the outputted/saved heatmap (width, height).
+#     contrast_factor:
+#         The factor/exponent by which all the correlationed should be raised to the power of.
+#         Purpose is for high-contrast, better identification of highly correlated features.
+#
+#     Returns
+#     -------
+#     pandas.core.frame.DataFrame
+#         The correlations given the input data, and other transformation arguments (abs_arg, contrast_factor)
+#         Furthermore, heatmap is saved in specifid format and printed to console.
+#
+#     """
+#     """DATA SANITATION"""
+#     _provided_args = locals()
+#     name = sys._getframe(0).f_code.co_name
+#     _expected_type_args = {'df': [pd.core.frame.DataFrame],
+#                            'FPATH': [str],
+#                            'EXP_NAME': [str],
+#                            'abs_arg': [bool],
+#                            'mask': [bool],
+#                            'annot': [bool],
+#                            'type_corrs': [list],
+#                            'cmap': [matplotlib.colors.ListedColormap, matplotlib.colors.LinearSegmentedColormap],
+#                            'figsize': [tuple],
+#                            'contrast_factor': [float]}
+#     _expected_value_args = {'df': None,
+#                             'FPATH': None,
+#                             'EXP_PATH': None,
+#                             'abs_arg': [True, False],
+#                             'mask': [True, False],
+#                             'annot': [True, False],
+#                             'type_corrs': None,
+#                             'cmap': None,
+#                             'figsize': None,
+#                             'contrast_factor': [0.0000001, np.inf]}
+#     util_data_type_sanitation(_provided_args, _expected_type_args, name)
+#     util_data_range_sanitation(_provided_args, _expected_value_args, name)
+#     """END OF DATA SANITATION"""
+#
+#     input_data = {}
+#
+#     # NOTE: Conditional assignment of sns.heatmap based on parameters
+#     # > Mask sns.heatmap parameter is conditionally controlled
+#     # > If absolute value is not chosen by the user, switch to divergent heatmap. Otherwise keep it as sequential.
+#     fig, ax = plt.subplots(ncols=len(type_corrs), sharey=True, figsize=figsize)
+#     for typec in type_corrs:
+#         input_data[typec] = (df.corr(typec.lower()).abs()**contrast_factor if abs_arg
+#                              else df.corr(typec.lower())**contrast_factor)
+#         sns_fig = sns.heatmap(input_data[typec],
+#                               mask=np.triu(df.corr().abs()) if mask else None,
+#                               ax=ax[type_corrs.index(typec)],
+#                               annot=annot,
+#                               cmap=cmap if abs_arg else sns.diverging_palette(240, 10, n=9, as_cmap=True)
+#                               ).set_title("{cortype}'s Correlation Matrix\n{EXP_NAME}".format(cortype=typec,
+#                                                                                               EXP_NAME=EXP_NAME))
+#     plt.tight_layout()
+#     sns_fig.get_figure().savefig(FPATH, bbox_inches='tight')
+#
+#     plt.clf()
+#
+#     return input_data
 
 
 # @_context_managers.representation
@@ -1334,6 +1332,7 @@ def manual_selection_and_processing(data_pad, RUN_TAG, RESPONDER='PRO_Total_Flui
                                              'PRO_Adj_Pump_Speed', 'PRO_Adj_Alloc_Oil'], weighting=False,
                                     weights_column=WEIGHTS_COLUMN):
     EXCLUDE.extend(['C1', 'Date'])
+    EXCLUDE = list(set(EXCLUDE))
     if(weighting is False):
         EXCLUDE.extend([WEIGHTS_COLUMN])
 
@@ -1409,12 +1408,12 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
 
     _accessories._print('Creating validation sets...')
     data_pad, pad_relationship_validation, pad_relationship_training = create_validation_splits(DATA_PATH_PAD,
-                                                                                                pd_data_pad,
+                                                                                                pd_data_pad.copy(),
                                                                                                 'PRO_Pad')
 
     _accessories._print('Manual feature deletion and automatic processing...')
     RESPONDER = 'PRO_Total_Fluid'
-    data_pad, groupby_options_pad, PREDICTORS = manual_selection_and_processing(data_pad,
+    data_pad, groupby_options_pad, PREDICTORS = manual_selection_and_processing(h2o.deep_copy(data_pad),
                                                                                 RUN_TAG=RUN_TAG,
                                                                                 RESPONDER=RESPONDER,
                                                                                 weighting=weighting)
@@ -1424,7 +1423,7 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     #     raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
 
     _accessories._print('Running the experiment...')
-    project_names_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER,
+    project_names_pad = run_experiment(h2o.deep_copy(data_pad), groupby_options_pad, RESPONDER,
                                        validation_frames_dict=pad_relationship_validation,
                                        MAX_EXP_RUNTIME=MAX_EXP_RUNTIME,
                                        ENGINEER_FEATURES=math_eng,
@@ -1446,7 +1445,7 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     #                        FPATH='Modeling Reference Files/Round {tag}/cross-correlations_PAD{tag}.pdf'.format(tag=RUN_TAG))
 
     _accessories._print('Determing RMSE Benchlines...')
-    benchline_pad = get_benchlines(pd_data_pad, RESPONDER)
+    benchline_pad = get_benchlines(pd_data_pad.copy(), RESPONDER)
 
     _accessories._print('Calculating model performance...')
     perf_pad = model_performance(project_names_pad, benchline_pad, pad_relationship_validation,
