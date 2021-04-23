@@ -3,12 +3,14 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Apr-2021 22:04:64:648  GMT-0600
+# @Last modified time: 23-Apr-2021 14:04:43:433  GMT-0600
 # @License: [Private IP]
 
 import ast
+import functools
 import os
 import sys
+import time
 from contextlib import contextmanager
 
 import pandas as pd
@@ -144,3 +146,34 @@ def na_eda(df, group, show='selective', threshold=0.7):
                 if(prop > threshold):
                     _print(f'WARNING: Column "{col}" in group "{g}" exceeded threshold of {threshold} with ' +
                            f'a NaN proportion of {prop}', color='LIGHTRED_EX')
+
+
+class timeit:
+    """decorator for benchmarking"""
+
+    def __init__(self, fmt='Completed {:s} in {:.3f} seconds', track_type='modeling_benchmarks'):
+        # there is no need to make a class for a decorator if there are no parameters
+        self.fmt = fmt
+        self.track_type = track_type
+
+    def __call__(self, fn):
+        # returns the decorator itself, which accepts a function and returns another function
+        # wraps ensures that the name and docstring of 'fn' is preserved in 'wrapper'
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            # the wrapper passes all parameters to the function being decorated
+            t1 = time.time()
+            res = fn(*args, **kwargs)
+            t2 = time.time()
+            _print(self.fmt.format(fn.__name__, t2 - t1), color='LIGHTBLUE_EX')
+
+            path = f'_configs/{self.track_type}.csv'
+            auto_make_path(path)
+            with open(path, 'a') as file:
+                content = str(kwargs.get('math_eng')) + ',' + \
+                    str(kwargs.get('weighting')) + ',' + str(kwargs.get('MAX_EXP_RUNTIME') + ',' + str(t2 - t1) + ',' +
+                                                             str(res))
+                file.write(content)
+
+            return res
+        return wrapper

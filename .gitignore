@@ -22,6 +22,11 @@ Data
 # *.png
 *.mp4
 
+# Ignore model storage
+Modeling Reference Files/*/Models
+Optimization Reference Files
+
+
 # Ignore JS Libraris
 sigma.js-master
 vis

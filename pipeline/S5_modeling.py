@@ -1,9 +1,9 @@
 # @Author: Shounak Ray <Ray>
-# @Date:   23-Mar-2021 12:03:13:138  GMT-0600
+# @Date:   23-Apr-2021 14:04:06:060  GMT-0600
 # @Email:  rijshouray@gmail.com
-# @Filename: approach_alt_modeling.py
+# @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Apr-2021 12:04:00:004  GMT-0600
+# @Last modified time: 23-Apr-2021 14:04:70:700  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -720,7 +720,7 @@ def varimps(project_names):
 
 
 @_context_managers.analytics
-def model_performance(project_names_pad, adj_factor, validation_data_dict,
+def model_performance(project_names_pad, adj_factor, validation_data_dict, RUN_TAG,
                       sort_by='RMSE', RESPONDER='PRO_Total_Fluid'):
     """Determine the model performance through a series of predefined metrics.
 
@@ -792,9 +792,13 @@ def model_performance(project_names_pad, adj_factor, validation_data_dict,
     perf_data['tolerated RMSE'] = perf_data['group'].apply(lambda x: adj_factor.get(x))
 
     for model_obj in perf_data.sort_values(['RMSE', 'Rel. Val. RMSE'])['model_obj'][:10]:
-        model_path = h2o.save_model(model=model_obj, path=f'Modeling Reference Files/Round {RUN_TAG}',
+        mpath = f'Modeling Reference Files/Round {RUN_TAG}/Models/'
+        _accessories.auto_make_path(mpath)
+        model_path = h2o.save_model(model=model_obj, path=f'Modeling Reference Files/Round {RUN_TAG}/Models',
                                     force=True)
         _accessories._print('MODEL PATH: ' + model_path)
+        perf_data.at[model_name, 'model_obj'] = model_path
+    perf_data['model_obj'] = perf_data['model_obj'].apply(lambda x: 'Not available' if type(x) != str else x)
 
     return perf_data
 
@@ -1173,6 +1177,8 @@ def validate_models(perf_data, training_data_dict, benchline, validation_data_di
         _accessories._print(f'Accesssing configurations and testing model {model_name} for group {model_group}')
         model_type = top_model.algo
         model_position = ax[all_model_RMSE_H_to_L.index(top_model)]
+        if(len(all_model_RMSE_H_to_L) == 1):
+            raise ValueError('Only one model was created!!')
         models_iterated.append(model_name)
         RMSE_resp = f'{order_by}: ' + str(int(perf_data[perf_data.index == model_name][order_by][0]))
 
@@ -1182,7 +1188,6 @@ def validate_models(perf_data, training_data_dict, benchline, validation_data_di
         # print(model_group)
 
         # Determining training and validation predictions
-        print(training_data)
         prediction_on_training = top_model.predict(training_data).as_data_frame().infer_objects()
         prediction_on_validation = top_model.predict(validation_data).as_data_frame().infer_objects()
 
@@ -1439,7 +1444,8 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     benchline_pad = get_benchlines(pd_data_pad, RESPONDER)
 
     _accessories._print('Calculating model performance...')
-    perf_pad = model_performance(project_names_pad, benchline_pad, pad_relationship_validation, sort_by='Rel. RMSE')
+    perf_pad = model_performance(project_names_pad, benchline_pad, pad_relationship_validation,
+                                 sort_by='Rel. RMSE', RUN_TAG=RUN_TAG)
 
     # _accessories._print('Plotting model performance metrics...')
     # with _accessories.suppress_stdout():
@@ -1473,8 +1479,23 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     _accessories._print('Shutting down server...')
     shutdown_confirm(h2o)
 
+    return RUN_TAG
 
-_MODELING()
+
+def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
+    combos = list(itertools.product(*[math_eng, weighting, MAX_EXP_RUNTIME]))
+    _accessories._print(f'{len(combos)} hyperparameter combinations to run...')
+    for math_eng, weighting, MAX_EXP_RUNTIME in combos:
+        tag = _MODELING(math_eng, weighting, MAX_EXP_RUNTIME.item(), False)
+
+
+if __name__ == '__main__':
+    math_eng_options = [True, False],
+    weighting_options = [True, False],
+    MAX_EXP_RUNTIME_options = np.arange(10, 210, 10)
+    benchmark(math_eng_options, weighting_options, MAX_EXP_RUNTIME_options)
+
+_MODELING(MAX_EXP_RUNTIME=10)
 
 # CSOR
 # Chlorides total pad

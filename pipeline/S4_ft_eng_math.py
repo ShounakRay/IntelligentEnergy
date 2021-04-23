@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: ft_eng_math.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Apr-2021 09:04:25:257  GMT-0600
+# @Last modified time: 23-Apr-2021 14:04:15:152  GMT-0600
 # @License: [Private IP]
 
 import itertools
@@ -105,8 +105,8 @@ def generate_new_features(df, RESPONDER, group_colname='PRO_Pad', save=True, **k
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            _accessories._print(f'Performing feature fngineering and selection for group "{group}"...')
-            model_feateng = AutoFeatRegressor(feateng_steps=2, verbose=1)
+            _accessories._print(f'Performing feature engineering and selection for group "{group}"...')
+            model_feateng = AutoFeatRegressor(feateng_steps=2, verbose=0)
             feateng_X_TRAIN = model_feateng.fit_transform(TRAIN_X, TRAIN_Y)
 
         new_ft[group] = (feateng_X_TRAIN, model_feateng.new_feat_cols_)
