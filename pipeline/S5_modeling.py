@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Apr-2021 15:04:08:087  GMT-0600
+# @Last modified time: 23-Apr-2021 15:04:38:386  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -493,7 +493,7 @@ def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN)
 @_context_managers.analytics
 def run_experiment(data, groupby_options, responder, validation_frames_dict, weighting,
                    MAX_EXP_RUNTIME, EVAL_METRIC=EVAL_METRIC, RANK_METRIC=RANK_METRIC,
-                   RANDOM_SEED=RANDOM_SEED, WEIGHTS_COLUMNS=WEIGHTS_COLUMN, CV_FOLDS=CV_FOLDS,
+                   RANDOM_SEED=RANDOM_SEED, WEIGHTS_COLUMN=WEIGHTS_COLUMN, CV_FOLDS=CV_FOLDS,
                    STOPPING_ROUNDS=STOPPING_ROUNDS, EXPLOIT_RATIO=EXPLOIT_RATIO, MODELING_PLAN=MODELING_PLAN,
                    TRAINING_VERBOSITY=TRAINING_VERBOSITY, ENGINEER_FEATURES=True):
     """Runs an H2O Experiment given specific configurations.
@@ -546,7 +546,7 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict, wei
     #                        'EVAL_METRIC': [list, type(None)],
     #                        'RANK_METRIC': [list, type(None)],
     #                        'RANDOM_SEED': [int, float],
-    #                        'WEIGHTS_COLUMNS': [str, type(None)],
+    #                        'WEIGHTS_COLUMN': [str, type(None)],
     #                        'CV_FOLDS': [int],
     #                        'STOPPING_ROUNDS': [int],
     #                        'EXPLOIT_RATIO': [float],
@@ -560,7 +560,7 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict, wei
     #                         'EVAL_METRIC': None,
     #                         'RANK_METRIC': None,
     #                         'RANDOM_SEED': [0, np.inf],
-    #                         'WEIGHTS_COLUMNS': None,
+    #                         'WEIGHTS_COLUMN': None,
     #                         'CV_FOLDS': list(range(1, 100 + 1)),
     #                         'STOPPING_ROUNDS': list(range(1, 10 + 1)),
     #                         'EXPLOIT_RATIO': [0.0, 1.0],
@@ -626,8 +626,6 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict, wei
 
         if(weighting is False):
             WEIGHTS_COLUMN = None
-
-        print('THIS IS THE WEIGHTS COLUMN: ', WEIGHTS_COLUMNS)
 
         aml_obj.train(y=responder,                                # A single responder
                       weights_column=WEIGHTS_COLUMN,              # What is the weights column in the H2O frame?
@@ -1329,7 +1327,7 @@ def create_validation_splits(DATA_PATH_PAD, pd_data_pad, group_colname='PRO_Pad'
 
 
 def manual_selection_and_processing(data_pad, RUN_TAG, RESPONDER='PRO_Total_Fluid',
-                                    EXCLUDE=['Bin_1', 'Bin_8', 'PRO_Alloc_Oil',
+                                    EXCLUDE=['Bin_1', 'Bin_8',
                                              'PRO_Pump_Speed', 'PRO_Alloc_Oil',
                                              'PRO_Adj_Pump_Speed', 'PRO_Adj_Alloc_Oil'], weighting=False,
                                     weights_column=WEIGHTS_COLUMN):
@@ -1493,7 +1491,10 @@ def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
     for math_eng, weighting, MAX_EXP_RUNTIME in combos:
         _accessories._print(f'Engineered: {math_eng}, Weighting: {weighting}, Run-Time: {MAX_EXP_RUNTIME}',
                             color='LIGHTCYAN_EX')
-        tag = _MODELING(math_eng, weighting, MAX_EXP_RUNTIME.item(), False)
+        tag = _MODELING(math_eng=math_eng,
+                        weighting=weighting,
+                        MAX_EXP_RUNTIME=MAX_EXP_RUNTIME.item(),
+                        plot_for_ref=False)
 
 
 if __name__ == '__main__':
@@ -1502,7 +1503,6 @@ if __name__ == '__main__':
     MAX_EXP_RUNTIME_options = np.arange(10, 210, 10)
     benchmark(math_eng_options, weighting_options, MAX_EXP_RUNTIME_options)
 
-_MODELING(MAX_EXP_RUNTIME=8)
 
 # CSOR
 # Chlorides total pad
