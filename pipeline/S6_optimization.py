@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 22-Apr-2021 23:04:71:711  GMT-0600
+# @Last modified time: 23-Apr-2021 00:04:80:807  GMT-0600
 # @License: [Private IP]
 
 
@@ -289,6 +289,14 @@ def shutdown_confirm(h2o_instance: type(h2o)) -> None:
         pass
 
 
+def configure_aggregates(aggregate_results, rell):
+    aggregate_results['rmse'] = aggregate_results['rmse'] / 2
+    aggregate_results['rel_rmse'] = (aggregate_results['rmse']) - \
+        aggregate_results['PRO_Pad'].apply(lambda x: rell.get(x))
+
+    return aggregate_results
+
+
 _ = """
 #######################################################################################################################
 ##################################################   CORE EXECUTION  ##################################################
@@ -296,13 +304,16 @@ _ = """
 """
 
 
-def _OPTIMIZATION():
+def _OPTIMIZATION(start_date='2020-06-01', end_date='2020-12-20', engineered=True):
+    rell = {'A': 170, 'B': 131}
+
+    _accessories._print('Initializing H2O server to access model files...')
     setup_and_server()
 
-    DATASETS = {'AGGREGATED_NOENG': _accessories.retrieve_local_data_file('Data/combined_ipc_aggregates.csv')}
+    _accessories._print('Loading the most basic, aggregated + mathematically engineered datasets...')
+    DATASETS = {'AGGREGATED_NOENG': _accessories.retrieve_local_data_file('Data/combined_ipc_aggregates.csv'),
+                'AGGREGATED_ENG': _accessories.retrieve_local_data_file('Data/combined_ipc_engineered_math.csv')}
 
-    start_date, end_date = ('2020-06-01', '2020-12-20')
-    dates = pd.date_range(*(start_date, end_date)).strftime('%Y-%m-%d')
     # results = []
     # for date in dates:
     #     try:
@@ -312,18 +323,19 @@ def _OPTIMIZATION():
     #     results.append(solution)
     # aggregate_results = pd.concat(results)
 
-    _accessories.auto_make_path('Optimization Reference Files/Backtests/')
+    # TODO: Model selection
+    # TODO: Load acceptable ranges
 
+    _accessories._print('Performing backtesting...')
+    dates = pd.date_range(*(start_date, end_date)).strftime('%Y-%m-%d')
     aggregate_results = run(DATASETS['AGGREGATED_NOENG'].copy(), dates)
+    aggregate_results = configure_aggregates(aggregate_results, rell)
 
-    rell = {'A': 170, 'B': 131}
-    aggregate_results['rmse'].describe()
-    aggregate_results['rmse'] = aggregate_results['rmse'] / 2
-    aggregate_results['rel_rmse'] = (aggregate_results['rmse']) - \
-        aggregate_results['PRO_Pad'].apply(lambda x: rell.get(x))
-    aggregate_results.head(50)
-    aggregate_results.to_csv('Optimization Reference Files/Backtests/Aggregates_{start_date}_{end_date}.csv')
+    # _accessories.auto_make_path('Optimization Reference Files/Backtests/')
+    _accessories.save_local_data_file('Optimization Reference Files/Backtests/Aggregates_{start_date}_{end_date}.csv')
+    # aggregate_results.to_csv('Optimization Reference Files/Backtests/Aggregates_{start_date}_{end_date}.csv')
 
+    _accessories._print('Shutting down H2O server...')
     shutdown_confirm(h2o)
 
 # merged_df.to_csv('btest.csv')
