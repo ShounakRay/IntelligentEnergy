@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Apr-2021 16:04:36:361  GMT-0600
+# @Last modified time: 23-Apr-2021 16:04:83:830  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -17,6 +17,7 @@ import os
 import random
 import subprocess
 import sys
+import traceback
 from pprint import pprint
 from typing import Final
 
@@ -570,69 +571,73 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict, wei
     # util_data_range_sanitation(_provided_args, _expected_value_args, name)
     # """END OF DATA SANITATION"""
 
-    # Determined the categorical variable to be dropped in TRAINING SET (should only be the groupby)
-    tb_dropped = data.as_data_frame().select_dtypes(object).columns
-    if not (len(tb_dropped) == 1):
-        raise RuntimeError('Only and exactly one categorical variable was expected in the provided TRAIN data.' +
-                           'However, ' + f'{len(tb_dropped)} were provided.')
-    else:
-        tb_dropped = tb_dropped[0]
-
-    # Run all the H2O experiments for all the different groupby_options. Store in unique project name.
-    initialized_projects = []
-
-    if(ENGINEER_FEATURES):
-        _accessories._print('No validation frame will be supplied to H20 since ' +
-                            'mathematical features are dynamically engineered.')
-        MODEL_DATASETS, CORE_FEATURES = _FEATENG_MATH(data.as_data_frame(), RESPONDER=responder)
-
-    for group in groupby_options:
-        print(Fore.GREEN + 'STATUS: Experiment -> Production Pad {}\n'.format(group) + Style.RESET_ALL)
-
-        if(validation_frames_dict is not None and ENGINEER_FEATURES is False):
-            validation_frame_groupby = validation_frames_dict[group]
-            # Determined the categorical variable to be dropped in VALIDATION SET (should only be the groupby)
-            tb_dropped_val = validation_frame_groupby.as_data_frame().select_dtypes(object).columns
-            if not (len(tb_dropped_val) == 1):
-                raise RuntimeError('Only and exactly one categorical variable was expected in the provided VALID. data.' +
-                                   'However, ' + f'{len(tb_dropped_val)} were provided.')
-            else:
-                tb_dropped_val = tb_dropped_val[0]
-            validation_frame_groupby = validation_frame_groupby.drop(tb_dropped_val, axis=1)
+    try:
+        # Determined the categorical variable to be dropped in TRAINING SET (should only be the groupby)
+        tb_dropped = data.as_data_frame().select_dtypes(object).columns
+        if not (len(tb_dropped) == 1):
+            raise RuntimeError('Only and exactly one categorical variable was expected in the provided TRAIN data.' +
+                               'However, ' + f'{len(tb_dropped)} were provided.')
         else:
-            validation_frame_groupby = None
+            tb_dropped = tb_dropped[0]
 
-        # Configure the experiment
-        project_name = "IPC_MacroPadModeling__{RESP}__{PPAD}".format(RESP=responder, PPAD=group)
-        aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,     # How long should the experiment run for?
-                            stopping_metric=EVAL_METRIC,          # The evaluation metric to discontinue model training
-                            sort_metric=RANK_METRIC,              # Leaderboard ranking metric after all trainings
-                            seed=RANDOM_SEED,
-                            nfolds=CV_FOLDS,                      # Number of fold in cross-validation
-                            stopping_rounds=STOPPING_ROUNDS,      # Rounds after which training stops w/o convergence
-                            exploitation_ratio=EXPLOIT_RATIO,     # What budget proportion is set for exploitation?
-                            modeling_plan=MODELING_PLAN,          # What is modeling order/plan to follow?
-                            verbosity=TRAINING_VERBOSITY,         # What is the verbosity of training process?
-                            project_name=project_name)
-        initialized_projects.append(project_name)
+        # Run all the H2O experiments for all the different groupby_options. Store in unique project name.
+        initialized_projects = []
 
         if(ENGINEER_FEATURES):
-            validation_frame_groupby = None
-            MODEL_DATA = MODEL_DATASETS[group][0].infer_objects()
-            MODEL_DATA = h2o.H2OFrame(MODEL_DATA)
-        # Filter the complete, provided source data to only include info for the current group
-        MODEL_DATA = data[data[tb_dropped] == group]
-        MODEL_DATA = MODEL_DATA.drop(tb_dropped, axis=1)
+            _accessories._print('No validation frame will be supplied to H20 since ' +
+                                'mathematical features are dynamically engineered.')
+            MODEL_DATASETS, CORE_FEATURES = _FEATENG_MATH(data.as_data_frame(), RESPONDER=responder)
 
-        if(weighting is False):
-            WEIGHTS_COLUMN = None
+        for group in groupby_options:
+            print(Fore.GREEN + 'STATUS: Experiment -> Production Pad {}\n'.format(group) + Style.RESET_ALL)
 
-        aml_obj.train(y=responder,                                # A single responder
-                      weights_column=WEIGHTS_COLUMN,              # What is the weights column in the H2O frame?
-                      training_frame=MODEL_DATA,                  # All the data is used for training, cross-validation
-                      validation_frame=validation_frame_groupby)  # The validation dataset used to assess performance
+            if(validation_frames_dict is not None and ENGINEER_FEATURES is False):
+                validation_frame_groupby = validation_frames_dict[group]
+                # Determined the categorical variable to be dropped in VALIDATION SET (should only be the groupby)
+                tb_dropped_val = validation_frame_groupby.as_data_frame().select_dtypes(object).columns
+                if not (len(tb_dropped_val) == 1):
+                    raise RuntimeError('Only and exactly one categorical variable was expected in the provided VALID. data.' +
+                                       'However, ' + f'{len(tb_dropped_val)} were provided.')
+                else:
+                    tb_dropped_val = tb_dropped_val[0]
+                validation_frame_groupby = validation_frame_groupby.drop(tb_dropped_val, axis=1)
+            else:
+                validation_frame_groupby = None
 
-    print(Fore.GREEN + 'STATUS: Completed experiments\n\n' + Style.RESET_ALL)
+            # Configure the experiment
+            project_name = "IPC_MacroPadModeling__{RESP}__{PPAD}".format(RESP=responder, PPAD=group)
+            aml_obj = H2OAutoML(max_runtime_secs=MAX_EXP_RUNTIME,     # How long should the experiment run for?
+                                stopping_metric=EVAL_METRIC,          # The evaluation metric to discontinue model training
+                                sort_metric=RANK_METRIC,              # Leaderboard ranking metric after all trainings
+                                seed=RANDOM_SEED,
+                                nfolds=CV_FOLDS,                      # Number of fold in cross-validation
+                                stopping_rounds=STOPPING_ROUNDS,      # Rounds after which training stops w/o convergence
+                                exploitation_ratio=EXPLOIT_RATIO,     # What budget proportion is set for exploitation?
+                                modeling_plan=MODELING_PLAN,          # What is modeling order/plan to follow?
+                                verbosity=TRAINING_VERBOSITY,         # What is the verbosity of training process?
+                                project_name=project_name)
+            initialized_projects.append(project_name)
+
+            if(ENGINEER_FEATURES):
+                validation_frame_groupby = None
+                MODEL_DATA = MODEL_DATASETS[group][0].infer_objects()
+                MODEL_DATA = h2o.H2OFrame(MODEL_DATA)
+            # Filter the complete, provided source data to only include info for the current group
+            MODEL_DATA = data[data[tb_dropped] == group]
+            MODEL_DATA = MODEL_DATA.drop(tb_dropped, axis=1)
+
+            if(weighting is False):
+                WEIGHTS_COLUMN = None
+
+            aml_obj.train(y=responder,                                # A single responder
+                          weights_column=WEIGHTS_COLUMN,              # What is the weights column in the H2O frame?
+                          training_frame=MODEL_DATA,                  # All the data is used for training, cross-validation
+                          validation_frame=validation_frame_groupby)  # The validation dataset used to assess performance
+
+        print(Fore.GREEN + 'STATUS: Completed experiments\n\n' + Style.RESET_ALL)
+    except Exception:
+        traceback.format_exception()
+        return
 
     return initialized_projects
 
