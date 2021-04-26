@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 09:04:70:707  GMT-0600
+# @Last modified time: 26-Apr-2021 09:04:53:531  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -638,6 +638,7 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict, wei
 
         print(Fore.GREEN + 'STATUS: Completed experiments\n\n' + Style.RESET_ALL)
     except Exception:
+        _accessories._print('EXCEPTION REACHED IN RUN_EXPERIMENT!', color='YELLOW')
         # traceback.format_exception()
         return
 
@@ -1468,6 +1469,8 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
                                        WEIGHTS_COLUMN=WEIGHTS_COLUMN,
                                        ENGINEER_FEATURES=math_eng,
                                        weighting=weighting)  # pad_relationship_validation
+
+    _accessories._print(project_names_pad, color='YELLOW')
 
     # _accessories._print('Calculating variable importance...')
     # varimps_pad = varimps(project_names_pad)
