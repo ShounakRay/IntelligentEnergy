@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 10:04:35:355  GMT-0600
+# @Last modified time: 26-Apr-2021 10:04:51:516  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -639,8 +639,9 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict, wei
                           validation_frame=validation_frame_groupby)  # The validation dataset used to assess performance
 
         print(Fore.GREEN + 'STATUS: Completed experiments\n\n' + Style.RESET_ALL)
-    except Exception:
+    except Exception as e:
         _accessories._print('EXCEPTION REACHED IN RUN_EXPERIMENT!', color='YELLOW')
+        _accessories._print(str(e), color='YELLOW')
         # traceback.format_exception()
         return
 
@@ -1545,33 +1546,37 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     return RUN_TAG
 
 
-def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
-    path = '_configs/modeling_benchmarks.csv'
-
-    combos = list(itertools.product(*[math_eng, weighting, MAX_EXP_RUNTIME]))
-    _accessories._print(f'{len(combos)} hyperparameter combinations to run...', color='LIGHTCYAN_EX')
-    for math_eng, weighting, MAX_EXP_RUNTIME in combos:
-        _accessories._print(f'Engineered: {math_eng}, Weighting: {weighting}, Run-Time: {MAX_EXP_RUNTIME}',
-                            color='LIGHTCYAN_EX')
-        t1 = time.time()
-        tag = _MODELING(math_eng=math_eng,
-                        weighting=weighting,
-                        MAX_EXP_RUNTIME=MAX_EXP_RUNTIME.item(),
-                        plot_for_ref=False)
-        t2 = time.time()
-
-        _accessories.auto_make_path(path)
-        with open(path, 'a') as file:
-            content = str(math_eng) + ',' + str(weighting) + ',' + str(MAX_EXP_RUNTIME) + ',' + str(t2 - t1) + \
-                ',' + str(tag)
-            file.write(content)
-
-
 if __name__ == '__main__':
-    math_eng_options = [False, True]
-    weighting_options = [True, False]
-    MAX_EXP_RUNTIME_options = np.arange(10, 210, 10)
-    benchmark(math_eng_options, weighting_options, MAX_EXP_RUNTIME_options)
+    _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=200, plot_for_ref=False)
+
+
+# def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
+#     path = '_configs/modeling_benchmarks.csv'
+#
+#     combos = list(itertools.product(*[math_eng, weighting, MAX_EXP_RUNTIME]))
+#     _accessories._print(f'{len(combos)} hyperparameter combinations to run...', color='LIGHTCYAN_EX')
+#     for math_eng, weighting, MAX_EXP_RUNTIME in combos:
+#         _accessories._print(f'Engineered: {math_eng}, Weighting: {weighting}, Run-Time: {MAX_EXP_RUNTIME}',
+#                             color='LIGHTCYAN_EX')
+#         t1 = time.time()
+#         tag = _MODELING(math_eng=math_eng,
+#                         weighting=weighting,
+#                         MAX_EXP_RUNTIME=MAX_EXP_RUNTIME.item(),
+#                         plot_for_ref=False)
+#         t2 = time.time()
+#
+#         _accessories.auto_make_path(path)
+#         with open(path, 'a') as file:
+#             content = str(math_eng) + ',' + str(weighting) + ',' + str(MAX_EXP_RUNTIME) + ',' + str(t2 - t1) + \
+#                 ',' + str(tag)
+#             file.write(content)
+#
+#
+# if __name__ == '__main__':
+#     math_eng_options = [False, True]
+#     weighting_options = [True, False]
+#     MAX_EXP_RUNTIME_options = np.arange(10, 210, 10)
+#     benchmark(math_eng_options, weighting_options, MAX_EXP_RUNTIME_options)
 
 
 # CSOR
