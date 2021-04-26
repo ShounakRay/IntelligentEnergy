@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Apr-2021 00:04:80:807  GMT-0600
+# @Last modified time: 26-Apr-2021 11:04:89:892  GMT-0600
 # @License: [Private IP]
 
 
@@ -66,6 +66,7 @@ injector_wells = {
     "F": []
 }
 
+BEST_MODEL_PATH = 'Modeling Reference Files/5433 – ENG: False, WEIGHT: True, TIME: 60/Models/GBM_grid__1_AutoML_20210426_111819_model_1'
 
 _ = """
 #######################################################################################################################
@@ -142,8 +143,7 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
 
         # file = open('Modeling Reference Files/6086 – ENG: True, WEIGHT: False, TIME: 20/MODELS_6086.pkl', 'rb')
 
-        model_path = 'Modeling Reference Files/Round 5060/GBM_3_AutoML_20210422_120411'
-        model = h2o.load_model(model_path)
+        model = h2o.load_model(BEST_MODEL_PATH)
 
         with _accessories.suppress_stdout():
             test_pred, test_actual = get_testdfs(field_df, g, features)
@@ -198,7 +198,7 @@ def parallel_optimize(field_df, date, grouper='PRO_Pad', target='PRO_Total_Fluid
         solution[time_col] = date
         return solution
     except Exception as e:
-        _accessories._print(e)
+        _accessories._print(str(e))
         return
         # print(traceback.print_exc())
         # pass
@@ -337,6 +337,11 @@ def _OPTIMIZATION(start_date='2020-06-01', end_date='2020-12-20', engineered=Tru
 
     _accessories._print('Shutting down H2O server...')
     shutdown_confirm(h2o)
+
+
+if __name__ == '__main__':
+    _OPTIMIZATION()
+
 
 # merged_df.to_csv('btest.csv')
 

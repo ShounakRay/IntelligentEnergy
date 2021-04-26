@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 10:04:43:431  GMT-0600
+# @Last modified time: 26-Apr-2021 11:04:34:349  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -1550,7 +1550,7 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
 
 
 def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
-    path = '_configs/modeling_benchmarks.csv'
+    path = '_configs/modeling_benchmarks.txt'
 
     combos = list(itertools.product(*[math_eng, weighting, MAX_EXP_RUNTIME]))
     _accessories._print(f'{len(combos)} hyperparameter combinations to run...', color='LIGHTCYAN_EX')
@@ -1563,12 +1563,14 @@ def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
                         MAX_EXP_RUNTIME=MAX_EXP_RUNTIME.item(),
                         plot_for_ref=False)
         t2 = time.time()
+        content = str(math_eng) + ',' + str(weighting) + ',' + str(MAX_EXP_RUNTIME) + ',' + str(t2 - t1) + \
+            ',' + str(tag) + '\n'
+        _accessories._print(content, color='YELLOW')
 
         _accessories.auto_make_path(path)
         with open(path, 'a') as file:
-            content = str(math_eng) + ',' + str(weighting) + ',' + str(MAX_EXP_RUNTIME) + ',' + str(t2 - t1) + \
-                ',' + str(tag)
             file.write(content)
+            file.close()
 
 
 if __name__ == '__main__':
