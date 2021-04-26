@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Apr-2021 16:04:40:407  GMT-0600
+# @Last modified time: 26-Apr-2021 08:04:04:048  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -471,6 +471,7 @@ def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN)
 
     # Determine all possible groups to filter the source data for when conducting the experiment
     print(data)
+    print(data.describe())
     groupby_options = data.as_data_frame()[groupby].unique()
 
     # Warns user that certain categorical features will be auto-encoded by H2O if not dropped
