@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 09:04:53:531  GMT-0600
+# @Last modified time: 26-Apr-2021 10:04:91:913  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -1273,6 +1273,10 @@ _ = """
 def setup_and_server(paths_to_check=[DATA_PATH_PAD, DATA_PATH_PAD_vanilla],
                      SECURED=SECURED, IP_LINK=IP_LINK, PORT=PORT, SERVER_FORCE=SERVER_FORCE):
     # Initialize the cluster
+    try:
+        shutdown_confirm(h2o)
+    except Exception:
+        pass
     h2o.init(https=SECURED,
              ip=IP_LINK,
              port=PORT,
@@ -1535,7 +1539,6 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     # if(input('Shutdown Cluster? (Y/N)') == 'Y'):
     #     shutdown_confirm(h2o)
     _accessories._print('Shutting down server...')
-    shutdown_confirm(h2o)
 
     return RUN_TAG
 
