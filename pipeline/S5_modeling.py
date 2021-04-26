@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 08:04:04:048  GMT-0600
+# @Last modified time: 26-Apr-2021 09:04:00:007  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -638,93 +638,93 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict, wei
 
         print(Fore.GREEN + 'STATUS: Completed experiments\n\n' + Style.RESET_ALL)
     except Exception:
-        traceback.format_exception()
+        # traceback.format_exception()
         return
 
     return initialized_projects
 
 
-@_context_managers.analytics
-def varimps(project_names):
-    _provided_args = locals().copy()
-
-    @_context_managers.server
-    def get_aml_objects(project_names):
-        objs = []
-        for project_name in project_names:
-            objs.append(h2o.automl.get_automl(project_name))
-        return objs
-
-    """Determines variable importances for all models in an experiment.
-
-    Parameters
-    ----------
-    project_names : id
-        The H2O AutoML experiment configuration.
-
-    Returns
-    -------
-    pandas.core.frame.DataFrame, list (of tuples)
-        A concatenated DataFrame with all the model's variable importances for all the input features.
-        [Optional] A list of the models that did not have a variable importance. Format: (name, model object).
-
-    """
-    """DATA SANITATION"""
-    name = sys._getframe(0).f_code.co_name
-    _expected_type_args = {'aml_obj': [h2o.automl.autoh2o.H2OAutoML]}
-    _expected_value_args = {'aml_obj': None}
-    util_data_type_sanitation(_provided_args, _expected_type_args, name)
-    util_data_range_sanitation(_provided_args, _expected_value_args, name)
-    """END OF DATA SANITATION"""
-
-    aml_objects = get_aml_objects(project_names)
-
-    variable_importances = []
-    for aml_obj in aml_objects:
-        responder, group = project_names[aml_objects.index(aml_obj)].split('__')[-2:]
-        tag = [group, responder]
-        tag_name = ['group', 'responder']
-
-        cumulative_varimps = []
-        model_novarimps = []
-        exp_leaderboard = aml_obj.leaderboard
-        # Retrieve all the model objects from the given experiment
-        exp_models = [h2o.get_model(exp_leaderboard[m_num, "model_id"]) for m_num in range(exp_leaderboard.shape[0])]
-        for model in exp_models:
-            model_name = model.params['model_id']['actual']['name']
-            variable_importance = model.varimp(use_pandas=True)
-
-            # Only conduct variable importance dataset manipulation if ranking data is available
-            # > (eg. unavailable, stacked)
-            if(variable_importance is not None):
-                variable_importance = pd.pivot_table(variable_importance,
-                                                     values='scaled_importance',
-                                                     columns='variable').reset_index(drop=True)
-                variable_importance['model_name'] = model_name
-                variable_importance['model_object'] = model
-                if(tag is not None and tag_name is not None):
-                    for i in range(len(tag)):
-                        variable_importance[tag_name[i]] = tag[i]
-                variable_importance.index = variable_importance['model_name'] + \
-                    '___GROUP-' + variable_importance['group']
-                variable_importance.drop('model_name', axis=1, inplace=True)
-                variable_importance.columns.name = None
-
-                cumulative_varimps.append(variable_importance)
-            else:
-                # print('> WARNING: Variable importances unavailable for {MDL}'.format(MDL=model_name))
-                model_novarimps.append((model_name, model))
-
-        varimp_all_models_in_run = pd.concat(cumulative_varimps)
-        variable_importances.append(varimp_all_models_in_run)  # , model_novarimps
-
-    requested_varimps = pd.concat(variable_importances)
-
-    print(Fore.GREEN +
-          '> STATUS: Determined variable importances of all models in given experiments: {}.'.format(project_names) +
-          Style.RESET_ALL)
-
-    return requested_varimps
+# @_context_managers.analytics
+# def varimps(project_names):
+#     _provided_args = locals().copy()
+#
+#     @_context_managers.server
+#     def get_aml_objects(project_names):
+#         objs = []
+#         for project_name in project_names:
+#             objs.append(h2o.automl.get_automl(project_name))
+#         return objs
+#
+#     """Determines variable importances for all models in an experiment.
+#
+#     Parameters
+#     ----------
+#     project_names : id
+#         The H2O AutoML experiment configuration.
+#
+#     Returns
+#     -------
+#     pandas.core.frame.DataFrame, list (of tuples)
+#         A concatenated DataFrame with all the model's variable importances for all the input features.
+#         [Optional] A list of the models that did not have a variable importance. Format: (name, model object).
+#
+#     """
+#     """DATA SANITATION"""
+#     name = sys._getframe(0).f_code.co_name
+#     _expected_type_args = {'aml_obj': [h2o.automl.autoh2o.H2OAutoML]}
+#     _expected_value_args = {'aml_obj': None}
+#     util_data_type_sanitation(_provided_args, _expected_type_args, name)
+#     util_data_range_sanitation(_provided_args, _expected_value_args, name)
+#     """END OF DATA SANITATION"""
+#
+#     aml_objects = get_aml_objects(project_names=project_names)
+#
+#     variable_importances = []
+#     for aml_obj in aml_objects:
+#         responder, group = project_names[aml_objects.index(aml_obj)].split('__')[-2:]
+#         tag = [group, responder]
+#         tag_name = ['group', 'responder']
+#
+#         cumulative_varimps = []
+#         model_novarimps = []
+#         exp_leaderboard = aml_obj.leaderboard
+#         # Retrieve all the model objects from the given experiment
+#         exp_models = [h2o.get_model(exp_leaderboard[m_num, "model_id"]) for m_num in range(exp_leaderboard.shape[0])]
+#         for model in exp_models:
+#             model_name = model.params['model_id']['actual']['name']
+#             variable_importance = model.varimp(use_pandas=True)
+#
+#             # Only conduct variable importance dataset manipulation if ranking data is available
+#             # > (eg. unavailable, stacked)
+#             if(variable_importance is not None):
+#                 variable_importance = pd.pivot_table(variable_importance,
+#                                                      values='scaled_importance',
+#                                                      columns='variable').reset_index(drop=True)
+#                 variable_importance['model_name'] = model_name
+#                 variable_importance['model_object'] = model
+#                 if(tag is not None and tag_name is not None):
+#                     for i in range(len(tag)):
+#                         variable_importance[tag_name[i]] = tag[i]
+#                 variable_importance.index = variable_importance['model_name'] + \
+#                     '___GROUP-' + variable_importance['group']
+#                 variable_importance.drop('model_name', axis=1, inplace=True)
+#                 variable_importance.columns.name = None
+#
+#                 cumulative_varimps.append(variable_importance)
+#             else:
+#                 # print('> WARNING: Variable importances unavailable for {MDL}'.format(MDL=model_name))
+#                 model_novarimps.append((model_name, model))
+#
+#         varimp_all_models_in_run = pd.concat(cumulative_varimps)
+#         variable_importances.append(varimp_all_models_in_run)  # , model_novarimps
+#
+#     requested_varimps = pd.concat(variable_importances)
+#
+#     print(Fore.GREEN +
+#           '> STATUS: Determined variable importances of all models in given experiments: {}.'.format(project_names) +
+#           Style.RESET_ALL)
+#
+#     return requested_varimps
 
 
 @_context_managers.analytics
@@ -1269,7 +1269,8 @@ _ = """
 """
 
 
-def setup_and_server(paths_to_check=[DATA_PATH_PAD, DATA_PATH_PAD_vanilla]):
+def setup_and_server(paths_to_check=[DATA_PATH_PAD, DATA_PATH_PAD_vanilla],
+                     SECURED=SECURED, IP_LINK=IP_LINK, PORT=PORT, SERVER_FORCE=SERVER_FORCE):
     # Initialize the cluster
     h2o.init(https=SECURED,
              ip=IP_LINK,
@@ -1284,9 +1285,8 @@ def setup_and_server(paths_to_check=[DATA_PATH_PAD, DATA_PATH_PAD_vanilla]):
             raise ValueError('ERROR: {data} does not exist in the specificied location.'.format(data=path))
 
 
-def create_validation_splits(DATA_PATH_PAD, pd_data_pad, group_colname='PRO_Pad'):
+def create_validation_splits(DATA_PATH_PAD, pd_data_pad, group_colname='PRO_Pad', TRAIN_VAL_SPLIT=TRAIN_VAL_SPLIT):
     # NOTE: Global Dependencies:
-    # > TRAIN_VAL_SPLIT
 
     # Split into train/test (CV) and holdout set (per each class of grouping)
     # pd_data_pad = pd.read_csv(DATA_PATH_PAD_vanilla).drop('Unnamed: 0', axis=1)
@@ -1336,14 +1336,18 @@ def create_validation_splits(DATA_PATH_PAD, pd_data_pad, group_colname='PRO_Pad'
 def manual_selection_and_processing(data_pad, RUN_TAG, RESPONDER='PRO_Total_Fluid',
                                     EXCLUDE=['Bin_1', 'Bin_8',
                                              'PRO_Pump_Speed', 'PRO_Alloc_Oil',
-                                             'PRO_Adj_Pump_Speed', 'PRO_Adj_Alloc_Oil'], weighting=False,
-                                    weights_column=WEIGHTS_COLUMN):
+                                             'PRO_Adj_Pump_Speed', 'PRO_Adj_Alloc_Oil'],
+                                    weighting=False, weights_column=WEIGHTS_COLUMN, FOLD_COLUMN=FOLD_COLUMN):
     EXCLUDE.extend(['C1', 'Date'])
-    EXCLUDE = list(set(EXCLUDE))
     if(weighting is False):
         EXCLUDE.extend([WEIGHTS_COLUMN])
+    EXCLUDE = list(set(EXCLUDE))
 
-    data_pad, groupby_options_pad, PREDICTORS = data_refinement(data_pad, 'PRO_Pad', EXCLUDE, RESPONDER)
+    data_pad, groupby_options_pad, PREDICTORS = data_refinement(data=data_pad,
+                                                                groupby='PRO_Pad',
+                                                                dropcols=EXCLUDE,
+                                                                responder=RESPONDER,
+                                                                FOLD_COLUMN=FOLD_COLUMN)
 
     with open(f'Modeling Reference Files/Round {RUN_TAG}/hyperparams.txt', 'a') as out:
         print(OUT_BLOCK.replace('\n', '') + OUT_BLOCK.replace('\n', ''), file=out)
@@ -1405,6 +1409,31 @@ _ = """
 
 @_accessories.timeit()
 def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=False):
+    RESPONDER = 'PRO_Total_Fluid'
+    _accessories._print(f'DATA_PATH_PAD: {DATA_PATH_PAD}', color='LIGHTCYAN_EX')
+    _accessories._print(f'DATA_PATH_PAD_vanilla: {DATA_PATH_PAD_vanilla}', color='LIGHTCYAN_EX')
+    _accessories._print(f'IP_LINK: {IP_LINK}', color='LIGHTCYAN_EX')
+    _accessories._print(f'SECURED: {SECURED}', color='LIGHTCYAN_EX')
+    _accessories._print(f'PORT: {PORT}', color='LIGHTCYAN_EX')
+    _accessories._print(f'SERVER_FORCE: {SERVER_FORCE}', color='LIGHTCYAN_EX')
+    _accessories._print(f'MAX_EXP_RUNTIME: {MAX_EXP_RUNTIME}', color='LIGHTCYAN_EX')
+    _accessories._print(f'RANDOM_SEED: {RANDOM_SEED}', color='LIGHTCYAN_EX')
+    _accessories._print(f'EVAL_METRIC: {EVAL_METRIC}', color='LIGHTCYAN_EX')
+    _accessories._print(f'RANK_METRIC: {RANK_METRIC}', color='LIGHTCYAN_EX')
+    _accessories._print(f'CV_FOLDS: {CV_FOLDS}', color='LIGHTCYAN_EX')
+    _accessories._print(f'STOPPING_ROUNDS: {STOPPING_ROUNDS}', color='LIGHTCYAN_EX')
+    _accessories._print(f'WEIGHTS_COLUMN: {WEIGHTS_COLUMN}', color='LIGHTCYAN_EX')
+    _accessories._print(f'EXPLOIT_RATIO: {EXPLOIT_RATIO}', color='LIGHTCYAN_EX')
+    _accessories._print(f'MODELING_PLAN: {MODELING_PLAN}', color='LIGHTCYAN_EX')
+    _accessories._print(f'TRAIN_VAL_SPLIT: {TRAIN_VAL_SPLIT}', color='LIGHTCYAN_EX')
+    _accessories._print(f'FOLD_COLUMN: {FOLD_COLUMN}', color='LIGHTCYAN_EX')
+    _accessories._print(f'TOP_MODELS: {TOP_MODELS}', color='LIGHTCYAN_EX')
+    _accessories._print(f'PREFERRED_TOLERANCE: {PREFERRED_TOLERANCE}', color='LIGHTCYAN_EX')
+    _accessories._print(f'TRAINING_VERBOSITY: {TRAINING_VERBOSITY}', color='LIGHTCYAN_EX')
+    _accessories._print(f'MODEL_CMAPS: {MODEL_CMAPS}', color='LIGHTCYAN_EX')
+    _accessories._print(f'HMAP_CENTERS: {HMAP_CENTERS}', color='LIGHTCYAN_EX')
+    _accessories._print(f'CELL_RATIO: {CELL_RATIO}', color='LIGHTCYAN_EX')
+
     _accessories._print('Initializing server and checking data...')
     RUN_TAG = record_hyperparameters(MAX_EXP_RUNTIME)
     setup_and_server()
@@ -1414,25 +1443,29 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     pd_data_pad = _accessories.retrieve_local_data_file(DATA_PATH_PAD)
 
     _accessories._print('Creating validation sets...')
-    data_pad, pad_relationship_validation, pad_relationship_training = create_validation_splits(DATA_PATH_PAD,
-                                                                                                pd_data_pad.copy(),
-                                                                                                'PRO_Pad')
+    data_pad, pad_relationship_validation, pad_relationship_training = create_validation_splits(DATA_PATH_PAD=DATA_PATH_PAD,
+                                                                                                pd_data_pad=pd_data_pad.copy(),
+                                                                                                group_colname='PRO_Pad')
 
     _accessories._print('Manual feature deletion and automatic processing...')
-    RESPONDER = 'PRO_Total_Fluid'
-    data_pad, groupby_options_pad, PREDICTORS = manual_selection_and_processing(h2o.deep_copy(data_pad, '_' + str(RUN_TAG)),
+    data_pad, groupby_options_pad, PREDICTORS = manual_selection_and_processing(data_pad=h2o.deep_copy(data_pad, '_' + str(RUN_TAG)),
                                                                                 RUN_TAG=RUN_TAG,
                                                                                 RESPONDER=RESPONDER,
-                                                                                weighting=weighting)
+                                                                                weighting=weighting,
+                                                                                weights_column=WEIGHTS_COLUMN,
+                                                                                FOLD_COLUMN=FOLD_COLUMN)
 
     hyp_overview(PREDICTORS, RESPONDER, MAX_EXP_RUNTIME)
     # if(input('Proceed with given hyperparameters? (Y/N)') != 'Y'):
     #     raise RuntimeError('Session forcefully terminated by user during review of hyperparamaters.')
 
     _accessories._print('Running the experiment...')
-    project_names_pad = run_experiment(data_pad, groupby_options_pad, RESPONDER,
+    project_names_pad = run_experiment(data=data_pad,
+                                       groupby_options=groupby_options_pad,
+                                       responder=RESPONDER,
                                        validation_frames_dict=pad_relationship_validation,
                                        MAX_EXP_RUNTIME=MAX_EXP_RUNTIME,
+                                       WEIGHTS_COLUMN=WEIGHTS_COLUMN,
                                        ENGINEER_FEATURES=math_eng,
                                        weighting=weighting)  # pad_relationship_validation
 
@@ -1452,11 +1485,17 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     #                        FPATH='Modeling Reference Files/Round {tag}/cross-correlations_PAD{tag}.pdf'.format(tag=RUN_TAG))
 
     _accessories._print('Determing RMSE Benchlines...')
-    benchline_pad = get_benchlines(pd_data_pad.copy(), RESPONDER)
+    benchline_pad = get_benchlines(data_pad_pd=pd_data_pad.copy(),
+                                   RESPONDER=RESPONDER,
+                                   PREFERRED_TOLERANCE=PREFERRED_TOLERANCE)
 
     _accessories._print('Calculating model performance...')
-    perf_pad = model_performance(project_names_pad, benchline_pad, pad_relationship_validation,
-                                 sort_by='Rel. RMSE', RUN_TAG=RUN_TAG)
+    perf_pad = model_performance(project_names_pad=project_names_pad,
+                                 adj_factor=benchline_pad,
+                                 validation_data_dict=pad_relationship_validation,
+                                 RESPONDER=RESPONDER,
+                                 sort_by='Rel. RMSE',
+                                 RUN_TAG=RUN_TAG)
 
     # _accessories._print('Plotting model performance metrics...')
     # with _accessories.suppress_stdout():
@@ -1476,9 +1515,14 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     if(plot_for_ref is False):
         # OPTIONAL VISUALIZATION: Validation metrics
         with _accessories.suppress_stdout():
-            validate_models(perf_pad, pad_relationship_training,
-                            benchline_pad, pad_relationship_validation,
-                            TOP_MODELS=30, order_by='Rel. Val. RMSE', RUN_TAG=RUN_TAG, RESPONDER=RESPONDER)
+            validate_models(perf_data=perf_pad,
+                            training_data_dict=pad_relationship_training,
+                            benchline=benchline_pad,
+                            validation_data_dict=pad_relationship_validation,
+                            TOP_MODELS=30,
+                            order_by='Rel. Val. RMSE',
+                            RUN_TAG=RUN_TAG,
+                            RESPONDER=RESPONDER)
 
     _accessories._print('Renaming this file...')
     new_config = f"ENG: {locals().get('math_eng')}, WEIGHT: {locals().get('weighting')}, TIME: {locals().get('MAX_EXP_RUNTIME')}"
