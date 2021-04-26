@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 10:04:06:068  GMT-0600
+# @Last modified time: 26-Apr-2021 10:04:89:892  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -279,6 +279,7 @@ def shutdown_confirm(h2o_instance: type(h2o)) -> None:
     # SHUT DOWN the cluster after you're done working with it
     h2o_instance.remove_all()
     h2o_instance.cluster().shutdown()
+    h2o.shutdown()
     # Double checking...
     try:
         snapshot(h2o_instance.cluster)
@@ -1473,7 +1474,7 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
                                        ENGINEER_FEATURES=math_eng,
                                        weighting=weighting)  # pad_relationship_validation
 
-    _accessories._print(project_names_pad, color='YELLOW')
+    _accessories._print(str(project_names_pad), color='YELLOW')
 
     # _accessories._print('Calculating variable importance...')
     # varimps_pad = varimps(project_names_pad)
@@ -1566,7 +1567,7 @@ def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
 
 
 if __name__ == '__main__':
-    math_eng_options = [True, False]
+    math_eng_options = [False, True]
     weighting_options = [True, False]
     MAX_EXP_RUNTIME_options = np.arange(10, 210, 10)
     benchmark(math_eng_options, weighting_options, MAX_EXP_RUNTIME_options)
