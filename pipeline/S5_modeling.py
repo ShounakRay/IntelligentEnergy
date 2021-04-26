@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 10:04:51:516  GMT-0600
+# @Last modified time: 26-Apr-2021 10:04:43:431  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -472,8 +472,6 @@ def data_refinement(data, groupby, dropcols, responder, FOLD_COLUMN=FOLD_COLUMN)
     data = util_conditional_drop(data, dropcols)
 
     # Determine all possible groups to filter the source data for when conducting the experiment
-    print(data)
-    print(data.describe())
     groupby_options = data.as_data_frame()[groupby].unique()
 
     # Warns user that certain categorical features will be auto-encoded by H2O if not dropped
@@ -802,6 +800,7 @@ def model_performance(project_names_pad, adj_factor, validation_data_dict, RUN_T
     # Structure model output and order
     perf_data = pd.DataFrame(perf_data).T.sort_values(sort_by, ascending=False).infer_objects()
     perf_data['tolerated RMSE'] = perf_data['group'].apply(lambda x: adj_factor.get(x))
+    perf_data['RUN_TAG'] = RUN_TAG
 
     for model_obj in perf_data.sort_values(['RMSE', 'Rel. Val. RMSE'])['model_obj'][:10]:
         mpath = f'Modeling Reference Files/Round {RUN_TAG}/Models/'
@@ -1541,42 +1540,42 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     # if(input('Shutdown Cluster? (Y/N)') == 'Y'):
     #     shutdown_confirm(h2o)
     _accessories._print('Shutting down server...')
-    shutdown_confirm(h2o)
+    # shutdown_confirm(h2o)
 
     return RUN_TAG
 
 
-if __name__ == '__main__':
-    _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=200, plot_for_ref=False)
-
-
-# def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
-#     path = '_configs/modeling_benchmarks.csv'
-#
-#     combos = list(itertools.product(*[math_eng, weighting, MAX_EXP_RUNTIME]))
-#     _accessories._print(f'{len(combos)} hyperparameter combinations to run...', color='LIGHTCYAN_EX')
-#     for math_eng, weighting, MAX_EXP_RUNTIME in combos:
-#         _accessories._print(f'Engineered: {math_eng}, Weighting: {weighting}, Run-Time: {MAX_EXP_RUNTIME}',
-#                             color='LIGHTCYAN_EX')
-#         t1 = time.time()
-#         tag = _MODELING(math_eng=math_eng,
-#                         weighting=weighting,
-#                         MAX_EXP_RUNTIME=MAX_EXP_RUNTIME.item(),
-#                         plot_for_ref=False)
-#         t2 = time.time()
-#
-#         _accessories.auto_make_path(path)
-#         with open(path, 'a') as file:
-#             content = str(math_eng) + ',' + str(weighting) + ',' + str(MAX_EXP_RUNTIME) + ',' + str(t2 - t1) + \
-#                 ',' + str(tag)
-#             file.write(content)
-#
-#
 # if __name__ == '__main__':
-#     math_eng_options = [False, True]
-#     weighting_options = [True, False]
-#     MAX_EXP_RUNTIME_options = np.arange(10, 210, 10)
-#     benchmark(math_eng_options, weighting_options, MAX_EXP_RUNTIME_options)
+#     _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=200, plot_for_ref=False)
+
+
+def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
+    path = '_configs/modeling_benchmarks.csv'
+
+    combos = list(itertools.product(*[math_eng, weighting, MAX_EXP_RUNTIME]))
+    _accessories._print(f'{len(combos)} hyperparameter combinations to run...', color='LIGHTCYAN_EX')
+    for math_eng, weighting, MAX_EXP_RUNTIME in combos:
+        _accessories._print(f'Engineered: {math_eng}, Weighting: {weighting}, Run-Time: {MAX_EXP_RUNTIME}',
+                            color='LIGHTCYAN_EX')
+        t1 = time.time()
+        tag = _MODELING(math_eng=math_eng,
+                        weighting=weighting,
+                        MAX_EXP_RUNTIME=MAX_EXP_RUNTIME.item(),
+                        plot_for_ref=False)
+        t2 = time.time()
+
+        _accessories.auto_make_path(path)
+        with open(path, 'a') as file:
+            content = str(math_eng) + ',' + str(weighting) + ',' + str(MAX_EXP_RUNTIME) + ',' + str(t2 - t1) + \
+                ',' + str(tag)
+            file.write(content)
+
+
+if __name__ == '__main__':
+    math_eng_options = [False, True]
+    weighting_options = [True, False]
+    MAX_EXP_RUNTIME_options = np.arange(10, 210, 10)
+    benchmark(math_eng_options, weighting_options, MAX_EXP_RUNTIME_options)
 
 
 # CSOR
