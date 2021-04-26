@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 10:04:89:892  GMT-0600
+# @Last modified time: 26-Apr-2021 10:04:35:355  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -280,6 +280,7 @@ def shutdown_confirm(h2o_instance: type(h2o)) -> None:
     h2o_instance.remove_all()
     h2o_instance.cluster().shutdown()
     h2o.shutdown()
+    os.system('lsof -i tcp:54321')
     # Double checking...
     try:
         snapshot(h2o_instance.cluster)

@@ -1,6 +1,6 @@
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
-JOB INITIALIZED:  2021-04-26 10:14:47.221620
-RUN ID: 200
+JOB INITIALIZED:  2021-04-26 10:19:20.572962
+RUN ID: 557
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 SERVER HYPERPARAMETERS:
@@ -34,29 +34,10 @@ MISCELLANEOUS HYPERPARAMETRS:
                   'RMSLE': None,
                   'R^2': None,
                   'Rel. RMSE': 0},
- 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x11ac9cd30>,
-                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x11ac9cd30>,
-                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x11ac9cd30>,
-                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x11ac9cd30>,
-                 'R^2': <matplotlib.colors.ListedColormap object at 0x129eb8af0>,
-                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x11ac9cd30>}}
+ 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x10ab85d30>,
+                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x10ab85d30>,
+                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x10ab85d30>,
+                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x10ab85d30>,
+                 'R^2': <matplotlib.colors.ListedColormap object at 0x123c34af0>,
+                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x10ab85d30>}}
 
-»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
-PREDICTORS
-['PRO_Pad',
- 'PRO_Casing_Pressure',
- 'PRO_Heel_Pressure',
- 'PRO_Toe_Pressure',
- 'PRO_Heel_Temp',
- 'PRO_Toe_Temp',
- 'Bin_2',
- 'Bin_3',
- 'Bin_4',
- 'Bin_5',
- 'Bin_6',
- 'Bin_7',
- 'weight',
- 'Steam']
-»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
-RESPONDER
-'PRO_Total_Fluid'
