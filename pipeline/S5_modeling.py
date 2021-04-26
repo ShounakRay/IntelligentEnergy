@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 12:04:85:855  GMT-0600
+# @Last modified time: 26-Apr-2021 16:04:04:045  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -1518,7 +1518,7 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     _accessories._print('Saving performance data to file...')
     with _accessories.suppress_stdout():
         _accessories.save_local_data_file(perf_pad.drop('model_obj', axis=1),
-                                          f'Modeling Reference Files/Round {RUN_TAG}/MODELS_{RUN_TAG}.pkl')
+                                          f'Modeling Reference Files/Round {RUN_TAG}/MODELS_{RUN_TAG}.csv')
 
     if(plot_for_ref):
         # OPTIONAL VISUALIZATION: Validation metrics
