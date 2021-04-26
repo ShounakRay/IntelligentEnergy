@@ -1,1 +1,13 @@
-False,True,10,81.13503909111023,6543
+@Author: Shounak Ray <Ray>
+@Date:   26-Apr-2021 11:04:55:554  GMT-0600
+@Email:  rijshouray@gmail.com
+@Filename: modeling_benchmarks.txt
+@Last modified by:   Ray
+@Last modified time: 26-Apr-2021 12:04:20:203  GMT-0600
+@License: [Private IP]
+
+
+False,True,10,48.70098400115967,9928
+False,True,20,145.10705184936523,5322
+False,True,30,178.2861931324005,3770
+False,True,40,261.3798158168793,9612

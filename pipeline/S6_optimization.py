@@ -3,21 +3,70 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 11:04:42:421  GMT-0600
+# @Last modified time: 26-Apr-2021 12:04:11:118  GMT-0600
 # @License: [Private IP]
 
 
+import os
 import pickle
+import subprocess
 import sys
 import traceback
 from typing import Final
 
-import _references._accessories as _accessories
 import billiard as mp
 import h2o
 import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.metrics import mean_squared_error
+
+
+def ensure_cwd(expected_parent):
+    init_cwd = os.getcwd()
+    sub_dir = init_cwd.split('/')[-1]
+
+    if(sub_dir != expected_parent):
+        new_cwd = init_cwd
+        print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
+              f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
+    else:
+        new_cwd = init_cwd.replace('/' + sub_dir, '')
+        print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
+        os.chdir(new_cwd)
+
+
+def check_java_dependency():
+    OUT_BLOCK = '»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»\n'
+    # Get the major java version in current environment
+    java_major_version = int(subprocess.check_output(['java', '-version'],
+                                                     stderr=subprocess.STDOUT).decode().split('"')[1].split('.')[0])
+
+    # Check if environment's java version complies with H2O requirements
+    # http://docs.h2o.ai/h2o/latest-stable/h2o-docs/welcome.html#requirements
+    if not (java_major_version >= 8 and java_major_version <= 14):
+        raise ValueError('STATUS: Java Version is not between 8 and 14 (inclusive).\n' +
+                         'H2O cluster will not be initialized.')
+
+    print("\x1b[32m" + 'STATUS: Java dependency versions checked and confirmed.')
+    print(OUT_BLOCK)
+
+
+if __name__ == '__main__':
+    try:
+        _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
+    except Exception:
+        _EXPECTED_PARENT_NAME = 'pipeline'
+        print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
+              f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
+    ensure_cwd(_EXPECTED_PARENT_NAME)
+    sys.path.insert(1, os.getcwd() + '/_references')
+    sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
+    import _accessories
+    import _context_managers
+
+    # Check java dependency
+    check_java_dependency()
+
 
 _ = """
 #######################################################################################################################
@@ -304,7 +353,7 @@ _ = """
 """
 
 
-def _OPTIMIZATION(start_date='2020-06-01', end_date='2020-12-20', engineered=True):
+def _OPTIMIZATION(start_date='2015-04-01', end_date='2020-12-20', engineered=True):
     rell = {'A': 170, 'B': 131}
 
     _accessories._print('Initializing H2O server to access model files...')
@@ -333,7 +382,7 @@ def _OPTIMIZATION(start_date='2020-06-01', end_date='2020-12-20', engineered=Tru
 
     # _accessories.auto_make_path('Optimization Reference Files/Backtests/')
     _accessories.save_local_data_file(aggregate_results,
-                                      'Optimization Reference Files/Backtests/Aggregates_{start_date}_{end_date}.csv')
+                                      f'Optimization Reference Files/Backtests/Aggregates_{start_date}_{end_date}.csv')
     # aggregate_results.to_csv('Optimization Reference Files/Backtests/Aggregates_{start_date}_{end_date}.csv')
 
     _accessories._print('Shutting down H2O server...')

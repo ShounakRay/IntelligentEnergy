@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 11:04:81:816  GMT-0600
+# @Last modified time: 26-Apr-2021 12:04:85:855  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -117,7 +117,7 @@ TRAIN_VAL_SPLIT: Final = 0.95                                 # Train test split
 
 # Feature Engineering Constants
 FOLD_COLUMN: Final = "kfold_column"                           # Target encoding, must be consistent throughout training
-TOP_MODELS = 15                                               # The top n number of models which should be filtered
+TOP_MODELS = 10                                               # The top n number of models which should be filtered
 PREFERRED_TOLERANCE = 0.1                                     # Tolerance applied on RMSE for allowable responders
 TRAINING_VERBOSITY = 'warn'                                   # Verbosity of training (None, 'debug', 'info', d'warn')
 
@@ -1160,7 +1160,7 @@ def validate_models(perf_data, training_data_dict, benchline, validation_data_di
                     order_by='Rel. RMSE', TOP_MODELS=TOP_MODELS):
     FIG_SCALAR = 5.33333333333333
 
-    perf_data.sort_values(order_by, inplace=True)
+    perf_data = perf_data[perf_data['Rel. Val. RMSE'] <= 0].sort_values('Rel. RMSE')
     all_model_RMSE_H_to_L = [h2o.get_model(perf_data.index[i].split('___GROUP')[0]) for i in range(len(perf_data))]
     # all_model_RMSE_H_to_L = all_model_RMSE_H_to_L[-1 * TOP_MODELS:]
     if(TOP_MODELS is None):
@@ -1275,10 +1275,10 @@ _ = """
 def setup_and_server(paths_to_check=[DATA_PATH_PAD, DATA_PATH_PAD_vanilla],
                      SECURED=SECURED, IP_LINK=IP_LINK, PORT=PORT, SERVER_FORCE=SERVER_FORCE):
     # Initialize the cluster
-    try:
-        shutdown_confirm(h2o)
-    except Exception:
-        pass
+    # try:
+    #     shutdown_confirm(h2o)
+    # except Exception:
+    #     pass
     h2o.init(https=SECURED,
              ip=IP_LINK,
              port=PORT,
@@ -1520,7 +1520,7 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
         _accessories.save_local_data_file(perf_pad.drop('model_obj', axis=1),
                                           f'Modeling Reference Files/Round {RUN_TAG}/MODELS_{RUN_TAG}.pkl')
 
-    if(plot_for_ref is False):
+    if(plot_for_ref):
         # OPTIONAL VISUALIZATION: Validation metrics
         with _accessories.suppress_stdout():
             validate_models(perf_data=perf_pad,
@@ -1541,6 +1541,7 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     #     shutdown_confirm(h2o)
     _accessories._print('Shutting down server...')
     # shutdown_confirm(h2o)
+    h2o.remove_all()
 
     return RUN_TAG
 
@@ -1554,6 +1555,7 @@ def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
 
     combos = list(itertools.product(*[math_eng, weighting, MAX_EXP_RUNTIME]))
     _accessories._print(f'{len(combos)} hyperparameter combinations to run...', color='LIGHTCYAN_EX')
+    _accessories.auto_make_path(path)
     for math_eng, weighting, MAX_EXP_RUNTIME in combos:
         _accessories._print(f'Engineered: {math_eng}, Weighting: {weighting}, Run-Time: {MAX_EXP_RUNTIME}',
                             color='LIGHTCYAN_EX')
@@ -1566,8 +1568,6 @@ def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
         content = str(math_eng) + ',' + str(weighting) + ',' + str(MAX_EXP_RUNTIME) + ',' + str(t2 - t1) + \
             ',' + str(tag) + '\n'
         _accessories._print(content, color='YELLOW')
-
-        _accessories.auto_make_path(path)
         with open(path, 'a') as file:
             file.write(content)
             file.close()
