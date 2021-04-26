@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 10:04:91:913  GMT-0600
+# @Last modified time: 26-Apr-2021 10:04:19:193  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -17,7 +17,7 @@ import os
 import random
 import subprocess
 import sys
-import traceback
+import time
 from pprint import pprint
 from typing import Final
 
@@ -1412,7 +1412,6 @@ _ = """
 # TODO: See iPhone notes for next steps.
 
 
-@_accessories.timeit()
 def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=False):
     RESPONDER = 'PRO_Total_Fluid'
     _accessories._print(f'DATA_PATH_PAD: {DATA_PATH_PAD}', color='LIGHTCYAN_EX')
@@ -1544,15 +1543,25 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
 
 
 def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
+    path = '_configs/modeling_benchmarks.csv'
+
     combos = list(itertools.product(*[math_eng, weighting, MAX_EXP_RUNTIME]))
     _accessories._print(f'{len(combos)} hyperparameter combinations to run...', color='LIGHTCYAN_EX')
     for math_eng, weighting, MAX_EXP_RUNTIME in combos:
         _accessories._print(f'Engineered: {math_eng}, Weighting: {weighting}, Run-Time: {MAX_EXP_RUNTIME}',
                             color='LIGHTCYAN_EX')
+        t1 = time.time()
         tag = _MODELING(math_eng=math_eng,
                         weighting=weighting,
                         MAX_EXP_RUNTIME=MAX_EXP_RUNTIME.item(),
                         plot_for_ref=False)
+        t2 = time.time()
+
+        _accessories.auto_make_path(path)
+        with open(path, 'a') as file:
+            content = str(math_eng) + ',' + str(weighting) + ',' + str(MAX_EXP_RUNTIME) + ',' + str(t2 - t1) + \
+                ',' + str(t2 - t1)
+            file.write(content)
 
 
 if __name__ == '__main__':
