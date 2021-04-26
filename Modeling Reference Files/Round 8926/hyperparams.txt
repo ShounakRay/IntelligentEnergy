@@ -1,10 +1,10 @@
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
-JOB INITIALIZED:  2021-04-26 11:30:48.486336
-RUN ID: 7223
+JOB INITIALIZED:  2021-04-26 11:46:56.043022
+RUN ID: 8926
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 SERVER HYPERPARAMETERS:
-{'IP_LINK': 'localhost', 'PORT': 54321, 'SECURED': False, 'SERVER_FORCE': True}
+{'IP_LINK': 'localhost', 'PORT': 12345, 'SECURED': False, 'SERVER_FORCE': True}
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 TRAINING HYPERPARAMETRS:
@@ -34,10 +34,10 @@ MISCELLANEOUS HYPERPARAMETRS:
                   'RMSLE': None,
                   'R^2': None,
                   'Rel. RMSE': 0},
- 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x10f4c1d30>,
-                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x10f4c1d30>,
-                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x10f4c1d30>,
-                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x10f4c1d30>,
-                 'R^2': <matplotlib.colors.ListedColormap object at 0x1247f4af0>,
-                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x10f4c1d30>}}
+ 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x10e953d30>,
+                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x10e953d30>,
+                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x10e953d30>,
+                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x10e953d30>,
+                 'R^2': <matplotlib.colors.ListedColormap object at 0x11db6daf0>,
+                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x10e953d30>}}
 

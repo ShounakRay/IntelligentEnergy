@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 11:04:89:892  GMT-0600
+# @Last modified time: 26-Apr-2021 11:04:42:421  GMT-0600
 # @License: [Private IP]
 
 
@@ -332,7 +332,8 @@ def _OPTIMIZATION(start_date='2020-06-01', end_date='2020-12-20', engineered=Tru
     aggregate_results = configure_aggregates(aggregate_results, rell)
 
     # _accessories.auto_make_path('Optimization Reference Files/Backtests/')
-    _accessories.save_local_data_file('Optimization Reference Files/Backtests/Aggregates_{start_date}_{end_date}.csv')
+    _accessories.save_local_data_file(aggregate_results,
+                                      'Optimization Reference Files/Backtests/Aggregates_{start_date}_{end_date}.csv')
     # aggregate_results.to_csv('Optimization Reference Files/Backtests/Aggregates_{start_date}_{end_date}.csv')
 
     _accessories._print('Shutting down H2O server...')

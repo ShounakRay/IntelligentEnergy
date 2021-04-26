@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 11:04:34:349  GMT-0600
+# @Last modified time: 26-Apr-2021 11:04:81:816  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -100,7 +100,7 @@ DATA_PATH_PAD_vanilla = 'Data/combined_ipc_aggregates.csv'        # No feature e
 # H2O Server Constants
 IP_LINK: Final = 'localhost'                                  # Initializing the server on the local host (temporary)
 SECURED: Final = True if(IP_LINK != 'localhost') else False   # https protocol doesn't work locally, should be True
-PORT: Final = 54321                                           # Always specify the port that the server should use
+PORT: Final = 12345                                           # Always specify the port that the server should use
 SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
 
 # Experiment > Model Training Constants and Hyperparameters

@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 11:04:83:837  GMT-0600
+# @Last modified time: 26-Apr-2021 11:04:40:407  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -41,7 +41,7 @@ def _print(txt: str, color: str = 'LIGHTGREEN_EX') -> None:
         output = f'print(Fore.{fcolor} + """{txt}""" + Style.RESET_ALL)'
         # Print the specified string to the console
     else:
-        output = f'print(Fore.{fcolor} + {txt} + Style.RESET_ALL)'
+        output = f'print(Fore.{fcolor}, {txt}, Style.RESET_ALL)'
     exec(output)
 
 
