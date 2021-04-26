@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 09:04:00:007  GMT-0600
+# @Last modified time: 26-Apr-2021 09:04:70:707  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -1439,11 +1439,11 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     setup_and_server()
 
     _accessories._print('Retreiving pre-model data...')
-    DATA_PATH_PAD = 'Data/combined_ipc_aggregates.csv'
-    pd_data_pad = _accessories.retrieve_local_data_file(DATA_PATH_PAD)
+    PATH_PAD = 'Data/combined_ipc_aggregates.csv'
+    pd_data_pad = _accessories.retrieve_local_data_file(PATH_PAD)
 
     _accessories._print('Creating validation sets...')
-    data_pad, pad_relationship_validation, pad_relationship_training = create_validation_splits(DATA_PATH_PAD=DATA_PATH_PAD,
+    data_pad, pad_relationship_validation, pad_relationship_training = create_validation_splits(DATA_PATH_PAD=PATH_PAD,
                                                                                                 pd_data_pad=pd_data_pad.copy(),
                                                                                                 group_colname='PRO_Pad')
 
