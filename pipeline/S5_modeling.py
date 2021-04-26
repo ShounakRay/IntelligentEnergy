@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 10:04:19:193  GMT-0600
+# @Last modified time: 26-Apr-2021 10:04:06:068  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -1538,6 +1538,7 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     # if(input('Shutdown Cluster? (Y/N)') == 'Y'):
     #     shutdown_confirm(h2o)
     _accessories._print('Shutting down server...')
+    shutdown_confirm(h2o)
 
     return RUN_TAG
 
@@ -1560,7 +1561,7 @@ def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
         _accessories.auto_make_path(path)
         with open(path, 'a') as file:
             content = str(math_eng) + ',' + str(weighting) + ',' + str(MAX_EXP_RUNTIME) + ',' + str(t2 - t1) + \
-                ',' + str(t2 - t1)
+                ',' + str(tag)
             file.write(content)
 
 
