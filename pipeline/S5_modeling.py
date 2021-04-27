@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 12:04:66:661  GMT-0600
+# @Last modified time: 27-Apr-2021 12:04:97:974  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -1301,7 +1301,8 @@ def setup_and_server(paths_to_check=[DATA_PATH_PAD, DATA_PATH_PAD_vanilla],
     h2o.init(https=SECURED,
              ip=IP_LINK,
              port=PORT,
-             start_h2o=SERVER_FORCE)
+             start_h2o=SERVER_FORCE,
+             nthreads=-1)
     # # Check the status of the cluster, just for reference
     # process_log = snapshot(h2o.cluster(), show=False)
 

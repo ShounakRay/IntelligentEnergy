@@ -1,0 +1,289 @@
+í	3.32.0.4ÿ BAD[Bwater.Icedwater.H2O$H2OCountedCompleterwater.HeartBeatwater.H2ONodewater.FetchClazzwater.FetchIdwater.DTaskwater.fvec.Chunkwater.fvec.C1NChunkwater.fvec.Framewater.fvec.Vec$VectorGroupwater.fvec.Vec$ESPCwater.api.Schema#water.api.schemas3.RequestSchemaV3!water.api.schemas3.SchemaV3$Metawater.api.schemas3.SchemaV3water.api.schemas3.CloudV3"water.api.schemas3.CloudV3$NodeV3water.api.schemas3.AboutV3 water.api.schemas3.AboutEntryV3water.UDPRebooted$ShutdownTskwater.api.schemas3.H2OErrorV3water.api.schemas3.RouteV3#water.api.schemas3.ModelBuildersV3water.util.IcedSortedHashMapChex.schemas.ModelBuilderSchema$IcedHashMapStringModelBuilderSchema+water.api.schemas3.NodePersistentStorageV3Hwater.api.schemas3.NodePersistentStorageV3$NodePersistentStorageEntryV3water.util.IcedHashMapwater.util.IcedHashMapBasewater.util.IcedHashMapGeneric6water.util.IcedHashMapGeneric$IcedHashMapStringString6water.util.IcedHashMapGeneric$IcedHashMapStringObjectwater.api.schemas3.TypeaheadV3water.api.schemas4.SessionIdV4"water.api.schemas4.OutputSchemaV4water.rapids.Session$1water.MRTaskwater.parser.ParseTime$1"water.api.schemas3.RapidsStringV3"water.api.schemas3.RapidsSchemaV3"water.api.schemas3.CapabilitiesV3%water.api.schemas3.CapabilityEntryV3water.Lockablewater.Keyed
+water.Keywater.fvec.UploadFileVecwater.fvec.FileVecwater.fvec.ByteVecwater.fvec.Vec&water.parser.ParseSetup$GuessSetupTsk water.api.schemas3.ParseSetupV3$water.api.schemas3.KeyV3$FrameKeyV3water.api.schemas3.KeyV3water.Job$AssertNoKey
+water.Jobwater.Job$JobListwater.api.schemas3.ParseV3water.api.schemas3.JobV3-water.parser.ParseDataset$MultiFileParseTask"water.api.schemas3.KeyV3$JobKeyV3>water.parser.ParseDataset$MultiFileParseTask$DistributedParsewater.api.schemas3.JobsV3water.fvec.C2Chunkwater.fvec.C8DChunkwater.fvec.RollupStatswater.fvec.Vec$14water.fvec.Vec$157water.parser.ParseDataset$GatherCategoricalDomainsTask<water.parser.ParseDataset$CreateParse2GlobalCategoricalMaps/water.parser.ParseDataset$CategoricalUpdateMap6water.parser.ParseDataset$UpdateCategoricalChunksTaskwater.fvec.CBSChunk*water.fvec.RollupStats$ComputeRollupsTaskwater.fvec.RollupStats$Rollwater.util.ChunkSummarywater.api.schemas3.FramesV3water.api.schemas3.FrameV3water.api.schemas3.FrameBaseV3!water.api.schemas3.FrameV3$ColV3!water.api.schemas3.TwoDimTableV31water.api.schemas3.TwoDimTableV3$ColumnSpecsBasewater.fvec.C0LChunkwater.fvec.Vec$2!water.api.schemas3.RapidsFrameV3"water.api.schemas3.RapidsNumberV3water.api.schemas3.MetadataV3$water.api.schemas3.SchemaMetadataV3#water.api.schemas3.FieldMetadataV3)water.automl.api.schemas3.LeaderboardV99&water.automl.api.schemas3.EventLogV99,water.rapids.ast.prims.operators.AstBinOp$3water.fvec.Frame$DeepSelectai.h2o.automl.events.EventLog&ai.h2o.automl.leaderboard.Leaderboardai.h2o.automl.AutoMLai.h2o.automl.AutoMLBuildSpechex.tree.xgboost.XGBoostModel1ai.h2o.automl.AutoMLBuildSpec$AutoMLBuildControl5ai.h2o.automl.AutoMLBuildSpec$AutoMLStoppingCriteriawater.fvec.Vec$3Dhex.grid.HyperSpaceSearchCriteria$RandomDiscreteValueSearchCriteria"hex.grid.HyperSpaceSearchCriteria3hex.grid.HyperSpaceSearchCriteria$StoppingCriteria*water.rapids.ast.prims.advmath.AstKFold$2*ai.h2o.automl.AutoMLBuildSpec$AutoMLInput0ai.h2o.automl.AutoMLBuildSpec$AutoMLBuildModelsai.h2o.automl.StepDefinitionhex.ModelBuilder$2water.fvec.CXFChunkwater.fvec.CXIChunk"ai.h2o.automl.StepDefinition$Step5ai.h2o.automl.AutoMLBuildSpec$AutoMLCustomParameterswater.util.Countdownai.h2o.automl.WorkAllocations#ai.h2o.automl.WorkAllocations$Work$ai.h2o.automl.ModelingStepsRegistry$ai.h2o.automl.ModelingStepsExecutorai.h2o.automl.AutoML$18ai.h2o.automl.leaderboard.LeaderboardExtensionsProvider#ai.h2o.automl.events.EventLogEntry-water.automl.api.schemas3.AutoMLBuildSpecV99Cwater.automl.api.schemas3.AutoMLBuildSpecV99$AutoMLBuildControlV99Gwater.automl.api.schemas3.AutoMLBuildSpecV99$AutoMLStoppingCriteriaV99<water.automl.api.schemas3.AutoMLBuildSpecV99$AutoMLInputV99*water.api.schemas3.FrameV3$ColSpecifierV3Bwater.automl.api.schemas3.AutoMLBuildSpecV99$AutoMLBuildModelsV99,water.automl.api.schemas3.StepDefinitionV994water.automl.api.schemas3.StepDefinitionV99$StepV990water.automl.api.schemas3.AutoMLV99$AutoMLKeyV3$water.automl.api.schemas3.AutoMLV99+water.automl.api.schemas3.EventLogEntryV99water.fvec.CStrChunk0hex.tree.xgboost.XGBoostModel$XGBoostParametershex.Model$Parameterswater.fvec.Vec$8*water.fvec.RebalanceDataSet$RebalanceTask'hex.tree.xgboost.XGBoostExtensionCheck8water.util.ReproducibilityInformationUtils$NodeInfoTaskhex.glm.GLMTask$YMUTaskhex.DataInfo
+hex.Modelhex.tree.xgboost.XGBoostOutputhex.Model$Outputwater.util.TwoDimTablewater.IcedWrapperhex.ScoreKeeperhex.GaussianDistributionhex.Distributionhex.IdentityFunctionhex.LinkFunction"hex.tree.xgboost.XGBoostModelInfo'hex.tree.xgboost.task.XGBoostSetupTask*hex.tree.xgboost.task.AbstractXGBoostTask(hex.tree.xgboost.task.XGBoostUpdateTask'hex.tree.xgboost.task.XGBoostScoreTaskwater.fvec.C0DChunkhex.ModelMetricsRegressionhex.ModelMetricsSupervisedhex.ModelMetricswater.fvec.CUDChunkhex.tree.xgboost.XgbVarImphex.VarImp)hex.tree.xgboost.task.XGBoostCleanupTaskhex.Model$BigScorehex.CMetricScoringTaskwater.udf.CFuncTask+hex.ModelBuilder$HoldoutPredictionCombiner'ai.h2o.automl.leaderboard.TrainingTime,ai.h2o.automl.leaderboard.ScoringTimePerRow$water.api.schemas3.KeyV3$ModelKeyV3water.api.schemas3.ModelsV3hex.schemas.XGBoostModelV3!water.api.schemas3.ModelSchemaV3%water.api.schemas3.ModelSchemaBaseV3*water.api.schemas3.ModelParameterSchemaV30hex.schemas.XGBoostModelV3$XGBoostModelOutputV3'water.api.schemas3.ModelOutputSchemaV3,water.api.schemas3.ModelMetricsRegressionV3&water.api.schemas3.ModelMetricsBaseV3$water.KeySnapshot$GlobalUKeySetTask!water.api.schemas3.ModelExportV3water.api.RemoveAllHandler$1water.api.schemas3.RemoveAllV3hex.glm.GLMModelhex.glm.GLMModel$GLMParameters(hex.glm.GLMTask$GLMGaussianGradientTask hex.glm.GLMTask$GLMGradientTaskhex.glm.GLMModel$GLMOutputhex.glm.GLMTask$GLMResDevTaskhex.FrameTask2!hex.glm.GLMTask$GLMIterationTaskhex.glm.GLMScorehex.ModelMetricsRegressionGLMhex.glm.GLMModel$Submodelhex.ScoringInfo"hex.ensemble.StackedEnsembleModel<hex.ensemble.StackedEnsembleModel$StackedEnsembleParameters8hex.ensemble.StackedEnsembleModel$StackedEnsembleOutputwater.fvec.Frame$3*water.rapids.ast.prims.advmath.AstKFold$1$hex.schemas.StackedEnsembleModelV99Bhex.schemas.StackedEnsembleModelV99$StackedEnsembleModelOutputV99/water.api.schemas3.ModelMetricsRegressionGLMV3'hex.glm.GLMTask$GLMIncrementalGramTaskhex.tree.drf.DRFModel$hex.tree.drf.DRFModel$DRFParameters.hex.tree.SharedTreeModel$SharedTreeParameters*hex.tree.SharedTreeModelWithContributionshex.tree.SharedTreeModel hex.tree.drf.DRFModel$DRFOutput*hex.tree.SharedTreeModel$SharedTreeOutputhex.tree.TreeStatswater.fvec.Vec$6water.fvec.C8DVolatileChunkwater.fvec.Vec$7water.fvec.C4VolatileChunk!hex.tree.SharedTree$InitialValuehex.tree.drf.DRF$DRFDriver$1hex.tree.Scorehex.tree.Samplehex.tree.ScoreBuildHistogram2hex.tree.ScoreBuildHistogram(hex.tree.drf.DRF$DRFDriver$CollectPredshex.tree.CompressedTree%hex.tree.SharedTree$ComputeModelSizewater.fvec.Vec$4hex.schemas.GLMModelV3(hex.schemas.GLMModelV3$GLMModelOutputV3hex.tree.gbm.GBMModel$hex.tree.gbm.GBMModel$GBMParameters hex.tree.gbm.GBMModel$GBMOutput%hex.tree.gbm.GBM$FillVecWithConstant#hex.tree.gbm.GBM$ComputePredAndReshex.tree.gbm.GBM$GammaPass&hex.tree.gbm.GBM$AddTreeContributions#hex.deeplearning.DeepLearningModel:hex.deeplearning.DeepLearningModel$DeepLearningParameters;hex.deeplearning.DeepLearningModel$DeepLearningModelOutput)hex.deeplearning.DeepLearningScoringInfo'hex.deeplearning.DeepLearningModelInfo(hex.deeplearning.Storage$DenseRowMatrix%hex.deeplearning.Storage$DenseVector&water.init.NetworkTest$CollectiveTask"hex.deeplearning.DeepLearningTaskhex.FrameTaskhex.grid.Gridwater.util.IcedLonghex.schemas.DRFModelV3hex.schemas.SharedTreeModelV3(hex.schemas.DRFModelV3$DRFModelOutputV36hex.schemas.SharedTreeModelV3$SharedTreeModelOutputV3 hex.schemas.DeepLearningModelV3:hex.schemas.DeepLearningModelV3$DeepLearningModelOutputV3hex.schemas.GBMModelV3(hex.schemas.GBMModelV3$GBMModelOutputV3hex.grid.Grid$SearchFailure-water.rapids.ast.prims.mungers.AstRowSlice$1d0!XGBoost_2_AutoML_20210426_134618ÀênC±Ãˆ0!automl_training_py_8220_sid_94f40py_8221_sid_94f42      FU$     
+         ø?      à?ÍÌÌÌÌÌì?     ÿÿÿÿ             ®"­’—?PRO_Total_Fluid    @         ÿÿÿÿ                $@      $@333333Ó?333333Ó?      ğ?333333ã?333333ã?š™™™™™é?š™™™™™é?      ğ?š™™™™™é?š™™™™™é?                           ÿÿÿÿ             €?                     ˆ0!automl_training_py_8220_sid_94f40py_8221_sid_94f42      FU$      
+          ø?      à?ÍÌÌÌÌÌì?     ÿÿÿÿ F¶óıDıÏ?   ®"­’—?PRO_Total_Fluid    @         ÿÿÿÿ '               $@      ğ?333333Ó?333333Ó?      ğ?333333ã?      ğ?š™™™™™é?      ğ?      ğ?š™™™™™é?      ğ?                           ÿÿÿÿ               €?                      ‘PRO_Casing_PressurePRO_Heel_PressurePRO_Toe_PressurePRO_Heel_TempPRO_Toe_TempBin_2Bin_3Bin_4Bin_5Bin_6Bin_7SteamPRO_Total_FluidNumericNumericNumericNumericNumericNumericNumericNumericNumericNumericNumericNumericNumeric    301prediction_XGBoost_2_AutoML_20210426_134618_cv_101prediction_XGBoost_2_AutoML_20210426_134618_cv_201prediction_XGBoost_2_AutoML_20210426_134618_cv_301prediction_XGBoost_2_AutoML_20210426_134618_cv_401prediction_XGBoost_2_AutoML_20210426_134618_cv_501prediction_XGBoost_2_AutoML_20210426_134618_cv_601prediction_XGBoost_2_AutoML_20210426_134618_cv_701prediction_XGBoost_2_AutoML_20210426_134618_cv_801prediction_XGBoost_2_AutoML_20210426_134618_cv_902prediction_XGBoost_2_AutoML_20210426_134618_cv_1002prediction_XGBoost_2_AutoML_20210426_134618_cv_1102prediction_XGBoost_2_AutoML_20210426_134618_cv_1202prediction_XGBoost_2_AutoML_20210426_134618_cv_1302prediction_XGBoost_2_AutoML_20210426_134618_cv_1402prediction_XGBoost_2_AutoML_20210426_134618_cv_1502prediction_XGBoost_2_AutoML_20210426_134618_cv_1602prediction_XGBoost_2_AutoML_20210426_134618_cv_1702prediction_XGBoost_2_AutoML_20210426_134618_cv_1802prediction_XGBoost_2_AutoML_20210426_134618_cv_1902prediction_XGBoost_2_AutoML_20210426_134618_cv_2002prediction_XGBoost_2_AutoML_20210426_134618_cv_2102prediction_XGBoost_2_AutoML_20210426_134618_cv_2202prediction_XGBoost_2_AutoML_20210426_134618_cv_2302prediction_XGBoost_2_AutoML_20210426_134618_cv_2402prediction_XGBoost_2_AutoML_20210426_134618_cv_2502prediction_XGBoost_2_AutoML_20210426_134618_cv_2602prediction_XGBoost_2_AutoML_20210426_134618_cv_2702prediction_XGBoost_2_AutoML_20210426_134618_cv_2802prediction_XGBoost_2_AutoML_20210426_134618_cv_2902prediction_XGBoost_2_AutoML_20210426_134618_cv_3002prediction_XGBoost_2_AutoML_20210426_134618_cv_3102prediction_XGBoost_2_AutoML_20210426_134618_cv_3202prediction_XGBoost_2_AutoML_20210426_134618_cv_3302prediction_XGBoost_2_AutoML_20210426_134618_cv_3402prediction_XGBoost_2_AutoML_20210426_134618_cv_3502prediction_XGBoost_2_AutoML_20210426_134618_cv_3602prediction_XGBoost_2_AutoML_20210426_134618_cv_3702prediction_XGBoost_2_AutoML_20210426_134618_cv_3802prediction_XGBoost_2_AutoML_20210426_134618_cv_3902prediction_XGBoost_2_AutoML_20210426_134618_cv_4002prediction_XGBoost_2_AutoML_20210426_134618_cv_4102prediction_XGBoost_2_AutoML_20210426_134618_cv_4202prediction_XGBoost_2_AutoML_20210426_134618_cv_4302prediction_XGBoost_2_AutoML_20210426_134618_cv_4402prediction_XGBoost_2_AutoML_20210426_134618_cv_4502prediction_XGBoost_2_AutoML_20210426_134618_cv_4602prediction_XGBoost_2_AutoML_20210426_134618_cv_4702prediction_XGBoost_2_AutoML_20210426_134618_cv_4802prediction_XGBoost_2_AutoML_20210426_134618_cv_4902prediction_XGBoost_2_AutoML_20210426_134618_cv_5007cv_holdout_prediction_XGBoost_2_AutoML_20210426_134618 =á·y  Oá·y         ‘      0{modelmetrics_XGBoost_2_AutoML_20210426_134618@-8282186023603082560_on_automl_training_py_8220_sid_94f4@67125184042819029940lmodelmetrics_XGBoost_2_AutoML_20210426_134618@-8282186023603082560_on_py_8221_sid_94f4@-6096911530785695407:0.  :0ÿÿÿÿ_b5d8e0dbe0d47a42b954e209d0854d9d        0!XGBoost_2_AutoML_20210426_134618c   XGBoost def_2 Êß·y  [á·y    0È     ù       0È     Done. 0{modelmetrics_XGBoost_2_AutoML_20210426_134618@-8282186023603082560_on_automl_training_py_8220_sid_94f4@6712518404281902994         0!XGBoost_2_AutoML_20210426_134618ÀênC±Ã0!automl_training_py_8220_sid_94f4’§~›ì§']Má·y   h©¹#• 
+A_       yq§8€@h©¹#• 
+AÁ/àù1Òy@      øÿ 0lmodelmetrics_XGBoost_2_AutoML_20210426_134618@-8282186023603082560_on_py_8221_sid_94f4@-6096911530785695407         0!XGBoost_2_AutoML_20210426_134618ÀênC±Ã0py_8221_sid_94f4Q‰üCkc«Ná·y   ˆ ‰ƒèş@d        ½r{qQT@ˆ ‰ƒèş@
+×£@e=u@{æ£M×? 0{modelmetrics_XGBoost_2_AutoML_20210426_134618@-8282186023603082560_on_automl_training_py_8220_sid_94f4@6712518404281902994        ^50-fold cross-validation on training data (Metrics computed for combined holdout predictions)0!XGBoost_2_AutoML_20210426_134618ÀênC±Ã0!automl_training_py_8220_sid_94f4’§~›ì§']Rá·y   :š•h&«
+A_       ²yq§8€@:š•h&«
+A.æš‰óx@      øÿ“!Cross-Validation Metrics Summarymaemean_residual_deviancemser2residual_deviancermsermsle5meansdcv_1_validcv_2_validcv_3_validcv_4_validcv_5_validcv_6_validcv_7_validcv_8_validcv_9_validcv_10_validcv_11_validcv_12_validcv_13_validcv_14_validcv_15_validcv_16_validcv_17_validcv_18_validcv_19_validcv_20_validcv_21_validcv_22_validcv_23_validcv_24_validcv_25_validcv_26_validcv_27_validcv_28_validcv_29_validcv_30_validcv_31_validcv_32_validcv_33_validcv_34_validcv_35_validcv_36_validcv_37_validcv_38_validcv_39_validcv_40_validcv_41_validcv_42_validcv_43_validcv_44_validcv_45_validcv_46_validcv_47_validcv_48_validcv_49_validcv_50_valid5stringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstringstring5%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s5” S                         
+398.55054           ” S                         
+108.94902           ” S                         
+578.80914           ” S                         
+573.85785           ” S                         	571.8772           ” S                         
+566.09735           ” S                         	554.5692           ” S                         	555.1312           ” S                         
+417.41125           ” S                         
+385.49796           ” S                         
+370.66895           ” S                         547.547           ” S                         	387.9843           ” S                         
+396.62485           ” S                         
+415.36868           ” S                         	569.0054           ” S                         579.729           ” S                         
+407.77606           ” S                         
+422.59647           ” S                         
+425.63885           ” S                         
+404.97586           ” S                         	314.8387           ” S                         
+271.30408           ” S                         
+412.25055           ” S                         
+296.34088           ” S                         
+326.41156           ” S                         
+321.43015           ” S                         	621.7961           ” S                         	450.9181           ” S                         
+340.52063           ” S                         
+319.01315           ” S                         
+311.73743           ” S                         
+434.71576           ” S                         
+437.92953           ” S                         	336.9219           ” S                         	457.9715           ” S                         
+459.57526           ” S                         
+346.04227           ” S                         
+420.82687           ” S                         	304.2673           ” S                         	306.0645           ” S                         
+312.76865           ” S                         
+289.40442           ” S                         
+298.78827           ” S                         	291.4056           ” S                         
+288.57382           ” S                         
+391.89578           ” S                         
+305.81137           ” S                         
+397.15723           ” S                         
+408.09497           ” S                         
+150.65721           ” S                         
+170.92683           5” S                         
+217837.12           ” S                         
+112899.86           ” S                         
+435143.34           ” S                         	419230.0           ” S                         
+421826.62           ” S                         
+401919.47           ” S                         
+389653.06           ” S                         
+389563.88           ” S                         
+220517.69           ” S                         
+195896.08           ” S                         
+190987.61           ” S                         
+389273.66           ” S                         
+199840.02           ” S                         
+201935.84           ” S                         
+215570.02           ” S                         	403296.4           ” S                         
+413691.62           ” S                         	214581.6           ” S                         
+222950.53           ” S                         	224260.0           ” S                         
+200970.75           ” S                         	125633.7           ” S                         	98440.71           ” S                         
+211493.28           ” S                         
+114799.67           ” S                         
+135718.02           ” S                         
+134744.75           ” S                         
+483400.16           ” S                         
+254998.38           ” S                         
+145391.75           ” S                         
+138047.14           ” S                         130169.195           ” S                         
+235027.02           ” S                         
+242179.89           ” S                         
+142663.47           ” S                         
+252892.53           ” S                         
+259597.27           ” S                         
+161541.23           ” S                         
+234098.02           ” S                         
+118254.69           ” S                         119845.086           ” S                         
+123548.64           ” S                         
+110863.75           ” S                         
+115251.75           ” S                         113471.766           ” S                         
+106730.86           ” S                         
+200429.97           ” S                         130125.125           ” S                         
+200903.89           ” S                         	224811.4           ” S                         
+34165.516           ” S                         	41509.49           5” S                         
+217837.12           ” S                         
+112899.86           ” S                         
+435143.34           ” S                         	419230.0           ” S                         
+421826.62           ” S                         
+401919.47           ” S                         
+389653.06           ” S                         
+389563.88           ” S                         
+220517.69           ” S                         
+195896.08           ” S                         
+190987.61           ” S                         
+389273.66           ” S                         
+199840.02           ” S                         
+201935.84           ” S                         
+215570.02           ” S                         	403296.4           ” S                         
+413691.62           ” S                         	214581.6           ” S                         
+222950.53           ” S                         	224260.0           ” S                         
+200970.75           ” S                         	125633.7           ” S                         	98440.71           ” S                         
+211493.28           ” S                         
+114799.67           ” S                         
+135718.02           ” S                         
+134744.75           ” S                         
+483400.16           ” S                         
+254998.38           ” S                         
+145391.75           ” S                         
+138047.14           ” S                         130169.195           ” S                         
+235027.02           ” S                         
+242179.89           ” S                         
+142663.47           ” S                         
+252892.53           ” S                         
+259597.27           ” S                         
+161541.23           ” S                         
+234098.02           ” S                         
+118254.69           ” S                         119845.086           ” S                         
+123548.64           ” S                         
+110863.75           ” S                         
+115251.75           ” S                         113471.766           ” S                         
+106730.86           ” S                         
+200429.97           ” S                         130125.125           ” S                         
+200903.89           ” S                         	224811.4           ” S                         
+34165.516           ” S                         	41509.49           5” S                         0.21894           ” S                         0.39595413           ” S                         -0.5028577           ” S                         -0.56360924           ” S                         -0.43573752           ” S                         -0.4792066           ” S                         -0.4510297           ” S                         -0.4040743           ” S                         0.33689925           ” S                         
+0.4133509           ” S                         
+0.3993583           ” S                         -0.24962568           ” S                         0.33895168           ” S                         0.30285063           ” S                         0.27544302           ” S                         -0.34775972           ” S                         -0.4441633           ” S                         0.22837201           ” S                         0.14135441           ” S                         0.13857852           ” S                         0.22871248           ” S                         0.52988887           ” S                         0.60874134           ” S                         0.16193046           ” S                         0.54616797           ” S                         0.47571802           ” S                         0.48043314           ” S                         -0.74097764           ” S                         0.13978392           ” S                         
+0.5308747           ” S                         
+0.5614852           ” S                         0.52929956           ” S                         0.11288607           ” S                         0.13090353           ” S                         
+0.4579942           ” S                         0.05734116           ” S                         0.025020648           ” S                         
+0.4066591           ” S                         0.07230046           ” S                         
+0.5567697           ” S                         0.54990786           ” S                         
+0.5105394           ” S                         0.55162996           ” S                         0.54545975           ” S                         
+0.5919517           ” S                         0.62279224           ” S                         0.34159678           ” S                         
+0.5280096           ” S                         0.23845379           ” S                         0.17604038           ” S                         
+0.8733214           ” S                         
+0.8482692           5” S                         
+217837.12           ” S                         
+112899.86           ” S                         
+435143.34           ” S                         	419230.0           ” S                         
+421826.62           ” S                         
+401919.47           ” S                         
+389653.06           ” S                         
+389563.88           ” S                         
+220517.69           ” S                         
+195896.08           ” S                         
+190987.61           ” S                         
+389273.66           ” S                         
+199840.02           ” S                         
+201935.84           ” S                         
+215570.02           ” S                         	403296.4           ” S                         
+413691.62           ” S                         	214581.6           ” S                         
+222950.53           ” S                         	224260.0           ” S                         
+200970.75           ” S                         	125633.7           ” S                         	98440.71           ” S                         
+211493.28           ” S                         
+114799.67           ” S                         
+135718.02           ” S                         
+134744.75           ” S                         
+483400.16           ” S                         
+254998.38           ” S                         
+145391.75           ” S                         
+138047.14           ” S                         130169.195           ” S                         
+235027.02           ” S                         
+242179.89           ” S                         
+142663.47           ” S                         
+252892.53           ” S                         
+259597.27           ” S                         
+161541.23           ” S                         
+234098.02           ” S                         
+118254.69           ” S                         119845.086           ” S                         
+123548.64           ” S                         
+110863.75           ” S                         
+115251.75           ” S                         113471.766           ” S                         
+106730.86           ” S                         
+200429.97           ” S                         130125.125           ” S                         
+200903.89           ” S                         	224811.4           ” S                         
+34165.516           ” S                         	41509.49           5” S                         
+451.48544           ” S                         
+119.51439           ” S                         
+659.65393           ” S                         
+647.47974           ” S                         	649.4818           ” S                         	633.9712           ” S                         624.222           ” S                         	624.1505           ” S                         	469.5931           ” S                         	442.6015           ” S                         	437.0213           ” S                         
+623.91797           ” S                         	447.0347           ” S                         
+449.37274           ” S                         	464.2952           ” S                         	635.0562           ” S                         
+643.18866           ” S                         
+463.22952           ” S                         	472.1764           ” S                         
+473.56097           ” S                         	448.2976           ” S                         
+354.44846           ” S                         
+313.75262           ” S                         
+459.88397           ” S                         338.821           ” S                         
+368.39926           ” S                         
+367.07593           ” S                         
+695.26984           ” S                         
+504.97363           ” S                         	381.3027           ” S                         
+371.54697           ” S                         
+360.78967           ” S                         
+484.79587           ” S                         
+492.11777           ” S                         	377.7082           ” S                         
+502.88422           ” S                         	509.5069           ” S                         
+401.92194           ” S                         
+483.83676           ” S                         	343.8818           ” S                         	346.1865           ” S                         
+351.49487           ” S                         	332.9621           ” S                         	339.4875           ” S                         	336.8557           ” S                         	326.6969           ” S                         
+447.69406           ” S                         	360.7286           ” S                         
+448.22302           ” S                         
+474.14282           ” S                         
+184.83916           ” S                         
+203.73877           5” S                         
+0.6860566           ” S                         0.25934416           ” S                         
+0.6769678           ” S                         
+0.6573563           ” S                         
+0.6919534           ” S                         
+0.7011674           ” S                         	0.649068           ” S                         0.66247225           ” S                         NaN           ” S                         NaN           ” S                         
+1.0079803           ” S                         
+1.0400189           ” S                         
+0.9747592           ” S                         NaN           ” S                         
+0.9557806           ” S                         0.79589206           ” S                         0.85293424           ” S                         0.54360175           ” S                         NaN           ” S                         NaN           ” S                         
+0.4460299           ” S                         NaN           ” S                         NaN           ” S                         0.81876713           ” S                         0.37165776           ” S                         0.33450902           ” S                         0.49738425           ” S                         
+0.7855239           ” S                         
+1.2083961           ” S                         
+1.0630895           ” S                         
+1.0967747           ” S                         NaN           ” S                         0.50441176           ” S                         NaN           ” S                         
+0.3948421           ” S                         0.46722057           ” S                         
+0.4578934           ” S                         
+0.3795812           ” S                         NaN           ” S                         NaN           ” S                         NaN           ” S                         NaN           ” S                         0.33369246           ” S                         NaN           ” S                         0.36115095           ” S                         0.86009324           ” S                         
+1.1163937           ” S                         
+0.5129824           ” S                         
+0.6577962           ” S                         0.44778186           ” S                         NaN           ” S                         NaN           “Model SummaryNumber of Treeslong%d” I                                    “Node Informationnodeh2ohealthy
+last_ping	num_cpus	sys_loadmem_value_size	free_mem	pojo_mem	swap_mem
+free_disc	max_discpid	num_keystcps_active	open_fdsrpcs_active	nthreads
+is_leader
+total_memmax_memjava_versionjvm_launch_parametersos_versionmachine_physical_memmachine_localeintstringstringstringintdoublelonglonglonglonglonglongintintstringintstringintstringlonglongstringstringstringlongstring%d%s%s%s%d%.5f%d%d%d%d%d%d%d%d%s%d%s%d%s%d%d%s%s%s%d%s” I                                     ” S                         127.0.0.1:12345           ” S                         true           ” S                         1619466379321           ” I                                    ” F             šA                     ” L    yĞI                              ” L    ,xÔù                             ” L    [·á                             ” L                                     ” L       p                            ” L       ^:                            ” I™©                                   ” I{                                   ” S                                     ” Iÿÿÿÿ                                 ” S                                     ” I                                    ” S                         true           ” L      ğg                             ” L                                    ” S                          Java 14.0.2 (from AdoptOpenJDK)           ” S                         [-ea]           ” S                         Mac OS X 10.16 (x86_64)           ” L                                    ” S                         en_CA           “Cluster ConfigurationH2O cluster uptimeH2O cluster timezoneH2O data parsing timezoneH2O cluster versionH2O cluster version ageH2O cluster nameH2O cluster total nodesH2O cluster free memoryH2O cluster total coresH2O cluster allowed coresH2O cluster statusH2O internal securityH2O API Extensionslongstringstringstringstringstringintlongintintstringstringstring%d%s%s%s%s%s%d%d%d%d%s%s%s” L    _K                              ” S                         America/Edmonton           ” S                         UTC           ” S                         	3.32.0.4           ” S                         2 months and 25 days           ” S                         H2O_from_python_Ray_lsq7pz           ” I                                    ” L    ,xÔù                             ” I                                    ” I                                    ” S                         locked, healthly           ” S                         false           ” S                         CAmazon S3, XGBoost, Algos, AutoML, Core V3, TargetEncoder, Core V4           “Input Frames InformationInput Frame	ChecksumESPCstringlongstring%s%d%d” S                         training_frame           ” L    ²ÖV$ËÆ                         ” S                         [0, 944, 1887]           ” S                         validation_frame           ” L    üÄ§ŒîçUù                         ” S                         	[0, 100]           ” S                         calibration_frame           ” L    ÿÿÿÿÿÿÿÿ                         ” S                         -1           “Scoring History
+
+Timestamp	DurationNumber of TreesTraining RMSETraining MAETraining DevianceValidation RMSEValidation MAEValidation Deviance
+stringstringlongdoubledoubledoubledoubledoubledouble
+%s%s%d%.5f%.5f%.5f%.5f%.5f%.5f
+” S                         2021-04-26 13:46:19           ” S                          0.371 sec           ” I                                     ” D                æÙzQú“@             ” D                èË˜ü1’@             ” D                #‹£·Íñ8A             ” D                 m3â{’@             ” D                ÍÌÌ´p’@             ” D                ñ2=%|Z5A             
+” S                         2021-04-26 13:46:19           ” S                          0.387 sec           ” I                                    ” D                v—œ¶0}@             ” D                Á/àù1Òy@             ” D                h©¹#• 
+A             ” D                ªP©ÜÇ<v@             ” D                
+×£@e=u@             ” D                ˆ ‰ƒèş@                      ğ¿                  •#‹£·Íñ8A#‹£·Íñ8AæÙzQú“@èË˜ü1’@9ÂË¯Šs@      ø      ø      ø      ø      ø      ø       ø»È¥-qÀ      ø      ø•      ø      ø      ø      ø      ø      ø      ø      ø      ø      ø      ø       ø      ø      ø      ø•      ø      ø      ø      ø      ø      ø      ø      ø      ø      ø      ø       ø      ø      ø      ø•h©¹#• 
+Ah©¹#• 
+Av—œ¶0}@Á/àù1Òy@      øÿ      ø      ø      ø      ø      ø      ø       øÊtÓôçË?      ø      ø•ñ2=%|Z5Añ2=%|Z5A m3â{’@ÍÌÌ´p’@yÍ®Sãª@      ø      ø      ø      ø      ø      ø       ø›ö±‹²[jÀ      ø      ø•      ø      ø      ø      ø      ø      ø      ø      ø      ø      ø      ø       ø      ø      ø      ø•      ø      ø      ø      ø      ø      ø      ø      ø      ø      ø      ø       ø      ø      ø      ø•ˆ ‰ƒèş@ˆ ‰ƒèş@ªP©ÜÇ<v@
+×£@e=u@{æ£M×?      ø      ø      ø      ø      ø      ø       ø«¬xa*2À      ø      ø=á·y  Eá·y  Iá·y  Má·y  “Variable ImportancesSteamPRO_Toe_PressurePRO_Toe_TempPRO_Casing_PressurePRO_Heel_PressureBin_2Bin_4Bin_7PRO_Heel_TempBin_6Relative ImportanceScaled ImportancePercentagedoubledoubledouble%5f%5f%5f” D                    |ËªA             ” D                      ğ?             ” D                ZA[Ø.FŞ?             ” D                    I¦A             ” D                Rk~*Rê?             ” D                ˜f«!Ü-Ù?             ” D                    6<€A             ” D                ¦De—cÃ?             ” D                ‹^,äW²?             ” D                    “-lA             ” D                ÆG»éoÓ°?             ” D                ØE#@ÖŸ?             ” D                    #]A             ” D                Díáó]¡?             ” D                êò8?`m?             ” D                    Ë[?A             ” D                ¯U—ï¡¹‚?             ” D                ı.ML·q?             ” D                    ãİ>A             ” D                p·dãrn‚?             ” D                dãKøoq?             ” D                    Ÿd;A             ” D                äòR0q[€?             ” D                0 ä-4ón?             ” D                   €É0A             ” D                X@›>Àt?             ” D                ğU§Gûöb?             ” D                   `¶¨â@             ” D                ¢•'v¡H&?             ” D                ¢z	ßö?             	Variable“Variable Importances - CoverSteamPRO_Toe_TempPRO_Casing_PressurePRO_Toe_PressureBin_4Bin_2Bin_7PRO_Heel_TempPRO_Heel_PressureBin_6Relative ImportanceScaled ImportancePercentagedoubledoubledouble%5f%5f%5f” D                     &¶@             ” D                      ğ?             ” D                Í#ÓëãÖ?             ” D                     ¨@             ” D                |½&Ágá?             ” D                Ú­z?™æÈ?             ” D                     ô—@             ” D                Ü£†¿MÑ?             ” D                à£LdÁ¸?             ” D                      •@             ” D                tåÉ:WÎ?             ” D                MÒ…´µ?             ” D                      @             ” D                ŞÂfú‰ØÆ?             ” D                ~·q¶–W°?             ” D                     8@             ” D                ×hÖhÆ?             ” D                ¿SöÒØ!°?             ” D                     ØŠ@             ” D                ›‹ò¶RdÃ?             ” D                ®Æä-¾«?             ” D                     Øƒ@             ” D                 Õ‘«¼?             ” D                ”Õîâ'‚¤?             ” D                     8‚@             ” D                ÓOÄ¶ˆRº?             ” D                —·Ç8Ô¢?             ” D                     À`@             ” D                ŠØQJ3˜?             ” D                úù¨ O?             	Variable“!Variable Importances - FrequencySteamPRO_Casing_PressurePRO_Toe_TempBin_2Bin_4PRO_Toe_PressurePRO_Heel_PressurePRO_Heel_TempBin_7Bin_6Relative ImportanceScaled ImportancePercentagedoubledoubledouble%5f%5f%5f” D                      ,@             ” D                      ğ?             ” D                ¹‘¹‘Ë?             ” D                      $@             ” D                ·mÛ¶mÛæ?             ” D                ;±;±Ã?             ” D                      $@             ” D                ·mÛ¶mÛæ?             ” D                ;±;±Ã?             ” D                      @             ” D                      à?             ” D                ¹‘¹‘»?             ” D                      @             ” D                Û¶mÛ¶mÛ?             ” D                z¡z¡·?             ” D                      @             ” D                ’$I’$IÒ?             ” D                 øø¯?             ” D                      @             ” D                ’$I’$IÒ?             ” D                 øø¯?             ” D                      @             ” D                ’$I’$IÒ?             ” D                 øø¯?             ” D                      @             ” D                ’$I’$IÒ?             ” D                 øø¯?             ” D                       @             ” D                ’$I’$IÂ?             ” D                 øøŸ?             	Variable¤€H2M˜laKá[VM¡èJ]ŞúI$H†Iø$ÛI°áL³EGïöIPRO_Toe_PressurePRO_Casing_PressureSteamPRO_Heel_PressureBin_2PRO_Heel_TempBin_7PRO_Toe_TempBin_6Bin_4  ¨D  ¿D 0±E ÀD ÀyD ÀD ÀVD À@E  C  }D   
+                  
+         “Native XGBoost ParametersNameValuestringstring%s%s” S                         silent           ” Bo                                    ” S                         eta           ” D                333333Ó?             ” S                         colsample_bylevel           ” D                š™™™™™é?             ” S                         
+objective           ” S                         reg:squarederror           ” S                         min_child_weight           ” D                      $@             ” S                         nthread           ” I                                    ” S                         seed           ” IFU$                                  ” S                         
+max_depth           ” I                                    ” S                         colsample_bytree           ” D                š™™™™™é?             ” S                         lambda           ” F              €?                     ” S                         gamma           ” F                                     ” S                         alpha           ” F                                     ” S                         booster           ” S                         gbtree           ” S                         grow_policy           ” S                         
+depthwise           ” S                         nround           ” I                                    ” S                         
+subsample           ” D                333333ã?             ” S                         max_delta_step           ” F                                     ” S                         tree_method           ” S                         exact            –      ø?      à?      ø˜  ÿšˆ0!automl_training_py_8220_sid_94f40py_8221_sid_94f42      FU$      
+          ø?      à?ÍÌÌÌÌÌì?     ÿÿÿÿ             ®"­’—?PRO_Total_Fluid    @         ÿÿÿÿ                 $@      ğ?333333Ó?333333Ó?      ğ?333333ã?      ğ?š™™™™™é?      ğ?      ğ?š™™™™™é?      ğ?                           ÿÿÿÿ              €?                     0"_ba6583c95b9e917fee19f713f93a4984¯0 PRO_Casing_Pressure q
+1 PRO_Heel_Pressure q
+2 PRO_Toe_Pressure q
+3 PRO_Heel_Temp q
+4 PRO_Toe_Temp q
+5 Bin_2 q
+6 Bin_3 q
+7 Bin_4 q
+8 Bin_5 q
+9 Bin_6 q
+10 Bin_7 q
+11 Steam q
+ÿ4binf   ?                                                                                                                                       reg:squarederror       gbtree                                                                                                                                                                 #                                                                                                                                              ÿÿÿÿ         fXBE   €        €ú„D            €jç7D  €         ¢;B   	   
+      uB  €        €vÎ†B           €W©sD  €         ğ&E           €â"6D  €        €š±ŠD            ÏXB  €         ÚŒE   ÿÿÿÿÿÿÿÿ    W“aB  €         ºhC   ÿÿÿÿÿÿÿÿ    0…‹C  €ÿÿÿÿÿÿÿÿ    â¢C            ªÿB  €ÿÿÿÿÿÿÿÿ    …B         
+   {$C	  €ÿÿÿÿÿÿÿÿ    Ç C	   ÿÿÿÿÿÿÿÿ    äBñC
+  €ÿÿÿÿÿÿÿÿ    ß\×C
+             cC  €ÿÿÿÿÿÿÿÿ    K»À@   ÿÿÿÿÿÿÿÿ    I÷¾  €ÿÿÿÿÿÿÿÿ    
+5åB   ÿÿÿÿÿÿÿÿ    EÄ)C  €ÿÿÿÿÿÿÿÿ    ĞFŒC   ÿÿÿÿÿÿÿÿ    °g=C  €ÿÿÿÿÿÿÿÿ    W‰dC   !   "      X"C  €ÿÿÿÿÿÿÿÿ    ÔÉC   ÿÿÿÿÿÿÿÿ    {r³C  €ÿÿÿÿÿÿÿÿ    YçB   ÿÿÿÿÿÿÿÿ    ¹ÕNCøÑ1M àDìò‘D    €È%L €rDŸÓ¦D    ıÔ K  %Cš”7C     ‰»J  C¹ŒOD     iIK  MDV8²D    öäI  ôB‹İÿA    Põ»I  ,BBÌD     ûêH  ¬Bwı{D    `SÈI  €BõßD     ØşH  ŸC^^ÇD     DI  ûCt¤D    Ë"‚E  ÎBù‘Ö?          ˜AÈú;C     mG   B"éC          0A¥ˆhD          tB¼‡D     øªE  ÈA÷FD          @A¸]C    €Ã*H  PBª$D           A û…D          šCÉD          úBx³D     Ğ±H €¼CbŸD           Aœ A          ºBÏFı¾           Aˆ¿C          @AäxD          0AZËiD          `AhÖD          ¸Asr>D    @XÏH  èA®„	D          =C°™§D          <CŠ•D          pAŸƒÀC          `AÄ\,D       +                                                                                                                                              ÿÿÿÿ        € ĞvD   €         €ªúÅC            €D‡ŠD  €         úCC   	   
+      <=<B  €            D            ³B  €ÿÿÿÿÿÿÿÿ    $‹A           €°ş7A  €          f¶÷C             Ò«ÜC  €ÿÿÿÿÿÿÿÿ    widC   ÿÿÿÿÿÿÿÿ    a”˜C  €ÿÿÿÿÿÿÿÿ    ßš«C             x·D  €      	  €C   ÿÿÿÿÿÿÿÿ    ¶ùÁ	  €ÿÿÿÿÿÿÿÿ    yKC	   ÿÿÿÿÿÿÿÿ    IãcC
+  €          bøÔC
+             VåñC  €      
+   z C   ÿÿÿÿÿÿÿÿ    Q C  €ÿÿÿÿÿÿÿÿ    7ïÔ½             N‹E  €ÿÿÿÿÿÿÿÿ    ×ÅB   ÿÿÿÿÿÿÿÿ    !C  €!   "      BB   ÿÿÿÿÿÿÿÿ    qé[B  €#   $       4æC   %   &      f C  €ÿÿÿÿÿÿÿÿ    µã¿   ÿÿÿÿÿÿÿÿ    5qİ¾  €ÿÿÿÿÿÿÿÿ    §lÒB   ÿÿÿÿÿÿÿÿ    ò«”B  €'   (     €Ú™D   ÿÿÿÿÿÿÿÿ    ‚†C  €)   *         óC   ÿÿÿÿÿÿÿÿ    6„C#  €ÿÿÿÿÿÿÿÿ    ğv€C#   ÿÿÿÿÿÿÿÿ    Ï»§C%  €ÿÿÿÿÿÿÿÿ    ¦îC%   ÿÿÿÿÿÿÿÿ    bØfCH¾ÅL €ŠD“ND    ²î;K  uCÀîzC    €üŠJ ÀWDÿJwD    ¢º#G  ÜBf@    8‚	J  CCâC     h
+G  òB‡«ED    €:ÀJ €9D°D          0A;ÇgB    eõF  ÆB\“À    €NßG  B˜>'D    ĞVI  ÆBF¶·C          ŞBãW>D           A¡L~D         €CD     $I €ãCikD    ‡2FC  ²BÁÓ•¿           Am%Â          €AiD           Aè=D     ¸õF  8B©ëC    €®óG  TB‚<‡C     lÄH  ÀC`hdD          Bè˜…D          ŠBr±¾    xÁB   AfwÀ           Aİ–¤C          B7úC     ĞœE  BŠ~šC          AˆB7C     ¨}H €šC4ÑjD    @eI  –B(BGD           AŠÁ½À           A‰¸¿          A‹Z¯C          ˆA=ÉwC     íçH  ¸B€D          YC
+.`D    ÀPEH  ØAÆD          @BZ
+\D          BVD          dB,Ç‹D          €A¿ñC          0Aü^@D       7                                                                                                                                              ÿÿÿÿ        €"#nD   €         4Z$E             ymB  €         ügC   	   
+      ö‡AE  €        €† ‡D         
+   >­C  €        €š™OD            ÿMB  €        €šy>D            u7C  €ÿÿÿÿÿÿÿÿ    eŠC            ù9C  €        €Ô:­D             2 C  €ÿÿÿÿÿÿÿÿ    …LB   ÿÿÿÿÿÿÿÿ    (ĞB  €ÿÿÿÿÿÿÿÿ    °‚C         	   løC	  €ÿÿÿÿÿÿÿÿ    êsëA	             +E
+  €!   "     €ï/^B
+   #   $      õ*lE  €ÿÿÿÿÿÿÿÿ    Ùª?C   ÿÿÿÿÿÿÿÿ    ½ÓkC  €%   &      ¼Y%C   ÿÿÿÿÿÿÿÿ    ÒÊC  €'   (      •C   )   *      Î¯B  €ÿÿÿÿÿÿÿÿ    ÍøãB   ÿÿÿÿÿÿÿÿ    KëB  €ÿÿÿÿÿÿÿÿ    *U:B   ÿÿÿÿÿÿÿÿ    Œ†B  €ÿÿÿÿÿÿÿÿ    	È>   ÿÿÿÿÿÿÿÿ    ”ÇA  €ÿÿÿÿÿÿÿÿ    †$áÀ   +   ,     €D]C  €-   .      Ş–÷B   /   0   
+   k5C  €ÿÿÿÿÿÿÿÿ    C   1   2      ƒeB  €ÿÿÿÿÿÿÿÿ    õãZC   ÿÿÿÿÿÿÿÿ    MRC$  €3   4     €4óØC$   ÿÿÿÿÿÿÿÿ    ‡7¿%  €ÿÿÿÿÿÿÿÿ    +t(C%   5   6       Ş]ÔC&  €ÿÿÿÿÿÿÿÿ    OêB&   ÿÿÿÿÿÿÿÿ    Éw8C(  €ÿÿÿÿÿÿÿÿ    a¨ÅB(   ÿÿÿÿÿÿÿÿ    İ7JB+  €ÿÿÿÿÿÿÿÿ    OÃ•½+   ÿÿÿÿÿÿÿÿ    ä¨x?.  €ÿÿÿÿÿÿÿÿ    ĞiC.   ÿÿÿÿÿÿÿÿ    ”9VCHìXL €Då’D    ³oÈJ  ‡CëÉC    @¤J €]DÁ(+D    À¿¡H  ¶B }¼C    h€I  3Cß’?B     ºwI €ùCiÕ<D     ÖwI €ÁCñD    àMH  ¨A¡ötC    €ı(H  ŒBrIÎC    `÷¸G  DB*+C    1e™E  CBÍ?          ÀAı;şC     8%I €íC§­?D     ü0H  yCšD    €iI  
+CâhÿC          0AC           AÂv­C          ÈA$/ùC    €G  4B^±C          €Aí5ÄB     @C  BqJC    :¯E  èAWf<A    J´¤E  ÊB¹1À          †B
+¹D          ÌCÈ…DD     J?H  ^Ca<"D          ØA²ü÷C    €ÂI  \B÷šÌC     ½HH  ¦BD          B ú½C           A'ˆqC          PAøFC           A®>`C          ˜AC²¦?           AL÷íA           Ao»Á    ÖÎÔB  ¶Bn¡Œ¾     AH  :CËV'D    @4FH  B0D          Bu¶öC     4§G  ¨AéP€C          pA¡h6D          ˆB@ïD    ßgãB  ’Bx{Š>          A›‰À          0BÎ`D     êdH  C-§.D          €AAÃC           A'¹D           Aû¶¤C          0Aâƒ(C          |BØšy¾           Ah7O@           A¯àC          CP…2D                       	       objectiveE       {"name":"reg:squarederror","reg_loss_param":{"scale_pos_weight":"1"}}0"_ba6583c95b9e917fee19f713f93a4984                  PRO_Casing_PressurePRO_Heel_PressurePRO_Toe_PressurePRO_Heel_TempPRO_Toe_TempBin_2Bin_3Bin_4Bin_5Bin_6Bin_7SteamPRO_Total_Fluid 0ÿ   ÿÿÿÿ4;¼µşKz¦Më"1ñkÇ0ÿ   ÿÿÿÿ4;¼µşKz¦Më"1ñkÇ0ÿ   ÿÿÿÿ4;¼µşKz¦Më"1ñkÇ0ÿ   ÿÿÿÿ4;¼µşKz¦Më"1ñkÇ0ÿ   ÿÿÿÿ4;¼µşKz¦Më"1ñkÇ0ÿ   ÿÿÿÿ4;¼µşKz¦Më"1ñkÇ0ÿ   ÿÿÿÿ4;¼µşKz¦Më"1ñkÇ0ÿ	   ÿÿÿÿ4;¼µşKz¦Më"1ñkÇ0ÿ
+   ÿÿÿÿ4;¼µşKz¦Më"1ñkÇ0ÿ   ÿÿÿÿ4;¼µşKz¦Më"1ñkÇ0ÿ   ÿÿÿÿ4;¼µşKz¦Më"1ñkÇ0ÿ   ÿÿÿÿ4;¼µşKz¦Më"1ñkÇ0ÿ   ÿÿÿÿ4;¼µşKz¦Më"1ñkÇÿÿÿÿÿÿÿÿ                É%ˆöÄ]@™„¿Œ¢@«ä)G¥@ã:è«JG@ô”?³ÆH@ì'æ›.c@:TÉÛ c@Óàb«Nc@–ˆlëZ$c@6‰^h@şa@~kÎ°¤`@Ì*	có@                            	   
+            3‡yµ“W@`òèñÔ~@ü~€‰m‚@•’Ÿ±B@|“±xµC@pï¥oÒ+@‡4î¦+@àkÍÅ"+@…¼ŸÎ+@ 1d0@‡ÖÖº71@P.th]t@É%ˆöÄ]@™„¿Œ¢@«ä)G¥@ã:è«JG@ô”?³ÆH@ì'æ›.c@:TÉÛ c@Óàb«Nc@–ˆlëZ$c@6‰^h@şa@~kÎ°¤`@Ì*	có@  É%ˆöÄ]@™„¿Œ¢@«ä)G¥@ã:è«JG@ô”?³ÆH@ì'æ›.c@:TÉÛ c@Óàb«Nc@–ˆlëZ$c@6‰^h@şa@~kÎ°¤`@Ì*	có@                                  	   
+           PRO_Casing_PressurePRO_Heel_PressurePRO_Toe_PressurePRO_Heel_TempPRO_Toe_TempBin_2Bin_3Bin_4Bin_5Bin_6Bin_7Steam                            	   
+         0{modelmetrics_XGBoost_2_AutoML_20210426_134618@-8282186023603082560_on_automl_training_py_8220_sid_94f4@6712518404281902994        ^50-fold cross-validation on training data (Metrics computed for combined holdout predictions)0!XGBoost_2_AutoML_20210426_134618ÀênC±Ã0!automl_training_py_8220_sid_94f4’§~›ì§']Rá·y   :š•h&«
+A_       ²yq§8€@:š•h&«
+A.æš‰óx@      øÿ 0lmodelmetrics_XGBoost_2_AutoML_20210426_134618@-8282186023603082560_on_py_8221_sid_94f4@-6096911530785695407         0!XGBoost_2_AutoML_20210426_134618ÀênC±Ã0py_8221_sid_94f4Q‰üCkc«Ná·y   ˆ ‰ƒèş@d        ½r{qQT@ˆ ‰ƒèş@
+×£@e=u@{æ£M×? 
