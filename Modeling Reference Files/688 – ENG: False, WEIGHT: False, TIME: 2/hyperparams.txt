@@ -1,6 +1,6 @@
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
-JOB INITIALIZED:  2021-04-26 15:09:49.890308
-RUN ID: 1670
+JOB INITIALIZED:  2021-04-27 11:57:04.637741
+RUN ID: 688
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 SERVER HYPERPARAMETERS:
@@ -11,7 +11,7 @@ TRAINING HYPERPARAMETRS:
 {'CV_FOLDS': 50,
  'EVAL_METRIC': 'rmse',
  'EXPLOIT_RATIO': 0.0,
- 'MAX_EXP_RUNTIME': 20,
+ 'MAX_EXP_RUNTIME': 2,
  'MODELING_PLAN': None,
  'RANDOM_SEED': 2381125,
  'RANK_METRIC': 'rmse',
@@ -34,12 +34,12 @@ MISCELLANEOUS HYPERPARAMETRS:
                   'RMSLE': None,
                   'R^2': None,
                   'Rel. RMSE': 0},
- 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x11d04cd00>,
-                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x11d04cd00>,
-                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x11d04cd00>,
-                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x11d04cd00>,
-                 'R^2': <matplotlib.colors.ListedColormap object at 0x12c383ac0>,
-                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x11d04cd00>}}
+ 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x120bf1520>,
+                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x120bf1520>,
+                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x120bf1520>,
+                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x120bf1520>,
+                 'R^2': <matplotlib.colors.ListedColormap object at 0x12fb04880>,
+                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x120bf1520>}}
 
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 PREDICTORS
@@ -49,12 +49,7 @@ PREDICTORS
  'PRO_Toe_Pressure',
  'PRO_Heel_Temp',
  'PRO_Toe_Temp',
- 'Bin_2',
- 'Bin_3',
- 'Bin_4',
- 'Bin_5',
- 'Bin_6',
- 'Bin_7',
+ 'PRO_Alloc_Steam',
  'Steam']
 »»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 RESPONDER

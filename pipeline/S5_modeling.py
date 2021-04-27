@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 11:04:76:765  GMT-0600
+# @Last modified time: 27-Apr-2021 12:04:17:171  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -147,13 +147,6 @@ _ = """
 """
 
 
-def get_aml_objects(project_names):
-    objs = []
-    for project_name in project_names:
-        objs.append(h2o.automl.get_automl(project_name))
-    return objs
-
-
 def record_hyperparameters(MAX_EXP_RUNTIME):
     # NOTE: Dependent on global, non-locally defined variables
 
@@ -287,6 +280,23 @@ def shutdown_confirm(h2o_instance: type(h2o)) -> None:
         raise ValueError('ERROR: H2O cluster improperly closed!')
     except Exception:
         pass
+
+
+@_context_managers.utility
+def get_aml_objects(project_names):
+    objs = []
+    for project_name in project_names:
+        objs.append(h2o.automl.get_automl(project_name))
+    return objs
+
+
+@_context_managers.utility
+def model_existence(project_names_pad):
+    for exp in get_aml_objects(project_names_pad):
+        model_ids = exp.leaderboard.as_data_frame()['model_id']
+        if len(model_ids) == 0:
+            return False
+    return True
 
 
 @_context_managers.utility
@@ -642,6 +652,9 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict, wei
         _accessories._print(str(e), color='YELLOW')
         # traceback.format_exception()
         return
+
+    if not model_existence(initialized_projects):
+        return None
 
     return initialized_projects
 
@@ -1298,6 +1311,19 @@ def setup_and_server(paths_to_check=[DATA_PATH_PAD, DATA_PATH_PAD_vanilla],
             raise ValueError('ERROR: {data} does not exist in the specificied location.'.format(data=path))
 
 
+def exit_sequence(math_eng, weighting, MAX_EXP_RUNTIME, RUN_TAG):
+    _accessories._print('Renaming this file...')
+    new_config = f"ENG: {math_eng}, WEIGHT: {weighting}, TIME: {MAX_EXP_RUNTIME}"
+    os.rename(f'Modeling Reference Files/Round {RUN_TAG}',
+              f'Modeling Reference Files/{RUN_TAG} – {new_config}')
+
+    # if(input('Shutdown Cluster? (Y/N)') == 'Y'):
+    #     shutdown_confirm(h2o)
+    _accessories._print('Shutting down server...')
+    # shutdown_confirm(h2o)
+    h2o.remove_all()
+
+
 def create_validation_splits(DATA_PATH_PAD, pd_data_pad, group_colname='PRO_Pad', TRAIN_VAL_SPLIT=TRAIN_VAL_SPLIT):
     # NOTE: Global Dependencies:
 
@@ -1420,7 +1446,7 @@ _ = """
 # TODO: See iPhone notes for next steps.
 
 
-def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=100, plot_for_ref=False):
+def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=2, plot_for_ref=False):
     RESPONDER = 'PRO_Total_Fluid'
     _accessories._print(f'DATA_PATH_PAD: {DATA_PATH_PAD}', color='LIGHTCYAN_EX')
     _accessories._print(f'DATA_PATH_PAD_vanilla: {DATA_PATH_PAD_vanilla}', color='LIGHTCYAN_EX')
@@ -1489,6 +1515,10 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=100, plot_for_ref
                                        ENGINEER_FEATURES=math_eng,
                                        weighting=weighting)  # pad_relationship_validation
 
+    if(project_names_pad is None):
+        exit_sequence(math_eng, weighting, MAX_EXP_RUNTIME, RUN_TAG)
+        return RUN_TAG
+
     _accessories._print('PROJECTS: ' + str(project_names_pad), color='YELLOW')
 
     # _accessories._print('Calculating variable importance...')
@@ -1546,16 +1576,7 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=100, plot_for_ref
                             RUN_TAG=RUN_TAG,
                             RESPONDER=RESPONDER)
 
-    _accessories._print('Renaming this file...')
-    new_config = f"ENG: {locals().get('math_eng')}, WEIGHT: {locals().get('weighting')}, TIME: {locals().get('MAX_EXP_RUNTIME')}"
-    os.rename(f'Modeling Reference Files/Round {RUN_TAG}',
-              f'Modeling Reference Files/{RUN_TAG} – {new_config}')
-
-    # if(input('Shutdown Cluster? (Y/N)') == 'Y'):
-    #     shutdown_confirm(h2o)
-    _accessories._print('Shutting down server...')
-    # shutdown_confirm(h2o)
-    h2o.remove_all()
+    exit_sequence(math_eng, weighting, MAX_EXP_RUNTIME, RUN_TAG)
 
     return RUN_TAG
 
@@ -1590,7 +1611,7 @@ def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
 if __name__ == '__main__':
     math_eng_options = [False, True]
     weighting_options = [True, False]
-    MAX_EXP_RUNTIME_options = np.arange(10, 210, 10)
+    MAX_EXP_RUNTIME_options = np.arange(20, 210, 10)
     benchmark(math_eng_options, weighting_options, MAX_EXP_RUNTIME_options)
 
 
