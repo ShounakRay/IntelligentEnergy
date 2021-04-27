@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 10:04:74:747  GMT-0600
+# @Last modified time: 27-Apr-2021 11:04:93:937  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -255,7 +255,7 @@ def specialized_anomaly_detection(FINALE):
     return anom_original_merged
 
 
-def produce_injection_aggregates(FINALE, candidates_by_prodtype, group_type, INJ_PAD_KEYS):
+def produce_injection_aggregates(FINALE, candidates_by_prodtype, group_type, INJ_PAD_KEYS, naive_selection=False):
     # This is just to delete the implicit duplicates found in the data
     # > (each production well has the same injection data)
     some_random_pwell = list(FINALE['PRO_Well'])[0]
@@ -263,26 +263,32 @@ def produce_injection_aggregates(FINALE, candidates_by_prodtype, group_type, INJ
     all_injs = [c for c in injector_data.columns if 'I' in c and '_' not in c]
 
     INJECTOR_AGGREGATES = {}
-    for category, cat_candidates in candidates_by_prodtype.items():
-        # Select candidates (not all the wells)
-        local_candidates = cat_candidates.copy()
-        absence = []
-        for cand in local_candidates:
-            if cand not in all_injs:
-                _accessories._print(f'> STATUS: Candidate {cand} removed assessing {category}, ' +
-                                    'unavailable in initial data', color='CYAN')
-                absence.append(cand)
-        local_candidates = [el for el in local_candidates if el not in absence]
+    if(not naive_selection):
+        for category, cat_candidates in candidates_by_prodtype.items():
+            # Select candidates (not all the wells)
+            local_candidates = cat_candidates.copy()
+            absence = []
+            for cand in local_candidates:
+                if cand not in all_injs:
+                    _accessories._print(f'> STATUS: Candidate {cand} removed assessing {category}, ' +
+                                        'unavailable in initial data', color='CYAN')
+                    absence.append(cand)
+            local_candidates = [el for el in local_candidates if el not in absence]
 
-        melted_inj = pd.melt(injector_data, id_vars=['Date'], value_vars=local_candidates,
-                             var_name='Injector', value_name='Steam')
-        melted_inj['INJ_Pad'] = melted_inj['Injector'].apply(lambda x: INJ_PAD_KEYS.get(x))
-        melted_inj = melted_inj[~melted_inj['INJ_Pad'].isna()].reset_index(drop=True)
-        # To groupby injector pads, by=['Date', 'INJ_Pad']
-        agg_inj = melted_inj.groupby(by=['Date'], axis=0, sort=False, as_index=False).sum()
-        agg_inj[group_type] = category
-        INJECTOR_AGGREGATES[category] = agg_inj
-    INJECTOR_AGGREGATES = pd.concat(INJECTOR_AGGREGATES.values()).reset_index(drop=True)
+            melted_inj = pd.melt(injector_data, id_vars=['Date'], value_vars=local_candidates,
+                                 var_name='Injector', value_name='Steam')
+            melted_inj['INJ_Pad'] = melted_inj['Injector'].apply(lambda x: INJ_PAD_KEYS.get(x))
+            melted_inj = melted_inj[~melted_inj['INJ_Pad'].isna()].reset_index(drop=True)
+            # To groupby injector pads, by=['Date', 'INJ_Pad']
+            agg_inj = melted_inj.groupby(by=['Date'], axis=0, sort=False, as_index=False).sum()
+            agg_inj[group_type] = category
+            INJECTOR_AGGREGATES[category] = agg_inj
+        INJECTOR_AGGREGATES = pd.concat(INJECTOR_AGGREGATES.values()).reset_index(drop=True)
+    else:
+        FINALE = FINALE[['Date', 'PRO_Alloc_Steam', 'PRO_Pad']]
+        INJECTOR_AGGREGATES = FINALE.groupby(by=['Date', group_type], axis=0, sort=False, as_index=False).sum()
+        INJECTOR_AGGREGATES = INJECTOR_AGGREGATES[['Date', 'PRO_Alloc_Steam', 'PRO_Pad']]
+        INJECTOR_AGGREGATES.columns = ['Date', 'Steam', 'PRO_Pad']
 
     return INJECTOR_AGGREGATES
 
@@ -682,7 +688,13 @@ def _INTELLIGENT_AGGREGATION():
     _accessories._print('Determining INJECTION data aggregates...', color='LIGHTYELLOW_EX')
     DATASETS['INJECTION_AGGREGATES'] = produce_injection_aggregates(DATASETS['FINALE'],
                                                                     candidates_by_prodpad,
-                                                                    'PRO_Pad', INJ_PAD_KEYS)
+                                                                    'PRO_Pad', INJ_PAD_KEYS,
+                                                                    naive_selection=True)
+
+    # fig, ax = plt.subplots(figsize=(24, 14))
+    # for name, group in DATASETS['INJECTION_AGGREGATES'].groupby('PRO_Pad'):
+    #     if(name in ['A', 'B']):
+    #         group.plot(x='Date', y='Steam', ax=ax, label='Steam: PAD ' + name)
 
     _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
     _accessories.finalize_all(DATASETS, skip=[])

@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: ft_eng_math.py
 # @Last modified by:   Ray
-# @Last modified time: 23-Apr-2021 14:04:15:152  GMT-0600
+# @Last modified time: 27-Apr-2021 11:04:93:930  GMT-0600
 # @License: [Private IP]
 
 import itertools
@@ -215,7 +215,7 @@ _ = """
 """
 
 
-def _FEATENG_MATH(data=None, RESPONDER='PRO_Total_Fluid', NAIVE=False):
+def _FEATENG_MATH(data=None, RESPONDER='PRO_Total_Fluid', skip_save=True):
     if data is None:
         _accessories._print('Ingesting PHYSICS ENGINEERD, WEIGHTED data...', color='LIGHTYELLOW_EX')
         _accessories._print('WARNING: Mathematical feature engineering is isolated from modelling component.\n' +
@@ -235,7 +235,7 @@ def _FEATENG_MATH(data=None, RESPONDER='PRO_Total_Fluid', NAIVE=False):
     _accessories._print('Generating new features...', color='LIGHTYELLOW_EX')
     groups_engdfs, CORE_FEATURES = generate_new_features(DATASETS['WEIGHTED'], RESPONDER, 'PRO_Pad')
 
-    if(NAIVE):
+    if(not skip_save):
         _accessories._print('Extracting specs of generated features...', color='LIGHTYELLOW_EX')
         all_new_dfs, all_new_fts, NEW_FEATURES = extract_specs(groups_engdfs, 'PRO_Pad', CORE_FEATURES)
 

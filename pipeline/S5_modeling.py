@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 10:04:41:411  GMT-0600
+# @Last modified time: 27-Apr-2021 11:04:76:765  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -588,7 +588,7 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict, wei
         if(ENGINEER_FEATURES):
             _accessories._print('No validation frame will be supplied to H20 since ' +
                                 'mathematical features are dynamically engineered.')
-            MODEL_DATASETS, CORE_FEATURES = _FEATENG_MATH(data.as_data_frame(), RESPONDER=responder)
+            MODEL_DATASETS, CORE_FEATURES = _FEATENG_MATH(data.as_data_frame(), RESPONDER=responder, skip_save=True)
 
         for group in groupby_options:
             print(Fore.GREEN + 'STATUS: Experiment -> Production Pad {}\n'.format(group) + Style.RESET_ALL)
@@ -731,7 +731,7 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict, wei
 
 @_context_managers.analytics
 def model_performance(project_names_pad, adj_factor, validation_data_dict, RUN_TAG,
-                      sort_by='RMSE', RESPONDER='PRO_Total_Fluid'):
+                      sort_by='RMSE', RESPONDER='PRO_Total_Fluid', save_top='all'):
     """Determine the model performance through a series of predefined metrics.
 
     Parameters
@@ -804,7 +804,11 @@ def model_performance(project_names_pad, adj_factor, validation_data_dict, RUN_T
     perf_data['tolerated RMSE'] = perf_data['group'].apply(lambda x: adj_factor.get(x))
     perf_data['RUN_TAG'] = RUN_TAG
 
-    for model_obj in perf_data.sort_values(['RMSE', 'Rel. Val. RMSE'])['model_obj'][:10]:
+    save_top = len(perf_data) + 1 if save_top == 'all' else save_top
+    _temp = perf_data.sort_values(['RMSE', 'Rel. Val. RMSE'])[:save_top]
+    iter_name_obj = zip(_temp.index, _temp['model_obj'])
+
+    for model_name, model_obj in iter_name_obj:
         mpath = f'Modeling Reference Files/Round {RUN_TAG}/Models/'
         with _accessories.suppress_stdout():
             _accessories.auto_make_path(mpath)
@@ -1416,7 +1420,7 @@ _ = """
 # TODO: See iPhone notes for next steps.
 
 
-def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=False):
+def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=100, plot_for_ref=False):
     RESPONDER = 'PRO_Total_Fluid'
     _accessories._print(f'DATA_PATH_PAD: {DATA_PATH_PAD}', color='LIGHTCYAN_EX')
     _accessories._print(f'DATA_PATH_PAD_vanilla: {DATA_PATH_PAD_vanilla}', color='LIGHTCYAN_EX')
@@ -1447,9 +1451,9 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     setup_and_server()
 
     _accessories._print('Retreiving pre-model data...')
-    PATH_PAD = 'Data/combined_ipc_aggregates.csv'
+    PATH_PAD = 'Data/combined_ipc_aggregates_ALL.csv'
     pd_data_pad = _accessories.retrieve_local_data_file(PATH_PAD)
-    list(pd_data_pad)
+
     _accessories._print('Creating validation sets...')
     data_pad, pad_relationship_validation, pad_relationship_training = create_validation_splits(DATA_PATH_PAD=PATH_PAD,
                                                                                                 pd_data_pad=pd_data_pad.copy(),
@@ -1461,7 +1465,15 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
                                                                                 RESPONDER=RESPONDER,
                                                                                 weighting=weighting,
                                                                                 weights_column=WEIGHTS_COLUMN,
-                                                                                FOLD_COLUMN=FOLD_COLUMN)
+                                                                                FOLD_COLUMN=FOLD_COLUMN,
+                                                                                EXCLUDE=['Bin_1', 'Bin_8', 'Bin_3',
+                                                                                         'Bin_4', 'Bin_5', 'Bin_6',
+                                                                                         'Bin_7', 'Bin_8', 'Bin_2',
+                                                                                         'PRO_Pump_Speed',
+                                                                                         'PRO_Alloc_Oil',
+                                                                                         'PRO_Adj_Pump_Speed',
+                                                                                         'PRO_Adj_Alloc_Oil',
+                                                                                         'PRO_Water_cut'])
 
     hyp_overview(PREDICTORS, RESPONDER, MAX_EXP_RUNTIME)
     # if(input('Proceed with given hyperparameters? (Y/N)') != 'Y'):
@@ -1477,7 +1489,7 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
                                        ENGINEER_FEATURES=math_eng,
                                        weighting=weighting)  # pad_relationship_validation
 
-    _accessories._print(str(project_names_pad), color='YELLOW')
+    _accessories._print('PROJECTS: ' + str(project_names_pad), color='YELLOW')
 
     # _accessories._print('Calculating variable importance...')
     # varimps_pad = varimps(project_names_pad)
