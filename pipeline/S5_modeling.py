@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 12:04:97:974  GMT-0600
+# @Last modified time: 27-Apr-2021 13:04:20:208  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -831,7 +831,7 @@ def model_performance(project_names_pad, adj_factor, validation_data_dict, RUN_T
         perf_data.at[model_name, 'model_obj'] = model_path
     perf_data['model_obj'] = perf_data['model_obj'].apply(lambda x: 'Not available' if type(x) != str else x)
 
-    return perf_data
+    return perf_data.reset_index(drop=False)
 
 
 # @_context_managers.representation
@@ -1601,8 +1601,9 @@ def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):
                         MAX_EXP_RUNTIME=MAX_EXP_RUNTIME.item(),
                         plot_for_ref=False)
         t2 = time.time()
+        save_time = str(datetime.datetime.now())
         content = str(math_eng) + ',' + str(weighting) + ',' + str(MAX_EXP_RUNTIME) + ',' + str(t2 - t1) + \
-            ',' + str(tag) + '\n'
+            ',' + str(tag) + ',' + save_time + '\n'
         _accessories._print(content, color='YELLOW')
         with open(path, 'a') as file:
             file.write(content)
