@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Apr-2021 12:04:30:301  GMT-0600
+# @Last modified time: 27-Apr-2021 10:04:61:617  GMT-0600
 # @License: [Private IP]
 
 
@@ -75,12 +75,12 @@ FORMAT_COLUMNS: Final = {'INJECTION': ['Date', 'INJ_Pad', 'INJ_Well', 'INJ_UWI',
                                              'PRO_Pump_Size', 'PRO_Operator_Approved', 'PRO_Operator_Rejected',
                                              'PRO_Operator_Comment', 'PRO_Engineering_Approved',
                                              'PRO_Engineering_Rejected', 'PRO_Engineering_Comment']}
-
 CHOICE_COLUMNS: Final = {'INJECTION': ['Date', 'INJ_Pad', 'INJ_Well', 'INJ_Meter_Steam', 'INJ_Casing_BHP',
                                        'INJ_Tubing_Pressure'],
                          'PRODUCTION': ['Date', 'PRO_UWI', 'PRO_Well', 'PRO_Pump_Speed', 'PRO_Time_On',
-                                        'PRO_Casing_Pressure', 'PRO_Heel_Pressure', 'PRO_Toe_Pressure',
-                                        'PRO_Heel_Temp', 'PRO_Toe_Temp', 'PRO_Alloc_Oil', 'PRO_Alloc_Water'],
+                                        'PRO_Casing_Pressure', 'PRO_Alloc_Steam', 'PRO_Heel_Pressure',
+                                        'PRO_Toe_Pressure', 'PRO_Heel_Temp', 'PRO_Toe_Temp',
+                                        'PRO_Alloc_Oil', 'PRO_Alloc_Water'],
                          'PRODUCTION_TEST': ['PRO_Pad', 'PRO_Well', 'Date', 'PRO_Duration', 'PRO_Oil',
                                              'PRO_Water', 'PRO_Gas', 'PRO_Fluid', 'PRO_Chlorides',
                                              'PRO_Pump_Efficiency', 'PRO_Engineering_Approved']}
@@ -187,7 +187,7 @@ def ingest_fiber(producer_wells, **kwargs):
     return aggregated_fiber
 
 
-def save_well_pad_relations(datasets, direc='Data/', only=['INJECTION', 'PRODUCTION']):
+def save_well_pad_relations(datasets, direc='Data/Pickles/', only=['INJECTION', 'PRODUCTION']):
     for name, df in datasets.items():
         if(name not in only):
             continue
@@ -221,7 +221,7 @@ def _INGESTION():
     _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
     _accessories.finalize_all(DATASETS, skip=[])
     merged_df = merge(DATASETS)
-    _accessories.save_local_data_file(merged_df, 'Data/combined_ipc.csv')
+    _accessories.save_local_data_file(merged_df, 'Data/combined_ipc_ALL.csv')
 
 
 if __name__ == '__main__':

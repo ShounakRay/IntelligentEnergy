@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 16:04:04:045  GMT-0600
+# @Last modified time: 27-Apr-2021 10:04:41:411  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -766,6 +766,8 @@ def model_performance(project_names_pad, adj_factor, validation_data_dict, RUN_T
     perf_data = {}
     exp_objs = zip(project_names_pad, get_aml_objects(project_names_pad))
 
+    # TODO: Check how big project_names is and pass accordingly
+
     for project_name, exp_obj in exp_objs:
         group = project_name.split('__')[-1]
         # Calculate validation RMSE
@@ -1407,7 +1409,7 @@ def get_benchlines(data_pad_pd, RESPONDER, grouper='PRO_Pad', PREFERRED_TOLERANC
 _ = """
 #######################################################################################################################
 ##################################################   CORE EXECUTION  ##################################################
-######################################################################################################################
+#######################################################################################################################
 """
 
 # TODO: Validation setup when feature engineering occurs
@@ -1447,7 +1449,7 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=20, plot_for_ref=
     _accessories._print('Retreiving pre-model data...')
     PATH_PAD = 'Data/combined_ipc_aggregates.csv'
     pd_data_pad = _accessories.retrieve_local_data_file(PATH_PAD)
-
+    list(pd_data_pad)
     _accessories._print('Creating validation sets...')
     data_pad, pad_relationship_validation, pad_relationship_training = create_validation_splits(DATA_PATH_PAD=PATH_PAD,
                                                                                                 pd_data_pad=pd_data_pad.copy(),

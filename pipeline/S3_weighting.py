@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 21-Apr-2021 12:04:51:512  GMT-0600
+# @Last modified time: 27-Apr-2021 10:04:74:747  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -84,10 +84,13 @@ aggregation_dict = {'PRO_Adj_Pump_Speed': 'mean',
                     'PRO_Heel_Temp': 'mean',
                     'PRO_Toe_Temp': 'mean',
                     'PRO_Adj_Alloc_Oil': 'sum',
+                    'PRO_Alloc_Oil': 'sum',
                     # 'PRO_Duration': 'mean',
                     # 'PRO_Alloc_Oil': 'sum',
                     'PRO_Total_Fluid': 'sum',
                     # 'PRO_Alloc_Water': 'sum',
+                    'PRO_Alloc_Steam': 'sum',
+                    'PRO_Water_cut': 'sum',
                     'Bin_1': 'mean',
                     'Bin_2': 'mean',
                     'Bin_3': 'mean',
@@ -510,7 +513,7 @@ def distance_matrix(injector_coordinates, producer_coordinates, save=True):
     pro_inj_distance = pro_inj_distance.infer_objects()
 
     if(save):
-        _accessories.save_local_data_file(pro_inj_distance, 'Data/DISTANCE_MATRIX.pkl')
+        _accessories.save_local_data_file(pro_inj_distance, 'Data/Pickles/DISTANCE_MATRIX.pkl')
 
     return pro_inj_distance
 
@@ -620,8 +623,8 @@ def get_all_candidates(injection_coordinates, production_coordinates,
                                 production_coordinates, injection_coordinates)
 
     if(save):
-        _accessories.save_local_data_file(candidates_by_prodpad, 'Data/PAD_Candidates.pkl')
-        _accessories.save_local_data_file(candidates_by_prodwell, 'Data/WELL_Candidates.pkl')
+        _accessories.save_local_data_file(candidates_by_prodpad, 'Data/Pickles/PAD_Candidates.pkl')
+        _accessories.save_local_data_file(candidates_by_prodwell, 'Data/Pickles/WELL_Candidates.pkl')
 
     return candidates_by_prodpad, candidates_by_prodwell
 
@@ -645,13 +648,11 @@ _ = """
 
 def _INTELLIGENT_AGGREGATION():
     _accessories._print('Ingesting PHYSICS ENGINEERED and pad-well relationship data...', color='LIGHTYELLOW_EX')
-    DATASETS = {'FINALE': _accessories.retrieve_local_data_file('Data/combined_ipc_engineered_phys.csv')}
-    INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/INJECTION_[Well, Pad].pkl')
-    PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/PRODUCTION_[Well, Pad].pkl')
+    DATASETS = {'FINALE': _accessories.retrieve_local_data_file('Data/combined_ipc_engineered_phys_ALL.csv')}
+    INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/Pickles/INJECTION_[Well, Pad].pkl')
+    PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/Pickles/PRODUCTION_[Well, Pad].pkl')
 
-    _accessories._print('Minor processing and group availability tracking...', color='LIGHTYELLOW_EX')
-    available_pads_transformed = ['A', 'B']
-    available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in available_pads_transformed]
+    _accessories._print('Minor processing...', color='LIGHTYELLOW_EX')
     DATASETS['FINALE'] = minor_processing(DATASETS['FINALE'], PRO_PAD_KEYS)
 
     _accessories._print('Performing anomaly detection...', color='LIGHTYELLOW_EX')
@@ -662,6 +663,8 @@ def _INTELLIGENT_AGGREGATION():
     producer_coords = get_coordinates('PRODUCTION')
 
     _accessories._print('Determining candidates and distance matrix...', color='LIGHTYELLOW_EX')
+    available_pads_transformed = ['A', 'B']
+    available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in available_pads_transformed]
     candidates_by_prodpad, candidates_by_prodwell = get_all_candidates(injector_coords, producer_coords,
                                                                        available_pads_transformed,
                                                                        available_pwells_transformed,
