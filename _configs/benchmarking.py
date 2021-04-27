@@ -3,19 +3,81 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 14:04:86:869  GMT-0600
+# @Last modified time: 27-Apr-2021 14:04:45:458  GMT-0600
 # @License: [Private IP]
 
 
 import glob
 import os
 import pickle
+import subprocess
+import sys
 from io import StringIO
 
 import _pickle as cPickle
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+
+
+def ensure_cwd(expected_parent):
+    init_cwd = os.getcwd()
+    sub_dir = init_cwd.split('/')[-1]
+
+    if(sub_dir != expected_parent):
+        new_cwd = init_cwd
+        print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
+              f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
+    else:
+        new_cwd = init_cwd.replace('/' + sub_dir, '')
+        print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
+        os.chdir(new_cwd)
+
+
+def check_java_dependency():
+    OUT_BLOCK = '»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»\n'
+    # Get the major java version in current environment
+    java_major_version = int(subprocess.check_output(['java', '-version'],
+                                                     stderr=subprocess.STDOUT).decode().split('"')[1].split('.')[0])
+
+    # Check if environment's java version complies with H2O requirements
+    # http://docs.h2o.ai/h2o/latest-stable/h2o-docs/welcome.html#requirements
+    if not (java_major_version >= 8 and java_major_version <= 14):
+        raise ValueError('STATUS: Java Version is not between 8 and 14 (inclusive).\n' +
+                         'H2O cluster will not be initialized.')
+
+    print("\x1b[32m" + 'STATUS: Java dependency versions checked and confirmed.')
+    print(OUT_BLOCK)
+
+
+if __name__ == '__main__':
+    try:
+        _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
+    except Exception:
+        _EXPECTED_PARENT_NAME = 'pipeline'
+        print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
+              f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
+    ensure_cwd(_EXPECTED_PARENT_NAME)
+    sys.path.insert(1, os.getcwd() + '/_references')
+    sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
+    import _accessories
+    import _context_managers
+
+    # Check java dependency
+    check_java_dependency()
+
+
+_ = """
+#######################################################################################################################
+#############################################   HYPERPARAMETER SETTINGS   #############################################
+#######################################################################################################################
+"""
+
+_ = """
+#######################################################################################################################
+##############################################   FUNCTION DEFINITIONS   ###############################################
+#######################################################################################################################
+"""
 
 
 def see_performance(benchmarks_combined, groupby_option, kind='kde'):
@@ -27,6 +89,13 @@ def see_performance(benchmarks_combined, groupby_option, kind='kde'):
         sub_df.plot(x='Run_Time', y='Rel_Val_RMSE', ax=ax, kind=kind, label=label, stacked=True)
     _ = plt.title(f'Relative RMSE vs. Run Time per Modeling Configuration (for all {groupby_option}s)')
     _ = plt.legend(loc='upper left')
+
+
+def get_best_models(benchmarks_combined, grouper='Group', top=3):
+    for name, group_df in benchmarks_combined.groupby(grouper):
+        best = group_df.sort_values(['Rel_Val_RMSE', 'RMSE'], ascending=True)[:top]
+        best = list(best['path'].values)
+        yield (name, best)
 
 
 _ = """
@@ -41,14 +110,14 @@ data = data[data['PRO_Pad'] == 'B'].reset_index(drop=True).sort_values('Date')
 data['accuracy'] = 1 - data['accuracy']
 data = data[data['Date'] > '2015-12-30'].reset_index(drop=True)
 
-plt.figure(figsize=(20, 12))
-plt.title('PAD B Optimization Reccomendation')
-plt.xlabel('Days since 2019-12-30')
-plt.ylabel('Volume and Accuracy (Dual)')
-data['Steam'].plot(label="Reccomended Steam", legend=True)
-data['Total_Fluid'].plot(label="Predicted Total Fluid", legend=True)
+_ = plt.figure(figsize=(20, 12))
+_ = plt.title('PAD B Optimization Reccomendation')
+_ = plt.xlabel('Days since 2019-12-30')
+_ = plt.ylabel('Volume and Accuracy (Dual)')
+_ = data['Steam'].plot(label="Reccomended Steam", legend=True)
+_ = data['Total_Fluid'].plot(label="Predicted Total Fluid", legend=True)
 # data['accuracy'].plot(secondary_y=True, label="Accuracy", legend=True)
-data['rel_rmse'].plot(secondary_y=True, label="Relative RMSE", legend=True)
+_ = data['rel_rmse'].plot(secondary_y=True, label="Relative RMSE", legend=True)
 
 
 _ = """
@@ -119,10 +188,10 @@ benchmarks_combined['Save_Time'] = pd.to_datetime(benchmarks_combined['Save_Time
 #                                                                      c='green')
 # _ = plt.legend(loc='upper left')
 
-see_performance(benchmarks_combined, 'Group', kind='kde')
+see_performance(benchmarks_combined, 'Group', kind='scatter')
+_accessories._distinct_colors
 
-
-def_get_best_models(benchmarks_combined)
+get_best_models(benchmarks_combined)
 
 
 # Associate run tag to model RMSE
