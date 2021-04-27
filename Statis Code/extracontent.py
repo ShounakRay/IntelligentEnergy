@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 20-Apr-2021 16:04:64:643  GMT-0600
+# @Last modified time: 27-Apr-2021 14:04:65:654  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -536,3 +536,31 @@
 #         x='date', y='selection', kind='scatter', c='red', s=3, ax=ax)
 #     ft[ft['anomaly'] == 'No'][['date', 'selection']].plot(x='date', y='selection', kind='line', ax=ax)
 #     plt.show()
+
+# aggregated_metrics = aggregated_metrics.groupby(['Group', 'Run_Tag'],
+#                                                 group_keys=False).apply(lambda x:
+#                                                                         x.sort_values(['Rel_Val_RMSE', 'RMSE'],
+#                                                                                       ascending=True))
+
+# # benchmarks_combined['Run_Time'] = benchmarks_combined['Run_Time'].astype(float)
+# benchmarks_combined[(benchmarks_combined['Math_Eng'] == True) &
+#                     (benchmarks_combined['Weighted'] == True)].plot(x='Run_Time', y='Rel_Val_RMSE',
+#                                                                     ax=ax,
+#                                                                     kind='scatter', label='Eng + Weight',
+#                                                                     c='blue')
+# benchmarks_combined[(benchmarks_combined['Math_Eng'] == True) &
+#                     (benchmarks_combined['Weighted'] == False)].plot(x='Run_Time', y='Rel_Val_RMSE',
+#                                                                      ax=ax,
+#                                                                      kind='scatter', label='Eng',
+#                                                                      c='purple')
+# benchmarks_combined[(benchmarks_combined['Math_Eng'] == False) &
+#                     (benchmarks_combined['Weighted'] == True)].plot(x='Run_Time', y='Rel_Val_RMSE',
+#                                                                     ax=ax,
+#                                                                     kind='scatter', label='Weight',
+#                                                                     c='red')
+# benchmarks_combined[(benchmarks_combined['Math_Eng'] == False) &
+#                     (benchmarks_combined['Weighted'] == False)].plot(x='Run_Time', y='Rel_Val_RMSE',
+#                                                                      ax=ax,
+#                                                                      kind='scatter', label='Naive',
+#                                                                      c='green')
+# _ = plt.legend(loc='upper left')

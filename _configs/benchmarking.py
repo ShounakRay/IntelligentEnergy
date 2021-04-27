@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 14:04:45:458  GMT-0600
+# @Last modified time: 27-Apr-2021 14:04:75:756  GMT-0600
 # @License: [Private IP]
 
 
@@ -126,6 +126,7 @@ _ = """
 #######################################################################################################################
 """
 
+# GET TIME BENCHMARKING FILES
 with open('_configs/modeling_benchmarks.txt') as file:
     lines = file.readlines()[8:]
 lines_obj = StringIO(''.join(lines))
@@ -134,12 +135,12 @@ temporal_benchmarks.columns = ['Math_Eng', 'Weighted', 'Run_Time', 'Duration', '
 
 # # #
 
+# GET PERFORMANCE BENCHMARKING FILES
 # all_pickles = glob.glob("Modeling Reference Files/*/*/*pkl")
 all_csvs = glob.glob("Modeling Reference Files/*/*csv")
 all_perf_files = []
 for path in all_csvs:
     all_perf_files.append([path.split('/MODELS_')[-1].split('.pkl')[0], path])
-
 data_storage = []
 for run_tag, path in all_perf_files:
     if(path.endswith('.pkl')):
@@ -154,40 +155,16 @@ for run_tag, path in all_perf_files:
     data_storage.append(data.infer_objects())
 
 aggregated_metrics = pd.concat(data_storage).reset_index(drop=True)
+
+# EXCLUDE ANY ANOMALOUS, SUPER-HIGH RMSE VALUES
 aggregated_metrics = aggregated_metrics[aggregated_metrics['Rel_Val_RMSE'] <= 100]
-aggregated_metrics = aggregated_metrics.groupby(['Group', 'Run_Tag'],
-                                                group_keys=False).apply(lambda x:
-                                                                        x.sort_values(['Rel_Val_RMSE', 'RMSE'],
-                                                                                      ascending=True))
 aggregated_metrics['Model_Type'] = aggregated_metrics['Name'].str.split('_').str[0]
 
-aggregated_metrics[aggregated_metrics['Group'] == 'A'].sort_values(['Rel_Val_RMSE', 'RMSE'], ascending=True)
-
+# MERGE TEMPORAL AND PERFORMANCE BENCHMARKS
 benchmarks_combined = pd.merge(aggregated_metrics, temporal_benchmarks, 'inner', on='Run_Tag').infer_objects()
 benchmarks_combined['Save_Time'] = pd.to_datetime(benchmarks_combined['Save_Time'])
-# # benchmarks_combined['Run_Time'] = benchmarks_combined['Run_Time'].astype(float)
-# benchmarks_combined[(benchmarks_combined['Math_Eng'] == True) &
-#                     (benchmarks_combined['Weighted'] == True)].plot(x='Run_Time', y='Rel_Val_RMSE',
-#                                                                     ax=ax,
-#                                                                     kind='scatter', label='Eng + Weight',
-#                                                                     c='blue')
-# benchmarks_combined[(benchmarks_combined['Math_Eng'] == True) &
-#                     (benchmarks_combined['Weighted'] == False)].plot(x='Run_Time', y='Rel_Val_RMSE',
-#                                                                      ax=ax,
-#                                                                      kind='scatter', label='Eng',
-#                                                                      c='purple')
-# benchmarks_combined[(benchmarks_combined['Math_Eng'] == False) &
-#                     (benchmarks_combined['Weighted'] == True)].plot(x='Run_Time', y='Rel_Val_RMSE',
-#                                                                     ax=ax,
-#                                                                     kind='scatter', label='Weight',
-#                                                                     c='red')
-# benchmarks_combined[(benchmarks_combined['Math_Eng'] == False) &
-#                     (benchmarks_combined['Weighted'] == False)].plot(x='Run_Time', y='Rel_Val_RMSE',
-#                                                                      ax=ax,
-#                                                                      kind='scatter', label='Naive',
-#                                                                      c='green')
-# _ = plt.legend(loc='upper left')
 
+# VISUALIZE
 see_performance(benchmarks_combined, 'Group', kind='scatter')
 _accessories._distinct_colors
 
