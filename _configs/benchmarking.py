@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 14:04:75:756  GMT-0600
+# @Last modified time: 27-Apr-2021 15:04:92:924  GMT-0600
 # @License: [Private IP]
 
 
@@ -80,22 +80,76 @@ _ = """
 """
 
 
-def see_performance(benchmarks_combined, groupby_option, kind='kde'):
+def get_benchmarks(time_path='_configs/modeling_benchmarks.txt', perf_path="Modeling Reference Files/*/*csv"):
+    def get_time_benchmarks(path=time_path):
+        # GET TIME BENCHMARKING FILES
+        with open(path) as file:
+            lines = file.readlines()[8:]
+        lines_obj = StringIO(''.join(lines))
+        temporal_benchmarks = pd.read_csv(lines_obj, sep=",").infer_objects().dropna()
+        temporal_benchmarks.columns = ['Math_Eng', 'Weighted', 'Run_Time', 'Duration', 'Run_Tag', 'Save_Time']
+        temporal_benchmarks['Save_Time'] = pd.to_datetime(temporal_benchmarks['Save_Time'])
+
+        return temporal_benchmarks
+
+    def get_perf_benchmarks(path=perf_path):
+        # GET PERFORMANCE BENCHMARKING FILES
+        # all_pickles = glob.glob("Modeling Reference Files/*/*/*pkl")
+        all_csvs = glob.glob(path)
+        all_perf_files = []
+        for path in all_csvs:
+            all_perf_files.append([path.split('/MODELS_')[-1].split('.pkl')[0], path])
+        data_storage = []
+        for run_tag, path in all_perf_files:
+            if(path.endswith('.pkl')):
+                with open(path, 'r') as file:
+                    lines = file.readlines()
+                    # lines = StringIO(''.join()
+                data = pd.read_csv(StringIO(''.join(lines)), delim_whitespace=True).dropna(
+                    axis=1).reset_index(drop=True)
+            elif(path.endswith('.csv')):
+                data = pd.read_csv(path, sep=',').reset_index(drop=True)
+            data.columns = ['Name', 'RMSE', 'Rel_RMSE', 'Val_RMSE',
+                            'Rel_Val_RMSE', 'Group', 'Tolerated RMSE', 'Run_Tag']
+            data['path'] = path
+            data_storage.append(data.infer_objects())
+        aggregated_metrics = pd.concat(data_storage).reset_index(drop=True)
+        # EXCLUDE ANY ANOMALOUS, SUPER-HIGH RMSE VALUES
+        aggregated_metrics = aggregated_metrics[aggregated_metrics['Rel_Val_RMSE'] <= 100]
+        aggregated_metrics['Model_Type'] = aggregated_metrics['Name'].str.split('_').str[0]
+
+        return aggregated_metrics
+
+    temporal = get_time_benchmarks()
+    performance = get_perf_benchmarks()
+
+    # MERGE TEMPORAL AND PERFORMANCE BENCHMARKS
+    return pd.merge(performance, temporal, 'inner', on='Run_Tag').infer_objects()
+
+
+def see_performance(benchmarks_combined, groupby_option, kind='kde', colors=_accessories._distinct_colors()):
     fig, ax = plt.subplots(figsize=(12, 9))
-    for group_conditions, group in benchmarks_combined.groupby(['Math_Eng', 'Weighted', groupby_option]):
+    groupby_obj = benchmarks_combined.groupby(['Math_Eng', 'Weighted', groupby_option])
+    i = 0
+    for group_conditions, group in groupby_obj:
         math_eng, weighted, grouper = group_conditions
         label = f'Eng: {math_eng}, Wgt: {weighted}, Other: {grouper}'
         sub_df = group
-        sub_df.plot(x='Run_Time', y='Rel_Val_RMSE', ax=ax, kind=kind, label=label, stacked=True)
+        color = colors[i]
+        sub_df.plot(x='Run_Time', y='Rel_Val_RMSE', ax=ax, kind=kind, label=label, stacked=True, c=color)
+        i += 1
     _ = plt.title(f'Relative RMSE vs. Run Time per Modeling Configuration (for all {groupby_option}s)')
     _ = plt.legend(loc='upper left')
 
 
-def get_best_models(benchmarks_combined, grouper='Group', top=3):
+def get_best_models(benchmarks_combined, grouper='Group', sort_by=['Rel_Val_RMSE', 'RMSE'], top=3):
+    top_df = []
     for name, group_df in benchmarks_combined.groupby(grouper):
-        best = group_df.sort_values(['Rel_Val_RMSE', 'RMSE'], ascending=True)[:top]
+        best = group_df.sort_values(sort_by, ascending=True)[:top]
         best = list(best['path'].values)
-        yield (name, best)
+        top_df.append((name, best))
+
+    return top_df
 
 
 _ = """
@@ -126,62 +180,8 @@ _ = """
 #######################################################################################################################
 """
 
-# GET TIME BENCHMARKING FILES
-with open('_configs/modeling_benchmarks.txt') as file:
-    lines = file.readlines()[8:]
-lines_obj = StringIO(''.join(lines))
-temporal_benchmarks = pd.read_csv(lines_obj, sep=",").infer_objects().dropna()
-temporal_benchmarks.columns = ['Math_Eng', 'Weighted', 'Run_Time', 'Duration', 'Run_Tag', 'Save_Time']
+benchmarks = get_benchmarks()
 
-# # #
+see_performance(benchmarks, 'Group', kind='kde')
 
-# GET PERFORMANCE BENCHMARKING FILES
-# all_pickles = glob.glob("Modeling Reference Files/*/*/*pkl")
-all_csvs = glob.glob("Modeling Reference Files/*/*csv")
-all_perf_files = []
-for path in all_csvs:
-    all_perf_files.append([path.split('/MODELS_')[-1].split('.pkl')[0], path])
-data_storage = []
-for run_tag, path in all_perf_files:
-    if(path.endswith('.pkl')):
-        with open(path, 'r') as file:
-            lines = file.readlines()
-            # lines = StringIO(''.join()
-        data = pd.read_csv(StringIO(''.join(lines)), delim_whitespace=True).dropna(axis=1).reset_index(drop=True)
-    elif(path.endswith('.csv')):
-        data = pd.read_csv(path, sep=',').reset_index(drop=True)
-    data.columns = ['Name', 'RMSE', 'Rel_RMSE', 'Val_RMSE', 'Rel_Val_RMSE', 'Group', 'Tolerated RMSE', 'Run_Tag']
-    data['path'] = path
-    data_storage.append(data.infer_objects())
-
-aggregated_metrics = pd.concat(data_storage).reset_index(drop=True)
-
-# EXCLUDE ANY ANOMALOUS, SUPER-HIGH RMSE VALUES
-aggregated_metrics = aggregated_metrics[aggregated_metrics['Rel_Val_RMSE'] <= 100]
-aggregated_metrics['Model_Type'] = aggregated_metrics['Name'].str.split('_').str[0]
-
-# MERGE TEMPORAL AND PERFORMANCE BENCHMARKS
-benchmarks_combined = pd.merge(aggregated_metrics, temporal_benchmarks, 'inner', on='Run_Tag').infer_objects()
-benchmarks_combined['Save_Time'] = pd.to_datetime(benchmarks_combined['Save_Time'])
-
-# VISUALIZE
-see_performance(benchmarks_combined, 'Group', kind='scatter')
-_accessories._distinct_colors
-
-get_best_models(benchmarks_combined)
-
-
-# Associate run tag to model RMSE
-
-
-model_info = pd.read_csv('Modeling Reference Files/5433 – ENG: False, WEIGHT: True, TIME: 60/MODELS_5433.csv')
-model_info = model_info[model_info['group'] == 'B']
-model_info = model_info.sort_values('Rel. Val. RMSE').reset_index(drop=True)
-top_candidates = model_info[model_info['Rel. Val. RMSE'] <= 0].sort_values('Rel. RMSE')
-
-
-fig, ax = plt.subplots(figsize=(8, 6))
-temporal_benchmarks.groupby(['math_eng', 'weighted']).plot(x='run_time', y='duration', ax=ax)
-
-
-# plt.plot(data[data['accuracy'] >= 0]['accuracy'])
+best = get_best_models(benchmarks, sort_by=['Rel_Val_RMSE', 'RMSE'])
