@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 15:04:92:924  GMT-0600
+# @Last modified time: 27-Apr-2021 16:04:31:317  GMT-0600
 # @License: [Private IP]
 
 
@@ -143,14 +143,29 @@ def see_performance(benchmarks_combined, groupby_option, kind='kde', colors=_acc
 
 
 def get_best_models(benchmarks_combined, grouper='Group', sort_by=['Rel_Val_RMSE', 'RMSE'], top=3):
-    top_df = []
+    top_df = {}
     for name, group_df in benchmarks_combined.groupby(grouper):
         best = group_df.sort_values(sort_by, ascending=True)[:top]
         best = list(best['path'].values)
-        top_df.append((name, best))
+        top_df[name] = best
 
     return top_df
 
+
+_ = """
+#######################################################################################################################
+#########################################   TEMPORAL + CONFIG BENCHMARKING   ##########################################
+#######################################################################################################################
+"""
+
+benchmarks = get_benchmarks()
+all = ''.join([i + '/' for i in benchmarks[:10]['path'][0].split('/')[:-1]]) + 'MODELS'
+
+see_performance(benchmarks, 'Group', kind='kde')
+
+best = get_best_models(benchmarks, sort_by=['Rel_Val_RMSE', 'RMSE'])
+_accessories.save_local_data_file(best, 'Data/Model Candidates/best_models.pkl')
+_accessories.retrieve_local_data_file('Data/Model Candidates/best_models.pkl')
 
 _ = """
 #######################################################################################################################
@@ -173,15 +188,6 @@ _ = data['Total_Fluid'].plot(label="Predicted Total Fluid", legend=True)
 # data['accuracy'].plot(secondary_y=True, label="Accuracy", legend=True)
 _ = data['rel_rmse'].plot(secondary_y=True, label="Relative RMSE", legend=True)
 
+# EOF
 
-_ = """
-#######################################################################################################################
-#########################################   TEMPORAL + CONFIG BENCHMARKING   ##########################################
-#######################################################################################################################
-"""
-
-benchmarks = get_benchmarks()
-
-see_performance(benchmarks, 'Group', kind='kde')
-
-best = get_best_models(benchmarks, sort_by=['Rel_Val_RMSE', 'RMSE'])
+# EOF
