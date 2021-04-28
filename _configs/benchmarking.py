@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 28-Apr-2021 10:04:70:704  GMT-0600
+# @Last modified time: 28-Apr-2021 12:04:35:354  GMT-0600
 # @License: [Private IP]
 
 
@@ -13,6 +13,7 @@ import pickle
 import subprocess
 import sys
 from io import StringIO
+from random import shuffle
 
 import _pickle as cPickle
 import matplotlib.pyplot as plt
@@ -111,7 +112,7 @@ def get_benchmarks(time_path='_configs/modeling_benchmarks.txt', perf_path="Mode
                 data = pd.read_csv(path, sep=',').reset_index(drop=True)
             data.columns = ['Name', 'RMSE', 'Rel_RMSE', 'Val_RMSE',
                             'Rel_Val_RMSE', 'Group', 'Tolerated RMSE', 'Run_Tag']
-            data['path'] = path
+            data['path'] = ''.join([t + '/' for t in path.split('/MODELS_')[:-1]]) + data['Name']
             data_storage.append(data.infer_objects())
         aggregated_metrics = pd.concat(data_storage).reset_index(drop=True).infer_objects()
         # EXCLUDE ANY ANOMALOUS, SUPER-HIGH RMSE VALUES
@@ -132,6 +133,8 @@ def see_performance(benchmarks_combined, groupby_option,
                     x='Run_Time', y='Rel_Val_RMSE',
                     kind='kde', colors=_accessories._distinct_colors(), FIGSIZE=(12, 9)):
     fig, ax = plt.subplots(figsize=FIGSIZE)
+    ax.set_facecolor('lightgray')
+    shuffle(colors)
     groupby_obj = benchmarks_combined.groupby(first_two + [groupby_option])
     i = 0
     for group_conditions, group in groupby_obj:
@@ -139,10 +142,10 @@ def see_performance(benchmarks_combined, groupby_option,
         label = f'Eng: {math_eng}, Wgt: {weighted}, Other: {grouper}'
         sub_df = group
         color = colors[i]
-        handle = sub_df.plot(x=x, y=y, ax=ax, kind=kind, label=label, stacked=False, c=color)
+        sub_df.plot(x=x, y=y, ax=ax, kind=kind, label=label, stacked=False, c=color, lw=3)
         i += 1
     _ = plt.title(f'Relative RMSE vs. Run Time per Modeling Configuration (for all {groupby_option}s)')
-    plt.legend(title='Configs', bbox_to_anchor=(0.5, -0.19),
+    plt.legend(title='Configs', bbox_to_anchor=(0.5, -0.16),
                loc='lower center', fontsize='small', ncol=5,
                fancybox=True, shadow=True, facecolor='white')
 
@@ -157,6 +160,17 @@ def get_best_models(benchmarks_combined, grouper='Group', sort_by=['Rel_Val_RMSE
     return top_df
 
 
+def macro_performance(benchmarks, consideration=10):
+    best_possibles = benchmarks.groupby(['Group',
+                                         'Tolerated RMSE']
+                                        )['Rel_Val_RMSE'].nsmallest(consideration).reset_index().drop('level_2', 1)
+    best_possibles = best_possibles.groupby(['Group', 'Tolerated RMSE'])['Rel_Val_RMSE'].mean().reset_index()
+    best_possibles['Best RMSE Proportion'] = (best_possibles['Tolerated RMSE'] + best_possibles['Rel_Val_RMSE']
+                                              ) / (best_possibles['Tolerated RMSE'] * 0.1)
+
+    return best_possibles
+
+
 _ = """
 #######################################################################################################################
 #########################################   TEMPORAL + CONFIG BENCHMARKING   ##########################################
@@ -165,22 +179,24 @@ _ = """
 
 temporal, performance, benchmarks = get_benchmarks(time_path='_configs/modeling_benchmarks.txt',
                                                    perf_path="Modeling Reference Files/*/*csv")
-all = ''.join([i + '/' for i in benchmarks[:10]['path'][0].split('/')[:-1]]) + 'MODELS'
 
-performance.sort_values('Rel_Val_RMSE')
+
+macro_best = macro_performance(benchmarks, consideration=5)
+
 
 sparse_df = benchmarks[benchmarks['Rel_Val_RMSE'] <= 80].groupby(['Group',
                                                                   'Math_Eng',
                                                                   'Weighted',
-                                                                  'Duration'])['Rel_Val_RMSE'].nsmallest(3).reset_index()
-sparse_df['Group'].unique()
+                                                                  'Duration']
+                                                                 )['Rel_Val_RMSE'].nsmallest(3).reset_index()
+# sparse_df['Group'].unique()
 see_performance(sparse_df, first_two=['Math_Eng', 'Weighted'],
                 x='Duration', y='Rel_Val_RMSE',
-                groupby_option='Group', kind='kde', FIGSIZE=(18, 9))
+                groupby_option='Group', kind='kde', FIGSIZE=(21, 11))
 
 best = get_best_models(performance, sort_by=['Rel_Val_RMSE', 'Rel_RMSE'])
 _accessories.save_local_data_file(best, 'Data/Model Candidates/best_models.pkl')
-_accessories.retrieve_local_data_file('Data/Model Candidates/best_models.pkl')
+
 
 _ = """
 #######################################################################################################################

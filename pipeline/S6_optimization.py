@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 12:04:11:118  GMT-0600
+# @Last modified time: 28-Apr-2021 10:04:76:761  GMT-0600
 # @License: [Private IP]
 
 
@@ -115,7 +115,7 @@ injector_wells = {
     "F": []
 }
 
-BEST_MODEL_PATH = 'Modeling Reference Files/5433 – ENG: False, WEIGHT: True, TIME: 60/Models/GBM_grid__1_AutoML_20210426_111819_model_1'
+BEST_MODEL_PATHS = _accessories.retrieve_local_data_file('Data/Model Candidates/best_models.pkl')
 
 _ = """
 #######################################################################################################################
@@ -192,7 +192,7 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
 
         # file = open('Modeling Reference Files/6086 – ENG: True, WEIGHT: False, TIME: 20/MODELS_6086.pkl', 'rb')
 
-        model = h2o.load_model(BEST_MODEL_PATH)
+        model = h2o.load_model(BEST_MODEL_PATHS.get(g)[0])
 
         with _accessories.suppress_stdout():
             test_pred, test_actual = get_testdfs(field_df, g, features)
@@ -354,13 +354,13 @@ _ = """
 
 
 def _OPTIMIZATION(start_date='2015-04-01', end_date='2020-12-20', engineered=True):
-    rell = {'A': 170, 'B': 131}
+    rell = {'A': 159.394495, 'B': 132.758275, 'C': 154.587740, 'E': 151.573186, 'F': 103.389248}
 
     _accessories._print('Initializing H2O server to access model files...')
     setup_and_server()
 
     _accessories._print('Loading the most basic, aggregated + mathematically engineered datasets...')
-    DATASETS = {'AGGREGATED_NOENG': _accessories.retrieve_local_data_file('Data/combined_ipc_aggregates.csv'),
+    DATASETS = {'AGGREGATED_NOENG': _accessories.retrieve_local_data_file('Data/combined_ipc_aggregates_ALL.csv'),
                 'AGGREGATED_ENG': _accessories.retrieve_local_data_file('Data/combined_ipc_engineered_math.csv')}
 
     # results = []
