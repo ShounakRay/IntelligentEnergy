@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 16:04:31:317  GMT-0600
+# @Last modified time: 28-Apr-2021 01:04:55:550  GMT-0600
 # @License: [Private IP]
 
 
@@ -90,7 +90,7 @@ def get_benchmarks(time_path='_configs/modeling_benchmarks.txt', perf_path="Mode
         temporal_benchmarks.columns = ['Math_Eng', 'Weighted', 'Run_Time', 'Duration', 'Run_Tag', 'Save_Time']
         temporal_benchmarks['Save_Time'] = pd.to_datetime(temporal_benchmarks['Save_Time'])
 
-        return temporal_benchmarks
+        return temporal_benchmarks.infer_objects()
 
     def get_perf_benchmarks(path=perf_path):
         # GET PERFORMANCE BENCHMARKING FILES
@@ -113,9 +113,9 @@ def get_benchmarks(time_path='_configs/modeling_benchmarks.txt', perf_path="Mode
                             'Rel_Val_RMSE', 'Group', 'Tolerated RMSE', 'Run_Tag']
             data['path'] = path
             data_storage.append(data.infer_objects())
-        aggregated_metrics = pd.concat(data_storage).reset_index(drop=True)
+        aggregated_metrics = pd.concat(data_storage).reset_index(drop=True).infer_objects()
         # EXCLUDE ANY ANOMALOUS, SUPER-HIGH RMSE VALUES
-        aggregated_metrics = aggregated_metrics[aggregated_metrics['Rel_Val_RMSE'] <= 100]
+        # aggregated_metrics = aggregated_metrics[aggregated_metrics['Rel_Val_RMSE'] <= 100]
         aggregated_metrics['Model_Type'] = aggregated_metrics['Name'].str.split('_').str[0]
 
         return aggregated_metrics
@@ -124,19 +124,22 @@ def get_benchmarks(time_path='_configs/modeling_benchmarks.txt', perf_path="Mode
     performance = get_perf_benchmarks()
 
     # MERGE TEMPORAL AND PERFORMANCE BENCHMARKS
-    return pd.merge(performance, temporal, 'inner', on='Run_Tag').infer_objects()
+    return temporal, performance, pd.merge(performance, temporal, 'inner', on='Run_Tag').infer_objects()
 
 
-def see_performance(benchmarks_combined, groupby_option, kind='kde', colors=_accessories._distinct_colors()):
+def see_performance(benchmarks_combined, groupby_option,
+                    first_two=['Math_Eng', 'Weighted'],
+                    x='Run_Time', y='Rel_Val_RMSE',
+                    kind='kde', colors=_accessories._distinct_colors()):
     fig, ax = plt.subplots(figsize=(12, 9))
-    groupby_obj = benchmarks_combined.groupby(['Math_Eng', 'Weighted', groupby_option])
+    groupby_obj = benchmarks_combined.groupby(first_two + [groupby_option])
     i = 0
     for group_conditions, group in groupby_obj:
         math_eng, weighted, grouper = group_conditions
         label = f'Eng: {math_eng}, Wgt: {weighted}, Other: {grouper}'
         sub_df = group
         color = colors[i]
-        sub_df.plot(x='Run_Time', y='Rel_Val_RMSE', ax=ax, kind=kind, label=label, stacked=True, c=color)
+        sub_df.plot(x=x, y=y, ax=ax, kind=kind, label=label, stacked=True, c=color)
         i += 1
     _ = plt.title(f'Relative RMSE vs. Run Time per Modeling Configuration (for all {groupby_option}s)')
     _ = plt.legend(loc='upper left')
@@ -158,12 +161,17 @@ _ = """
 #######################################################################################################################
 """
 
-benchmarks = get_benchmarks()
+temporal, performance, benchmarks = get_benchmarks(time_path='_configs/modeling_benchmarks_2ALLOCSTEAM.txt',
+                                                   perf_path="Modeling Reference Files/*/*csv")
 all = ''.join([i + '/' for i in benchmarks[:10]['path'][0].split('/')[:-1]]) + 'MODELS'
 
-see_performance(benchmarks, 'Group', kind='kde')
+performance.sort_values('Rel_Val_RMSE')
 
-best = get_best_models(benchmarks, sort_by=['Rel_Val_RMSE', 'RMSE'])
+see_performance(performance, first_two=['Group', 'Run_Tag'],
+                x='RMSE', y='Rel_Val_RMSE',
+                groupby_option='Group', kind='kde')
+
+best = get_best_models(performance, sort_by=['Rel_Val_RMSE', 'RMSE'])
 _accessories.save_local_data_file(best, 'Data/Model Candidates/best_models.pkl')
 _accessories.retrieve_local_data_file('Data/Model Candidates/best_models.pkl')
 

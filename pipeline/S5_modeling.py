@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 13:04:20:208  GMT-0600
+# @Last modified time: 28-Apr-2021 01:04:88:889  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -108,7 +108,7 @@ MAX_EXP_RUNTIME: Final = 20                                   # The longest that
 RANDOM_SEED: Final = 2381125                                  # To ensure reproducibility of experiments (caveats*)
 EVAL_METRIC: Final = 'rmse'                                   # The evaluation metric to discontinue model training
 RANK_METRIC: Final = 'rmse'                                   # Leaderboard ranking metric after all trainings
-CV_FOLDS: Final = 50                                          # Number of cross validation folds
+CV_FOLDS: Final = 10                                          # Number of cross validation folds
 STOPPING_ROUNDS: Final = 4                                    # How many rounds to proceed until stopping_metric stops
 WEIGHTS_COLUMN: Final = 'weight'                              # Name of the weights column
 EXPLOIT_RATIO: Final = 0.0                                    # Exploit/Eploration ratio, see NOTES
@@ -195,7 +195,7 @@ def record_hyperparameters(MAX_EXP_RUNTIME):
         pprint(_MISCELLANEOUS_HYPERPARAMS, stream=out)
         print(file=out)
 
-    _accessories._print(f'STATUS: Directory created for Round {RUN_TAG}')
+    _accessories._print(f'STATUS: Directory created for Round {RUN_TAG}', color='LIGHTMAGENTA_EX')
 
     return RUN_TAG
 
@@ -601,7 +601,7 @@ def run_experiment(data, groupby_options, responder, validation_frames_dict, wei
             MODEL_DATASETS, CORE_FEATURES = _FEATENG_MATH(data.as_data_frame(), RESPONDER=responder, skip_save=True)
 
         for group in groupby_options:
-            print(Fore.GREEN + 'STATUS: Experiment -> Production Pad {}\n'.format(group) + Style.RESET_ALL)
+            _accessories._print('STATUS: Experiment -> Production Pad {}'.format(group), color='GREEN')
 
             if(validation_frames_dict is not None and ENGINEER_FEATURES is False):
                 validation_frame_groupby = validation_frames_dict[group]
@@ -790,7 +790,8 @@ def model_performance(project_names_pad, adj_factor, validation_data_dict, RUN_T
         for model_name in model_ids:
             model_obj = h2o.get_model(model_name)
 
-            prediction_on_validation = model_obj.predict(validation_data).as_data_frame().infer_objects()
+            with _accessories.suppress_stdout():
+                prediction_on_validation = model_obj.predict(validation_data).as_data_frame().infer_objects()
             val_rmse = np.sqrt(np.mean((validation_data.as_data_frame()[RESPONDER] -
                                         prediction_on_validation['predict'])**2))
             rel_val_rmse = val_rmse - adj_factor.get(group)
@@ -825,13 +826,13 @@ def model_performance(project_names_pad, adj_factor, validation_data_dict, RUN_T
         mpath = f'Modeling Reference Files/Round {RUN_TAG}/Models/'
         with _accessories.suppress_stdout():
             _accessories.auto_make_path(mpath)
-        model_path = h2o.save_model(model=model_obj, path=f'Modeling Reference Files/Round {RUN_TAG}/Models',
-                                    force=True)
-        _accessories._print('MODEL PATH: ' + model_path)
+            model_path = h2o.save_model(model=model_obj, path=f'Modeling Reference Files/Round {RUN_TAG}/Models',
+                                        force=True)
+            _accessories._print('MODEL PATH: ' + model_path)
         perf_data.at[model_name, 'model_obj'] = model_path
     perf_data['model_obj'] = perf_data['model_obj'].apply(lambda x: 'Not available' if type(x) != str else x)
 
-    return perf_data.reset_index(drop=False)
+    return perf_data.rename_axis('Name').reset_index(drop=False)
 
 
 # @_context_managers.representation
@@ -1160,11 +1161,11 @@ def model_performance(project_names_pad, adj_factor, validation_data_dict, RUN_T
 #             if(ranked_names is None or ranked_steam is None):
 #                 raise ValueError('STATUS: Improper ranked rect inputs.')
 #             for rtop in ranked_names:
-#                 y_loc = list(perf_data.index).index(rtop)
+#                 y_loc = list(perf_data['Name']).index(rtop)
 #                 sns_fig.add_patch(Rectangle(xy=(0, y_loc), width=1, height=1,
 #                                             edgecolor='green', fill=False, lw=3))
 #             for rstm in ranked_steam:
-#                 y_loc = list(perf_data.index).index(rtop)
+#                 y_loc = list(perf_data['Name']).index(rtop)
 #                 sns_fig.add_patch(Rectangle(xy=(0, y_loc), width=1, height=1,
 #                                             edgecolor='cyan', fill=False, lw=4))
 #         sns.set(font_scale=0.6)
@@ -1180,7 +1181,7 @@ def validate_models(perf_data, training_data_dict, benchline, validation_data_di
     FIG_SCALAR = 5.33333333333333
 
     perf_data = perf_data[perf_data['Rel. Val. RMSE'] <= 0].sort_values('Rel. RMSE')
-    all_model_RMSE_H_to_L = [h2o.get_model(perf_data.index[i].split('___GROUP')[0]) for i in range(len(perf_data))]
+    all_model_RMSE_H_to_L = [h2o.get_model(perf_data['Name'][i]) for i in range(len(perf_data))]
     # all_model_RMSE_H_to_L = all_model_RMSE_H_to_L[-1 * TOP_MODELS:]
     if(TOP_MODELS is None):
         all_model_RMSE_H_to_L = all_model_RMSE_H_to_L[:]
@@ -1203,15 +1204,15 @@ def validate_models(perf_data, training_data_dict, benchline, validation_data_di
     models_iterated = []
     for top_model in all_model_RMSE_H_to_L:
         # Extracting Model Configurations
-        model_name = [c for c in list(perf_data.index) if top_model.key in c][0]
-        model_group = perf_data[perf_data.index == model_name]['group'].values[0]
+        model_name = [c for c in list(perf_data['Name']) if top_model.key in c][0]
+        model_group = perf_data[perf_data['Name'] == model_name]['group'].values[0]
         _accessories._print(f'Accesssing configurations and testing model {model_name} for group {model_group}')
         model_type = top_model.algo
         model_position = ax[all_model_RMSE_H_to_L.index(top_model)]
         if(len(all_model_RMSE_H_to_L) == 1):
             raise ValueError('Only one model was created!!')
         models_iterated.append(model_name)
-        RMSE_resp = f'{order_by}: ' + str(int(perf_data[perf_data.index == model_name][order_by][0]))
+        RMSE_resp = f'{order_by}: ' + str(int(perf_data[perf_data['Name'] == model_name][order_by][0]))
 
         training_data = training_data_dict.get(model_group)
         validation_data = validation_data_dict.get(model_group)
@@ -1233,7 +1234,7 @@ def validate_models(perf_data, training_data_dict, benchline, validation_data_di
 
         # IDENTIFIERS FOR MODELING
         axis = model_position[0]
-        # top_model = h2o.get_model(perf_data.index[-1].split('___GROUP')[0])
+        # top_model = h2o.get_model(perf_data['Name'][-1].split('___GROUP')[0])
         # scoring_history = top_model.scoring_history()
         # # plt.figure(figsize=(15, 11.25))
         # axis.set_title(f'Scoring history\n{model_name}')
@@ -1341,31 +1342,32 @@ def create_validation_splits(DATA_PATH_PAD, pd_data_pad, group_colname='PRO_Pad'
         grouped_data_split[u_pad] = (data_pad_loop, data_pad_validation_loop)
 
     # Holdout and validation reformatting
-    data_pad = pd.concat([v[0] for k, v in grouped_data_split.items()]).reset_index(drop=True).infer_objects()
-    wanted_types = {k: 'real' if v == float or v == int else 'enum' for k, v in dict(data_pad.dtypes).items()}
-    data_pad = h2o.H2OFrame(data_pad, column_types=wanted_types)
-    data_pad_validation = pd.concat([v[1] for k, v in grouped_data_split.items()]
-                                    ).reset_index(drop=True).infer_objects()
-    data_pad_validation = h2o.H2OFrame(data_pad_validation, column_types=wanted_types)
+    with _accessories.suppress_stdout():
+        data_pad = pd.concat([v[0] for k, v in grouped_data_split.items()]).reset_index(drop=True).infer_objects()
+        wanted_types = {k: 'real' if v == float or v == int else 'enum' for k, v in dict(data_pad.dtypes).items()}
+        data_pad = h2o.H2OFrame(data_pad, column_types=wanted_types)
+        data_pad_validation = pd.concat([v[1] for k, v in grouped_data_split.items()]
+                                        ).reset_index(drop=True).infer_objects()
+        data_pad_validation = h2o.H2OFrame(data_pad_validation, column_types=wanted_types)
 
-    # Create pad validation relationships
-    pad_relationship_validation = {}
-    for u_pad in unique_pads:
-        df_loop = data_pad_validation.as_data_frame()
-        df_loop = df_loop[df_loop[group_colname] == u_pad].drop(
-            ['Date'], axis=1).infer_objects().reset_index(drop=True)
-        local_wanted_types = {k: v for k, v in wanted_types.items() if k in df_loop.columns}
-        df_loop = h2o.H2OFrame(df_loop, column_types=local_wanted_types)
-        pad_relationship_validation[u_pad] = df_loop
-    # Create pad training relationships
-    pad_relationship_training = {}
-    for u_pad in unique_pads:
-        df_loop = data_pad.as_data_frame()
-        df_loop = df_loop[df_loop[group_colname] == u_pad].drop(
-            [group_colname], axis=1).infer_objects().reset_index(drop=True)
-        local_wanted_types = {k: v for k, v in wanted_types.items() if k in df_loop.columns}
-        df_loop = h2o.H2OFrame(df_loop, column_types=local_wanted_types)
-        pad_relationship_training[u_pad] = df_loop
+        # Create pad validation relationships
+        pad_relationship_validation = {}
+        for u_pad in unique_pads:
+            df_loop = data_pad_validation.as_data_frame()
+            df_loop = df_loop[df_loop[group_colname] == u_pad].drop(
+                ['Date'], axis=1).infer_objects().reset_index(drop=True)
+            local_wanted_types = {k: v for k, v in wanted_types.items() if k in df_loop.columns}
+            df_loop = h2o.H2OFrame(df_loop, column_types=local_wanted_types)
+            pad_relationship_validation[u_pad] = df_loop
+        # Create pad training relationships
+        pad_relationship_training = {}
+        for u_pad in unique_pads:
+            df_loop = data_pad.as_data_frame()
+            df_loop = df_loop[df_loop[group_colname] == u_pad].drop(
+                [group_colname], axis=1).infer_objects().reset_index(drop=True)
+            local_wanted_types = {k: v for k, v in wanted_types.items() if k in df_loop.columns}
+            df_loop = h2o.H2OFrame(df_loop, column_types=local_wanted_types)
+            pad_relationship_training[u_pad] = df_loop
 
     _accessories._print('STATUS: Server initialized and data imported.')
     print(OUT_BLOCK)
@@ -1403,7 +1405,7 @@ def manual_selection_and_processing(data_pad, RUN_TAG, RESPONDER='PRO_Total_Flui
 def hyp_overview(PREDICTORS, RESPONDER, MAX_EXP_RUNTIME):
     print(Fore.GREEN + 'STATUS: Hyperparameter Overview:')
     print(Fore.GREEN + '\t* max_runtime_secs\t-> ', MAX_EXP_RUNTIME,
-          Fore.GREEN + '\t\tThe maximum runtime in seconds that you want to allot in order to complete the model.')
+          Fore.GREEN + '\t\t\tThe maximum runtime in seconds that you want to allot in order to complete the model.')
     print(Fore.GREEN + '\t* stopping_metric\t-> ', EVAL_METRIC,
           Fore.GREEN + '\t\tThis option specifies the metric to consider when early stopping is specified')
     print(Fore.GREEN + '\t* sort_metric\t\t-> ', RANK_METRIC,
@@ -1415,7 +1417,7 @@ def hyp_overview(PREDICTORS, RESPONDER, MAX_EXP_RUNTIME):
     print(Fore.GREEN + '\t* stopping_rounds\t-> ', STOPPING_ROUNDS,
           Fore.GREEN + '\t\t\tThis is the tolerated number of training rounds until `stopping_metric` stops improving.')
     print(Fore.GREEN + '\t* exploitation\t\t-> ', EXPLOIT_RATIO,
-          Fore.GREEN + '\t\t\tThe "budget ratio" dedicated to exploiting vs. exploring for fine-tuning XGBoost and GBM. ' +
+          Fore.GREEN + '\t\tThe "budget ratio" dedicated to exploiting vs. exploring for fine-tuning XGBoost and GBM. ' +
           '**Experimental**')
     print(Fore.GREEN + '\t* tolerance\t\t-> ', PREFERRED_TOLERANCE,
           Fore.GREEN + '\t\tThis is the two-tailed value for RMSE.')
@@ -1447,7 +1449,7 @@ _ = """
 # TODO: See iPhone notes for next steps.
 
 
-def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=2, plot_for_ref=False):
+def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=60, plot_for_ref=False):
     RESPONDER = 'PRO_Total_Fluid'
     _accessories._print(f'DATA_PATH_PAD: {DATA_PATH_PAD}', color='LIGHTCYAN_EX')
     _accessories._print(f'DATA_PATH_PAD_vanilla: {DATA_PATH_PAD_vanilla}', color='LIGHTCYAN_EX')
@@ -1500,7 +1502,8 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=2, plot_for_ref=F
                                                                                          'PRO_Alloc_Oil',
                                                                                          'PRO_Adj_Pump_Speed',
                                                                                          'PRO_Adj_Alloc_Oil',
-                                                                                         'PRO_Water_cut'])
+                                                                                         'PRO_Water_cut',
+                                                                                         'PRO_Alloc_Steam'])
 
     hyp_overview(PREDICTORS, RESPONDER, MAX_EXP_RUNTIME)
     # if(input('Proceed with given hyperparameters? (Y/N)') != 'Y'):
@@ -1543,12 +1546,13 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=2, plot_for_ref=F
                                    PREFERRED_TOLERANCE=PREFERRED_TOLERANCE)
 
     _accessories._print('Calculating model performance...')
-    perf_pad = model_performance(project_names_pad=project_names_pad,
-                                 adj_factor=benchline_pad,
-                                 validation_data_dict=pad_relationship_validation,
-                                 RESPONDER=RESPONDER,
-                                 sort_by='Rel. RMSE',
-                                 RUN_TAG=RUN_TAG)
+    with _accessories.suppress_stdout():
+        perf_pad = model_performance(project_names_pad=project_names_pad,
+                                     adj_factor=benchline_pad,
+                                     validation_data_dict=pad_relationship_validation,
+                                     RESPONDER=RESPONDER,
+                                     sort_by='Rel. RMSE',
+                                     RUN_TAG=RUN_TAG)
 
     # _accessories._print('Plotting model performance metrics...')
     # with _accessories.suppress_stdout():
@@ -1565,25 +1569,21 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=2, plot_for_ref=F
         _accessories.save_local_data_file(perf_pad.drop('model_obj', axis=1),
                                           f'Modeling Reference Files/Round {RUN_TAG}/MODELS_{RUN_TAG}.csv')
 
-    if(plot_for_ref):
-        # OPTIONAL VISUALIZATION: Validation metrics
-        with _accessories.suppress_stdout():
-            validate_models(perf_data=perf_pad,
-                            training_data_dict=pad_relationship_training,
-                            benchline=benchline_pad,
-                            validation_data_dict=pad_relationship_validation,
-                            TOP_MODELS=30,
-                            order_by='Rel. Val. RMSE',
-                            RUN_TAG=RUN_TAG,
-                            RESPONDER=RESPONDER)
+    # if(plot_for_ref):
+    #     # OPTIONAL VISUALIZATION: Validation metrics
+    #     with _accessories.suppress_stdout():
+    #         validate_models(perf_data=perf_pad,
+    #                         training_data_dict=pad_relationship_training,
+    #                         benchline=benchline_pad,
+    #                         validation_data_dict=pad_relationship_validation,
+    #                         TOP_MODELS=30,
+    #                         order_by='Rel. Val. RMSE',
+    #                         RUN_TAG=RUN_TAG,
+    #                         RESPONDER=RESPONDER)
 
     exit_sequence(math_eng, weighting, MAX_EXP_RUNTIME, RUN_TAG)
 
     return RUN_TAG
-
-
-# if __name__ == '__main__':
-#     _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=200, plot_for_ref=False)
 
 
 def benchmark(math_eng, weighting, MAX_EXP_RUNTIME):

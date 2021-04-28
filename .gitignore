@@ -24,6 +24,7 @@ Data
 
 # Ignore model storage
 Modeling Reference Files/*/Models
+Modeling Reference Files/*/*/Models
 Optimization Reference Files
 
 

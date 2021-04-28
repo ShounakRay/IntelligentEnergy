@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 11:04:93:937  GMT-0600
+# @Last modified time: 27-Apr-2021 23:04:20:203  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -668,16 +668,16 @@ def _INTELLIGENT_AGGREGATION():
     injector_coords = get_coordinates('INJECTION')
     producer_coords = get_coordinates('PRODUCTION')
 
-    _accessories._print('Determining candidates and distance matrix...', color='LIGHTYELLOW_EX')
-    available_pads_transformed = ['A', 'B']
-    available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in available_pads_transformed]
-    candidates_by_prodpad, candidates_by_prodwell = get_all_candidates(injector_coords, producer_coords,
-                                                                       available_pads_transformed,
-                                                                       available_pwells_transformed,
-                                                                       rel_rad=relative_radius,
-                                                                       save=True,
-                                                                       plot=plot_geo,
-                                                                       pro_well_pad_relationship=PRO_PAD_KEYS)
+    # _accessories._print('Determining candidates and distance matrix...', color='LIGHTYELLOW_EX')
+    # available_pads_transformed = ['A', 'B']
+    # available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in available_pads_transformed]
+    # candidates_by_prodpad, candidates_by_prodwell = get_all_candidates(injector_coords, producer_coords,
+    #                                                                    available_pads_transformed,
+    #                                                                    available_pwells_transformed,
+    #                                                                    rel_rad=relative_radius,
+    #                                                                    save=True,
+    #                                                                    plot=plot_geo,
+    #                                                                    pro_well_pad_relationship=PRO_PAD_KEYS)
 
     _ = distance_matrix(injector_coords, producer_coords, save=True)
 
@@ -687,7 +687,7 @@ def _INTELLIGENT_AGGREGATION():
                                                                       include_weights=False)
     _accessories._print('Determining INJECTION data aggregates...', color='LIGHTYELLOW_EX')
     DATASETS['INJECTION_AGGREGATES'] = produce_injection_aggregates(DATASETS['FINALE'],
-                                                                    candidates_by_prodpad,
+                                                                    None,
                                                                     'PRO_Pad', INJ_PAD_KEYS,
                                                                     naive_selection=True)
 
@@ -698,8 +698,8 @@ def _INTELLIGENT_AGGREGATION():
 
     _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
     _accessories.finalize_all(DATASETS, skip=[])
-    merged_df = merge(DATASETS, available_pads_transformed)
-    _accessories.save_local_data_file(merged_df, 'Data/combined_ipc_aggregates.csv')
+    merged_df = merge(DATASETS, ['A', 'B', 'C', 'D', 'E', 'F'])
+    _accessories.save_local_data_file(merged_df, 'Data/combined_ipc_aggregates_ALL.csv')
 
 
 if __name__ == '__main__':
