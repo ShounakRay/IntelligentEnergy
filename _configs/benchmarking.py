@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 28-Apr-2021 01:04:55:550  GMT-0600
+# @Last modified time: 28-Apr-2021 10:04:70:704  GMT-0600
 # @License: [Private IP]
 
 
@@ -130,8 +130,8 @@ def get_benchmarks(time_path='_configs/modeling_benchmarks.txt', perf_path="Mode
 def see_performance(benchmarks_combined, groupby_option,
                     first_two=['Math_Eng', 'Weighted'],
                     x='Run_Time', y='Rel_Val_RMSE',
-                    kind='kde', colors=_accessories._distinct_colors()):
-    fig, ax = plt.subplots(figsize=(12, 9))
+                    kind='kde', colors=_accessories._distinct_colors(), FIGSIZE=(12, 9)):
+    fig, ax = plt.subplots(figsize=FIGSIZE)
     groupby_obj = benchmarks_combined.groupby(first_two + [groupby_option])
     i = 0
     for group_conditions, group in groupby_obj:
@@ -139,13 +139,15 @@ def see_performance(benchmarks_combined, groupby_option,
         label = f'Eng: {math_eng}, Wgt: {weighted}, Other: {grouper}'
         sub_df = group
         color = colors[i]
-        sub_df.plot(x=x, y=y, ax=ax, kind=kind, label=label, stacked=True, c=color)
+        handle = sub_df.plot(x=x, y=y, ax=ax, kind=kind, label=label, stacked=False, c=color)
         i += 1
     _ = plt.title(f'Relative RMSE vs. Run Time per Modeling Configuration (for all {groupby_option}s)')
-    _ = plt.legend(loc='upper left')
+    plt.legend(title='Configs', bbox_to_anchor=(0.5, -0.19),
+               loc='lower center', fontsize='small', ncol=5,
+               fancybox=True, shadow=True, facecolor='white')
 
 
-def get_best_models(benchmarks_combined, grouper='Group', sort_by=['Rel_Val_RMSE', 'RMSE'], top=3):
+def get_best_models(benchmarks_combined, grouper='Group', sort_by=['Rel_Val_RMSE', 'Rel_RMSE'], top=3):
     top_df = {}
     for name, group_df in benchmarks_combined.groupby(grouper):
         best = group_df.sort_values(sort_by, ascending=True)[:top]
@@ -161,17 +163,22 @@ _ = """
 #######################################################################################################################
 """
 
-temporal, performance, benchmarks = get_benchmarks(time_path='_configs/modeling_benchmarks_2ALLOCSTEAM.txt',
+temporal, performance, benchmarks = get_benchmarks(time_path='_configs/modeling_benchmarks.txt',
                                                    perf_path="Modeling Reference Files/*/*csv")
 all = ''.join([i + '/' for i in benchmarks[:10]['path'][0].split('/')[:-1]]) + 'MODELS'
 
 performance.sort_values('Rel_Val_RMSE')
 
-see_performance(performance, first_two=['Group', 'Run_Tag'],
-                x='RMSE', y='Rel_Val_RMSE',
-                groupby_option='Group', kind='kde')
+sparse_df = benchmarks[benchmarks['Rel_Val_RMSE'] <= 80].groupby(['Group',
+                                                                  'Math_Eng',
+                                                                  'Weighted',
+                                                                  'Duration'])['Rel_Val_RMSE'].nsmallest(3).reset_index()
+sparse_df['Group'].unique()
+see_performance(sparse_df, first_two=['Math_Eng', 'Weighted'],
+                x='Duration', y='Rel_Val_RMSE',
+                groupby_option='Group', kind='kde', FIGSIZE=(18, 9))
 
-best = get_best_models(performance, sort_by=['Rel_Val_RMSE', 'RMSE'])
+best = get_best_models(performance, sort_by=['Rel_Val_RMSE', 'Rel_RMSE'])
 _accessories.save_local_data_file(best, 'Data/Model Candidates/best_models.pkl')
 _accessories.retrieve_local_data_file('Data/Model Candidates/best_models.pkl')
 

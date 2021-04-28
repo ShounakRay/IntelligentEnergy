@@ -1,0 +1,56 @@
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+JOB INITIALIZED:  2021-04-28 03:47:42.542584
+RUN ID: 89
+
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+SERVER HYPERPARAMETERS:
+{'IP_LINK': 'localhost', 'PORT': 12345, 'SECURED': False, 'SERVER_FORCE': True}
+
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+TRAINING HYPERPARAMETRS:
+{'CV_FOLDS': 10,
+ 'EVAL_METRIC': 'rmse',
+ 'EXPLOIT_RATIO': 0.0,
+ 'MAX_EXP_RUNTIME': 20,
+ 'MODELING_PLAN': None,
+ 'RANDOM_SEED': 2381125,
+ 'RANK_METRIC': 'rmse',
+ 'STOPPING_ROUNDS': 4,
+ 'WEIGHTS_COLUMN': 'weight'}
+
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+EXECUTION HYPERPARAMETRS:
+{'FOLD_COLUMN': 'kfold_column',
+ 'PREFERRED_TOLERANCE': 0.1,
+ 'TOP_MODELS': 10,
+ 'TRAINING_VERBOSITY': 'warn'}
+
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+MISCELLANEOUS HYPERPARAMETRS:
+{'CELL_RATIO': 4.666666666666667,
+ 'HMAP_CENTERS': {'MAE': None,
+                  'MSE': 400,
+                  'RMSE': 20,
+                  'RMSLE': None,
+                  'R^2': None,
+                  'Rel. RMSE': 0},
+ 'MODEL_CMAPS': {'MAE': <matplotlib.colors.LinearSegmentedColormap object at 0x10811ed60>,
+                 'MSE': <matplotlib.colors.LinearSegmentedColormap object at 0x10811ed60>,
+                 'RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x10811ed60>,
+                 'RMSLE': <matplotlib.colors.LinearSegmentedColormap object at 0x10811ed60>,
+                 'R^2': <matplotlib.colors.ListedColormap object at 0x11f44eb20>,
+                 'Rel. RMSE': <matplotlib.colors.LinearSegmentedColormap object at 0x10811ed60>}}
+
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+PREDICTORS
+['PRO_Pad',
+ 'PRO_Casing_Pressure',
+ 'PRO_Heel_Pressure',
+ 'PRO_Toe_Pressure',
+ 'PRO_Heel_Temp',
+ 'PRO_Toe_Temp',
+ 'weight',
+ 'Steam']
+»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+RESPONDER
+'PRO_Total_Fluid'
