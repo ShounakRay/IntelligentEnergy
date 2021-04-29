@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 28-Apr-2021 12:04:35:354  GMT-0600
+# @Last modified time: 28-Apr-2021 15:04:45:454  GMT-0600
 # @License: [Private IP]
 
 
@@ -112,7 +112,7 @@ def get_benchmarks(time_path='_configs/modeling_benchmarks.txt', perf_path="Mode
                 data = pd.read_csv(path, sep=',').reset_index(drop=True)
             data.columns = ['Name', 'RMSE', 'Rel_RMSE', 'Val_RMSE',
                             'Rel_Val_RMSE', 'Group', 'Tolerated RMSE', 'Run_Tag']
-            data['path'] = ''.join([t + '/' for t in path.split('/MODELS_')[:-1]]) + data['Name']
+            data['path'] = ''.join([t + '/Models/' for t in path.split('/MODELS_')[:-1]]) + data['Name']
             data_storage.append(data.infer_objects())
         aggregated_metrics = pd.concat(data_storage).reset_index(drop=True).infer_objects()
         # EXCLUDE ANY ANOMALOUS, SUPER-HIGH RMSE VALUES
@@ -181,7 +181,7 @@ temporal, performance, benchmarks = get_benchmarks(time_path='_configs/modeling_
                                                    perf_path="Modeling Reference Files/*/*csv")
 
 
-macro_best = macro_performance(benchmarks, consideration=5)
+macro_best = macro_performance(benchmarks, consideration=1)
 
 
 sparse_df = benchmarks[benchmarks['Rel_Val_RMSE'] <= 80].groupby(['Group',
@@ -194,10 +194,10 @@ see_performance(sparse_df, first_two=['Math_Eng', 'Weighted'],
                 x='Duration', y='Rel_Val_RMSE',
                 groupby_option='Group', kind='kde', FIGSIZE=(21, 11))
 
-best = get_best_models(performance, sort_by=['Rel_Val_RMSE', 'Rel_RMSE'])
-_accessories.save_local_data_file(best, 'Data/Model Candidates/best_models.pkl')
+best = get_best_models(benchmarks[benchmarks['Math_Eng'] == False], sort_by=['Rel_Val_RMSE', 'Rel_RMSE'])
+_accessories.save_local_data_file(best, 'Data/Model Candidates/best_models_nomatheng.pkl')
 
-
+H
 _ = """
 #######################################################################################################################
 ##########################################   VISUALIZING BACKTEST RESULTS   ###########################################
@@ -208,7 +208,8 @@ _ = """
 data = pd.read_csv('Optimization Reference Files/Backtests/Aggregates_2015-04-01_2020-12-20.csv')
 data = data[data['PRO_Pad'] == 'B'].reset_index(drop=True).sort_values('Date')
 data['accuracy'] = 1 - data['accuracy']
-data = data[data['Date'] > '2015-12-30'].reset_index(drop=True)
+# data = data[data['Date'] > '2015-12-30'].reset_index(drop=True)
+data = data[data['accuracy'] > 0]
 
 _ = plt.figure(figsize=(20, 12))
 _ = plt.title('PAD B Optimization Reccomendation')
@@ -217,7 +218,7 @@ _ = plt.ylabel('Volume and Accuracy (Dual)')
 _ = data['Steam'].plot(label="Reccomended Steam", legend=True)
 _ = data['Total_Fluid'].plot(label="Predicted Total Fluid", legend=True)
 # data['accuracy'].plot(secondary_y=True, label="Accuracy", legend=True)
-_ = data['rel_rmse'].plot(secondary_y=True, label="Relative RMSE", legend=True)
+_ = data['accuracy'].plot(secondary_y=True, label="Relative RMSE", legend=True)
 
 # EOF
 

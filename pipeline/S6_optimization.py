@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 28-Apr-2021 10:04:76:761  GMT-0600
+# @Last modified time: 28-Apr-2021 13:04:68:681  GMT-0600
 # @License: [Private IP]
 
 
@@ -115,7 +115,7 @@ injector_wells = {
     "F": []
 }
 
-BEST_MODEL_PATHS = _accessories.retrieve_local_data_file('Data/Model Candidates/best_models.pkl')
+BEST_MODEL_PATHS = _accessories.retrieve_local_data_file('Data/Model Candidates/best_models_nomatheng.pkl')
 
 _ = """
 #######################################################################################################################
@@ -177,7 +177,7 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
 
         scenario_df['rmse'] = mean_squared_error(test_actual, test_pred, squared=False)
         scenario_df['algorithm'] = 'BGM H2O-Model'
-        scenario_df['accuracy'] = abs(test_pred.values - test_actual.values) / test_actual
+        scenario_df['accuracy'] = 1 - abs(test_pred.values - test_actual.values) / test_actual
 
         return scenario_df
 
