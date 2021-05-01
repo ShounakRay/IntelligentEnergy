@@ -3,22 +3,22 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 28-Apr-2021 15:04:45:454  GMT-0600
+# @Last modified time: 29-Apr-2021 15:04:10:101  GMT-0600
 # @License: [Private IP]
 
 
 import glob
 import os
-import pickle
 import subprocess
 import sys
 from io import StringIO
 from random import shuffle
+from typing import Final
 
-import _pickle as cPickle
+import h2o
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-import seaborn as sns
 
 
 def ensure_cwd(expected_parent):
@@ -73,12 +73,26 @@ _ = """
 #############################################   HYPERPARAMETER SETTINGS   #############################################
 #######################################################################################################################
 """
+# H2O Server Constants
+IP_LINK: Final = 'localhost'                                  # Initializing the server on the local host (temporary)
+SECURED: Final = True if(IP_LINK != 'localhost') else False   # https protocol doesn't work locally, should be True
+PORT: Final = 54321                                           # Always specify the port that the server should use
+SERVER_FORCE: Final = True                                    # Tries to init new server if existing connection fails
+
 
 _ = """
 #######################################################################################################################
 ##############################################   FUNCTION DEFINITIONS   ###############################################
 #######################################################################################################################
 """
+
+
+# def setup_and_server(SECURED=SECURED, IP_LINK=IP_LINK, PORT=PORT, SERVER_FORCE=SERVER_FORCE):
+#     # Initialize the cluster
+#     h2o.init(https=SECURED,
+#              ip=IP_LINK,
+#              port=PORT,
+#              start_h2o=SERVER_FORCE)
 
 
 def get_benchmarks(time_path='_configs/modeling_benchmarks.txt', perf_path="Modeling Reference Files/*/*csv"):
@@ -145,8 +159,8 @@ def see_performance(benchmarks_combined, groupby_option,
         sub_df.plot(x=x, y=y, ax=ax, kind=kind, label=label, stacked=False, c=color, lw=3)
         i += 1
     _ = plt.title(f'Relative RMSE vs. Run Time per Modeling Configuration (for all {groupby_option}s)')
-    plt.legend(title='Configs', bbox_to_anchor=(0.5, -0.16),
-               loc='lower center', fontsize='small', ncol=5,
+    plt.legend(title='Configs', bbox_to_anchor=(0.5, -0.19),
+               loc='lower center', fontsize='medium', ncol=5,
                fancybox=True, shadow=True, facecolor='white')
 
 
@@ -171,25 +185,74 @@ def macro_performance(benchmarks, consideration=10):
     return best_possibles
 
 
+# def create_validation_splits(DATA_PATH_PAD, pd_data_pad, group_colname='PRO_Pad', TRAIN_VAL_SPLIT=0.95):
+#     # NOTE: Global Dependencies:
+#
+#     # Split into train/test (CV) and holdout set (per each class of grouping)
+#     # pd_data_pad = pd.read_csv(DATA_PATH_PAD_vanilla).drop('Unnamed: 0', axis=1)
+#     unique_pads = list(pd_data_pad[group_colname].unique())
+#     grouped_data_split = {}
+#     for u_pad in unique_pads:
+#         filtered_by_group = pd_data_pad[pd_data_pad[group_colname] == u_pad].sort_values('Date').reset_index(drop=True)
+#         data_pad_loop, data_pad_validation_loop = [dat.reset_index(drop=True).infer_objects()
+#                                                    for dat in np.split(filtered_by_group,
+#                                                                        [int(TRAIN_VAL_SPLIT *
+#                                                                             len(filtered_by_group))])]
+#         grouped_data_split[u_pad] = (data_pad_loop, data_pad_validation_loop)
+#
+#     # Holdout and validation reformatting
+#     with _accessories.suppress_stdout():
+#         data_pad = pd.concat([v[0] for k, v in grouped_data_split.items()]).reset_index(drop=True).infer_objects()
+#         wanted_types = {k: 'real' if v == float or v == int else 'enum' for k, v in dict(data_pad.dtypes).items()}
+#         data_pad = h2o.H2OFrame(data_pad, column_types=wanted_types)
+#         data_pad_validation = pd.concat([v[1] for k, v in grouped_data_split.items()]
+#                                         ).reset_index(drop=True).infer_objects()
+#         data_pad_validation = h2o.H2OFrame(data_pad_validation, column_types=wanted_types)
+#
+#         # Create pad validation relationships
+#         pad_relationship_validation = {}
+#         for u_pad in unique_pads:
+#             df_loop = data_pad_validation.as_data_frame()
+#             df_loop = df_loop[df_loop[group_colname] == u_pad].drop(
+#                 ['Date'], axis=1).infer_objects().reset_index(drop=True)
+#             local_wanted_types = {k: v for k, v in wanted_types.items() if k in df_loop.columns}
+#             df_loop = h2o.H2OFrame(df_loop, column_types=local_wanted_types)
+#             pad_relationship_validation[u_pad] = df_loop
+#         # Create pad training relationships
+#         pad_relationship_training = {}
+#         for u_pad in unique_pads:
+#             df_loop = data_pad.as_data_frame()
+#             df_loop = df_loop[df_loop[group_colname] == u_pad].drop(
+#                 [group_colname], axis=1).infer_objects().reset_index(drop=True)
+#             local_wanted_types = {k: v for k, v in wanted_types.items() if k in df_loop.columns}
+#             df_loop = h2o.H2OFrame(df_loop, column_types=local_wanted_types)
+#             pad_relationship_training[u_pad] = df_loop
+#
+#     _accessories._print('STATUS: Server initialized and data imported.')
+#
+#     return data_pad, pad_relationship_validation, pad_relationship_training
+
+
 _ = """
 #######################################################################################################################
 #########################################   TEMPORAL + CONFIG BENCHMARKING   ##########################################
 #######################################################################################################################
 """
-
 temporal, performance, benchmarks = get_benchmarks(time_path='_configs/modeling_benchmarks.txt',
                                                    perf_path="Modeling Reference Files/*/*csv")
 
-
 macro_best = macro_performance(benchmarks, consideration=1)
-
+# macro_best.at[0, 'Rel_Val_RMSE'] = 5.1251363
+# macro_best.at[0, 'Best RMSE Proportion'] = (macro_best.at[0, 'Tolerated RMSE'] + macro_best.at[0, 'Rel_Val_RMSE'])/(159.394495 * 0.1)
+#
+# macro_best.at[3, 'Rel_Val_RMSE'] = -10.692769
+# macro_best.at[3, 'Best RMSE Proportion'] = (macro_best.at[3, 'Tolerated RMSE'] + macro_best.at[3, 'Rel_Val_RMSE'])/(151.573186 * 0.1)
 
 sparse_df = benchmarks[benchmarks['Rel_Val_RMSE'] <= 80].groupby(['Group',
                                                                   'Math_Eng',
                                                                   'Weighted',
                                                                   'Duration']
                                                                  )['Rel_Val_RMSE'].nsmallest(3).reset_index()
-# sparse_df['Group'].unique()
 see_performance(sparse_df, first_two=['Math_Eng', 'Weighted'],
                 x='Duration', y='Rel_Val_RMSE',
                 groupby_option='Group', kind='kde', FIGSIZE=(21, 11))
@@ -197,7 +260,34 @@ see_performance(sparse_df, first_two=['Math_Eng', 'Weighted'],
 best = get_best_models(benchmarks[benchmarks['Math_Eng'] == False], sort_by=['Rel_Val_RMSE', 'Rel_RMSE'])
 _accessories.save_local_data_file(best, 'Data/Model Candidates/best_models_nomatheng.pkl')
 
-H
+
+_ = """
+#######################################################################################################################
+##########################################   GET RE-CALCULATED VALIDATION   ##########################################
+#######################################################################################################################
+"""
+# source_data = _accessories.retrieve_local_data_file('Data/combined_ipc_aggregates_ALL.csv').infer_objects()
+# # original, validation, training = create_validation_splits('', source_data)
+# source_data = source_data[source_data['PRO_Pad'] == 'A'].sort_values('Date').reset_index(drop=True)
+# source_data[source_data.index > 2005]
+# validation_set = source_data[(source_data['Date'] > '2020-10-07'
+#                              (source_data['Date'] < '2020-04-30') |
+#                              (source_data['Date'] > '2020-06-12')].reset_index(drop=True)
+#
+# validation['A'].tail(2)
+# setup_and_server()
+# for category, model_paths in best.items():
+#     local_data = source_data[source_data['PRO_Pad'] == category].select_dtypes(float)
+#     wanted_types = {k: 'real' if v == float or v == int else 'enum' for k, v in dict(local_data.dtypes).items()}
+#     with _accessories.suppress_stdout():
+#         local_data = h2o.H2OFrame(local_data, column_types=wanted_types)
+#     for model_path in model_paths:
+#         with _accessories.suppress_stdout():
+#             model = h2o.load_model(model_path)
+#             # model.predict(local_data)
+#         print(f'For category {category}, path {model_path}, RMSE: {model.rmse(local_data)}')
+
+
 _ = """
 #######################################################################################################################
 ##########################################   VISUALIZING BACKTEST RESULTS   ###########################################
@@ -206,19 +296,64 @@ _ = """
 
 # INTERPRET AGGREGATES
 data = pd.read_csv('Optimization Reference Files/Backtests/Aggregates_2015-04-01_2020-12-20.csv')
-data = data[data['PRO_Pad'] == 'B'].reset_index(drop=True).sort_values('Date')
 data['accuracy'] = 1 - data['accuracy']
-# data = data[data['Date'] > '2015-12-30'].reset_index(drop=True)
-data = data[data['accuracy'] > 0]
+
+orig_data = _accessories.retrieve_local_data_file('Data/combined_ipc_aggregates_ALL.csv')
+orig_data['Steam_Original'] = orig_data['Steam']
+orig_data.drop('Steam', axis=1, inplace=True)
+
+# rell = {'A': 159.394495, 'B': 132.758275, 'C': 154.587740, 'E': 151.573186, 'F': 103.389248}
+final_backtest_data = pd.merge(data, orig_data, how='inner', on=['PRO_Pad', 'Date']).infer_objects()
+final_backtest_data['Tolerated_RMSE'] = final_backtest_data['rmse'] - final_backtest_data['rel_rmse']
+final_backtest_data.columns = ['PRO_Pad',
+                               'Reccomended_Steam',
+                               'Prediced_Total_Fluid',
+                               'exchange_rate',
+                               'RMSE',
+                               'Accuracy',
+                               'Algorithm',
+                               'Date',
+                               'Relative_RMSE',
+                               'PRO_Adj_Pump_Speed',
+                               'PRO_Casing_Pressure',
+                               'PRO_Heel_Pressure',
+                               'PRO_Toe_Pressure',
+                               'PRO_Heel_Temp',
+                               'PRO_Toe_Temp',
+                               'PRO_Adj_Alloc_Oil',
+                               'PRO_Alloc_Oil',
+                               'PRO_Total_Fluid',
+                               'PRO_Alloc_Steam',
+                               'PRO_Water_cut',
+                               'Bin_1',
+                               'Bin_2',
+                               'Bin_3',
+                               'Bin_4',
+                               'Bin_5',
+                               'Bin_6',
+                               'Bin_7',
+                               'Bin_8',
+                               'weight',
+                               'Steam_Original',
+                               'Tolerated_RMSE']
+
+_accessories.save_local_data_file(final_backtest_data.infer_objects(),
+                                  'Optimization Reference Files/Backtests/Final_Some.csv')
+
+final_backtest_data = final_backtest_data[final_backtest_data['PRO_Pad']
+                                          == 'F'].reset_index(drop=True).sort_values('Date')
+final_backtest_data = final_backtest_data[final_backtest_data['Date'] > '2012-12-30'].reset_index(drop=True)
+final_backtest_data = final_backtest_data[final_backtest_data['Accuracy'] > 0]
 
 _ = plt.figure(figsize=(20, 12))
 _ = plt.title('PAD B Optimization Reccomendation')
 _ = plt.xlabel('Days since 2019-12-30')
 _ = plt.ylabel('Volume and Accuracy (Dual)')
-_ = data['Steam'].plot(label="Reccomended Steam", legend=True)
-_ = data['Total_Fluid'].plot(label="Predicted Total Fluid", legend=True)
-# data['accuracy'].plot(secondary_y=True, label="Accuracy", legend=True)
-_ = data['accuracy'].plot(secondary_y=True, label="Relative RMSE", legend=True)
+_ = final_backtest_data['Reccomended_Steam'].plot(label="Reccomended Steam", legend=True)
+_ = final_backtest_data['Steam_Original'].plot(label="Actual Steam", legend=True)
+# _ = final_backtest_data['Total_Fluid'].plot(label="Predicted Total Fluid", legend=True)
+# final_backtest_data['accuracy'].plot(secondary_y=True, label="Accuracy", legend=True)
+_ = final_backtest_data['Relative_RMSE'].plot(secondary_y=True, label="Relative RMSE", legend=True)
 
 # EOF
 

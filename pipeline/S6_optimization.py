@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 28-Apr-2021 13:04:68:681  GMT-0600
+# @Last modified time: 29-Apr-2021 13:04:87:879  GMT-0600
 # @License: [Private IP]
 
 
@@ -164,19 +164,25 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
 
     def get_testdfs(df, group, features, grouper_name=grouper, time_col=time_col, forward_days=forward_days):
         test_df = df[(df[grouper] == group) & (df[time_col] > date)].head(forward_days)
-        test_pred = model.predict(h2o.H2OFrame(test_df[features])).as_data_frame()['predict']
+        wanted_types = {k: 'real' if v == float or v == int else 'enum'
+                        for k, v in dict(test_df[features].infer_objects().dtypes).items()}
+        test_pred = model.predict(h2o.H2OFrame(test_df[features],
+                                               column_types=wanted_types)).as_data_frame()['predict']
         test_actual = test_df[target]
 
         return test_pred.reset_index(drop=True), test_actual.reset_index(drop=True)
 
     def configure_scenario_locally(subset_df, date, model, g, features, steam_range=steam_range):
         scenario_df = create_scenarios(subset_df, date, features, steam_range[g])
-        scenario_df['Total_Fluid'] = list(model.predict(
-            h2o.H2OFrame(scenario_df[features])).as_data_frame()['predict'])
+        wanted_types = {k: 'real' if v == float or v == int else 'enum'
+                        for k, v in dict(scenario_df[features].infer_objects().dtypes).items()}
+        scenario_df['Total_Fluid'] = list(model.predict(h2o.H2OFrame(scenario_df[features],
+                                                                     column_types=wanted_types)
+                                                        ).as_data_frame()['predict'])
         scenario_df[grouper] = g
 
         scenario_df['rmse'] = mean_squared_error(test_actual, test_pred, squared=False)
-        scenario_df['algorithm'] = 'BGM H2O-Model'
+        scenario_df['algorithm'] = model.model_id
         scenario_df['accuracy'] = 1 - abs(test_pred.values - test_actual.values) / test_actual
 
         return scenario_df

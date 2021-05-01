@@ -3,11 +3,12 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 14-Apr-2021 20:04:72:721  GMT-0600
+# @Last modified time: 30-Apr-2021 09:04:98:982  GMT-0600
 # @License: [Private IP]
 
 import pickle
 import random
+from io import StringIO
 from typing import Final
 
 import matplotlib.pyplot as plt
@@ -19,12 +20,15 @@ DATA_PATH_WELL: Final = 'Data/combined_ipc_engineered_phys.csv'    # Where the c
 DATA_PATH_WELL: Final = 'Data/combined_ipc_engineered_phys.csv'    # Where the client-specific pad data is located
 
 # Only needed to get available production wells
-model_data_agg = pd.read_csv(DATA_PATH_WELL).drop('Unnamed: 0', axis=1).infer_objects()
+model_data_agg = pd.read_csv(DATA_PATH_WELL).infer_objects()
 
 pwells = list(model_data_agg['PRO_Well'].unique())
 pwell_allocation = {well_name: random.randint(100, 200) for well_name in pwells}
 # NOTE: Load in pickled distance matrix
-dist_matrix = pd.read_pickle('Data/injector_producer_dist_matrix.pkl').infer_objects()
+dist_matrix = pd.read_pickle('Data/Pickles/DISTANCE_MATRIX.pkl').infer_objects()
+with open('Data/Pickles/DISTANCE_MATRIX.pkl', 'r') as file:
+    lines = file.readlines()
+    df = pd.read_csv(StringIO(''.join(lines)), delim_whitespace=True)
 all_injs = list(dist_matrix.columns)[1:]
 # NOTE: Load in producer well candidates
 # candidates_by_prodpad = pickle.load(open('Data/candidates_by_prodpad.pkl', 'rb'))
