@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 03-May-2021 14:05:84:848  GMT-0600
+# @Last modified time: 03-May-2021 15:05:39:393  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -107,27 +107,47 @@ def pro_dist_matrix(PRODUCER_COORDINATES, scaled=False):
     return df_matrix.infer_objects()
 
 
+def candidate_impacts(CANDIDATES, PI_DIST_MATRIX, CLOSENESS_THRESH=CLOSENESS_THRESH, plot=True):
+    if(plot):
+        fig, ax = plt.subplots(ncols=len(CANDIDATES.keys()), nrows=max([len(i) for p, i in CANDIDATES.items()]),
+                               figsize=(60, 30))
+    impact_tracker = {}
+    for pwell, candidates in CANDIDATES.items():
+        impact_tracker[pwell] = {}
+        for iwell in candidates:
+            # This are the shortest distances from the current injector to all the producers
+            ip_distances = PI_DIST_MATRIX[['PRO_Well', iwell]].set_index('PRO_Well').to_dict().get(iwell)
+            ip_distances = dict(sorted(ip_distances.items(), key=lambda tup: tup[1]))
+            top_pwell, closest_distance = next(iter(ip_distances.items()))
+            search_scope = closest_distance * (1 + CLOSENESS_THRESH)
+            impacts_on = {k: v for k, v in ip_distances.items() if v <= search_scope}
+            impact_tracker[pwell][iwell] = {k: (v / sum(impacts_on.values())) for k, v in impacts_on.items()}
+
+            axis = ax[candidates.index(iwell)][list(CANDIDATES.keys()).index(pwell)]
+            if(plot):
+                axis.set_title(f'{pwell}, {iwell}')
+                axis.bar({k: v for k, v in ip_distances.items() if k in impacts_on.keys()}.keys(),
+                         {k: v for k, v in ip_distances.items() if k in impacts_on.keys()}.values(), color='red')
+                axis.bar({k: v for k, v in ip_distances.items() if k not in impacts_on.keys()}.keys(),
+                         {k: v for k, v in ip_distances.items() if k not in impacts_on.keys()}.values(), color='blue')
+    if(plot):
+        plt.tight_layout()
+        plt.savefig('Manipulation Reference Files/Final Schematics/Candidate_Impacts.png', bbox_inches='tight')
+
+    cleaned_imapct_tracker = dict(sorted(pd.DataFrame(impact_tracker).fillna(method='bfill',
+                                                                             axis=1).iloc[:, 0].to_dict().items(),
+                                         key=lambda tup: tup[0]))
+
+    return cleaned_imapct_tracker
+
+
 CANDIDATES = _accessories.retrieve_local_data_file('Data/Pickles/WELL_Candidates.pkl', mode=2)
 PI_DIST_MATRIX = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
 II_DIST_MATRIX = inj_dist_matrix(S3.get_coordinates(data_group='INJECTION'))
 PP_DIST_MATRIX = pro_dist_matrix(S3.get_coordinates(data_group='PRODUCTION'))
 
-fig, ax = plt.subplots(ncols=len(CANDIDATES.keys()), nrows=max([len(i) for p, i in CANDIDATES.items()]),
-                       figsize=(40, 20))
-impact_tracker = {}
-for pwell, candidates in CANDIDATES.items():
-    impact_tracker[pwell] = {}
-    for iwell in candidates:
-        axis = ax[candidates.index(iwell)][list(CANDIDATES.keys()).index(pwell)]
-        # This are the shortest distances from the current injector to all the producers
-        ip_distances = PI_DIST_MATRIX[['PRO_Well', iwell]].set_index('PRO_Well').to_dict().get(iwell)
-        ip_distances = dict(sorted(ip_distances.items(), key=lambda tup: tup[1]))
-        top_pwell, closest_distance = next(iter(ip_distances.items()))
-        search_scope = closest_distance * (1 + CLOSENESS_THRESH)
-        impacts_on = {k: v for k, v in ip_distances.items() if v <= search_scope}
-        impact_tracker[pwell][iwell] = {k: (v / sum(impacts_on.values())) for k, v in impacts_on.items()}
-        axis.set_title(f'{pwell}, {iwell}')
-        axis.bar(ip_distances.keys(), ip_distances.values())
+
+impact_tracker = impact_by_injectorcandidate_impacts(CANDIDATES, PI_DIST_MATRIX, plot=False)
 
 
 # plt.figure(figsize=(15, 5))
