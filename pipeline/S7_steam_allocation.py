@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 03-May-2021 13:05:44:443  GMT-0600
+# @Last modified time: 03-May-2021 14:05:84:848  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -57,6 +57,8 @@ DATA_PATH_WELL: Final = 'Data/combined_ipc_engineered_phys.csv'    # Where the c
 DATA_PATH_WELL: Final = 'Data/combined_ipc_engineered_phys.csv'    # Where the client-specific pad data is located
 DATA_PATH_DMATRIX: Final = 'Data/Pickles/DISTANCE_MATRIX.csv'
 
+CLOSENESS_THRESH: Final = 0.1
+
 _ = """
 #######################################################################################################################
 ##################################################   EXPERIMENTATION   ################################################
@@ -109,6 +111,24 @@ CANDIDATES = _accessories.retrieve_local_data_file('Data/Pickles/WELL_Candidates
 PI_DIST_MATRIX = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
 II_DIST_MATRIX = inj_dist_matrix(S3.get_coordinates(data_group='INJECTION'))
 PP_DIST_MATRIX = pro_dist_matrix(S3.get_coordinates(data_group='PRODUCTION'))
+
+fig, ax = plt.subplots(ncols=len(CANDIDATES.keys()), nrows=max([len(i) for p, i in CANDIDATES.items()]),
+                       figsize=(40, 20))
+impact_tracker = {}
+for pwell, candidates in CANDIDATES.items():
+    impact_tracker[pwell] = {}
+    for iwell in candidates:
+        axis = ax[candidates.index(iwell)][list(CANDIDATES.keys()).index(pwell)]
+        # This are the shortest distances from the current injector to all the producers
+        ip_distances = PI_DIST_MATRIX[['PRO_Well', iwell]].set_index('PRO_Well').to_dict().get(iwell)
+        ip_distances = dict(sorted(ip_distances.items(), key=lambda tup: tup[1]))
+        top_pwell, closest_distance = next(iter(ip_distances.items()))
+        search_scope = closest_distance * (1 + CLOSENESS_THRESH)
+        impacts_on = {k: v for k, v in ip_distances.items() if v <= search_scope}
+        impact_tracker[pwell][iwell] = {k: (v / sum(impacts_on.values())) for k, v in impacts_on.items()}
+        axis.set_title(f'{pwell}, {iwell}')
+        axis.bar(ip_distances.keys(), ip_distances.values())
+
 
 # plt.figure(figsize=(15, 5))
 # sns.heatmap(PI_DIST_MATRIX.set_index('PRO_Well').select_dtypes(float))
