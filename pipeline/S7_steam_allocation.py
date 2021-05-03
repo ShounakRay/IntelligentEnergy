@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 03-May-2021 13:05:06:063  GMT-0600
+# @Last modified time: 03-May-2021 13:05:44:443  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -70,10 +70,11 @@ def inj_dist_matrix(INJECTOR_COORDINATES):
         iwell_coord = INJECTOR_COORDINATES.get(iwell)
         dists = [S3.euclidean_2d_distance(iwell_coord, dyn_coord) for dyn_coord in INJECTOR_COORDINATES.values()]
         df_matrix[iwell] = dists
+    np.fill_diagonal(df_matrix.values, np.nan)
     return df_matrix.infer_objects()
 
 
-def pro_dist_matrix(PRODUCER_COORDINATES):
+def pro_dist_matrix(PRODUCER_COORDINATES, scaled=False):
     per_pwell = {}
     for pwell in PRODUCER_COORDINATES.keys():
         # Get the coordinates (plural) for the specific producer
@@ -98,15 +99,19 @@ def pro_dist_matrix(PRODUCER_COORDINATES):
     df_matrix = pd.DataFrame(per_pwell)
     np.fill_diagonal(df_matrix.values, np.nan)
 
+    if(scaled):
+        df_matrix = df_matrix / df_matrix.max()
+
     return df_matrix.infer_objects()
 
 
-PI_DIST_MATRIX = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
-INJECTOR_COORDINATES = S3.get_coordinates(data_group='INJECTION')
-PRODUCER_COORDINATES = S3.get_coordinates(data_group='PRODUCTION')
 CANDIDATES = _accessories.retrieve_local_data_file('Data/Pickles/WELL_Candidates.pkl', mode=2)
-II_DIST_MATRIX = inj_dist_matrix(INJECTOR_COORDINATES)
-PP_DIST_MATRIX = pro_dist_matrix(PRODUCER_COORDINATES)
+PI_DIST_MATRIX = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
+II_DIST_MATRIX = inj_dist_matrix(S3.get_coordinates(data_group='INJECTION'))
+PP_DIST_MATRIX = pro_dist_matrix(S3.get_coordinates(data_group='PRODUCTION'))
+
+# plt.figure(figsize=(15, 5))
+# sns.heatmap(PI_DIST_MATRIX.set_index('PRO_Well').select_dtypes(float))
 
 _ = """
 #######################################################################################################################
