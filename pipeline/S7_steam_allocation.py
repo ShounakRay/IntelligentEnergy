@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 03-May-2021 15:05:39:393  GMT-0600
+# @Last modified time: 03-May-2021 15:05:63:636  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -123,8 +123,8 @@ def candidate_impacts(CANDIDATES, PI_DIST_MATRIX, CLOSENESS_THRESH=CLOSENESS_THR
             impacts_on = {k: v for k, v in ip_distances.items() if v <= search_scope}
             impact_tracker[pwell][iwell] = {k: (v / sum(impacts_on.values())) for k, v in impacts_on.items()}
 
-            axis = ax[candidates.index(iwell)][list(CANDIDATES.keys()).index(pwell)]
             if(plot):
+                axis = ax[candidates.index(iwell)][list(CANDIDATES.keys()).index(pwell)]
                 axis.set_title(f'{pwell}, {iwell}')
                 axis.bar({k: v for k, v in ip_distances.items() if k in impacts_on.keys()}.keys(),
                          {k: v for k, v in ip_distances.items() if k in impacts_on.keys()}.values(), color='red')
@@ -146,8 +146,7 @@ PI_DIST_MATRIX = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
 II_DIST_MATRIX = inj_dist_matrix(S3.get_coordinates(data_group='INJECTION'))
 PP_DIST_MATRIX = pro_dist_matrix(S3.get_coordinates(data_group='PRODUCTION'))
 
-
-impact_tracker = impact_by_injectorcandidate_impacts(CANDIDATES, PI_DIST_MATRIX, plot=False)
+impact_tracker = candidate_impacts(CANDIDATES, PI_DIST_MATRIX, plot=False)
 
 
 # plt.figure(figsize=(15, 5))
