@@ -3,21 +3,111 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 30-Apr-2021 09:04:98:982  GMT-0600
+# @Last modified time: 03-May-2021 12:05:00:004  GMT-0600
 # @License: [Private IP]
 
+import os
 import pickle
 import random
+import sys
 from io import StringIO
 from typing import Final
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import pipeline.S3_weighting as S3
 import seaborn as sns
 
+
+def ensure_cwd(expected_parent):
+    init_cwd = os.getcwd()
+    sub_dir = init_cwd.split('/')[-1]
+
+    if(sub_dir != expected_parent):
+        new_cwd = init_cwd
+        print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
+              f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
+    else:
+        new_cwd = init_cwd.replace('/' + sub_dir, '')
+        print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
+        os.chdir(new_cwd)
+
+
+if __name__ == '__main__':
+    try:
+        _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
+    except Exception:
+        _EXPECTED_PARENT_NAME = 'pipeline'
+        print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
+              f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
+    ensure_cwd(_EXPECTED_PARENT_NAME)
+    sys.path.insert(1, os.getcwd() + '/_references')
+    sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
+    import _accessories
+
+
+_ = """
+#######################################################################################################################
+##################################################   HYPERPARAMETERS   ################################################
+#######################################################################################################################
+"""
 # Only needed to get available production wells
 DATA_PATH_WELL: Final = 'Data/combined_ipc_engineered_phys.csv'    # Where the client-specific pad data is located
 DATA_PATH_WELL: Final = 'Data/combined_ipc_engineered_phys.csv'    # Where the client-specific pad data is located
+DATA_PATH_DMATRIX: Final = 'Data/Pickles/DISTANCE_MATRIX.csv'
+
+_ = """
+#######################################################################################################################
+##################################################   EXPERIMENTATION   ################################################
+#######################################################################################################################
+"""
+
+
+def inj_dist_matrix(INJECTOR_COORDINATES):
+    df_matrix = pd.DataFrame([], columns=INJECTOR_COORDINATES.keys(), index=INJECTOR_COORDINATES.keys())
+    for iwell in df_matrix.columns:
+        iwell_coord = INJECTOR_COORDINATES.get(iwell)
+        dists = [S3.euclidean_2d_distance(iwell_coord, dyn_coord) for dyn_coord in INJECTOR_COORDINATES.values()]
+        df_matrix[iwell] = dists
+    return df_matrix.infer_objects()
+
+
+def pro_dist_matrix(PRODUCER_COORDINATES):
+    df_matrix = pd.DataFrame([], columns=PRODUCER_COORDINATES.keys(), index=PRODUCER_COORDINATES.keys())
+    per_pwell = {}
+    for pwell in df_matrix.columns:
+        # Get the coordinates (plural) for the specific producer
+        pwell_coords = PRODUCER_COORDINATES.get(pwell)
+        avg_distance_cd = {}
+        for cd in pwell_coords:
+            # Get each SPECIFIC coordinate for the specific producer
+            avg_distance = {}
+            for pwell_name, pwell_coords_again in PRODUCER_COORDINATES.items():
+                # Access the coordinates (plural) for the specific producer again
+                # print(f'PWELL_FIRST: {pwell}, PWELL_SECOND: {pwell_name}')
+                vals = [S3.euclidean_2d_distance(cd, dyn_coord)
+                        for dyn_coord in pwell_coords_again]
+                # Average distance between one SPECIFIC coordinate of upper-level producer AND all the coordinates
+                #   of all the other producers
+                avg_distance[pwell_name] = np.mean(vals)
+            avg_distance_cd[pwell_coords.index(cd)] = avg_distance
+        per_pwell[pwell] = avg_distance_cd
+
+    pd.DataFrame(per_pwell)
+
+
+PI_DIST_MATRIX = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
+INJECTOR_COORDINATES = S3.get_coordinates(data_group='INJECTION')
+PRODUCER_COORDINATES = S3.get_coordinates(data_group='PRODUCTION')
+CANDIDATES = _accessories.retrieve_local_data_file('Data/Pickles/WELL_Candidates.pkl', mode=2)
+II_DIST_MATRIX = inj_dist_matrix(INJECTOR_COORDINATES)
+
+_ = """
+#######################################################################################################################
+##############################################   NAIVE DISTANCE APPROACH   ############################################
+#######################################################################################################################
+"""
 
 # Only needed to get available production wells
 model_data_agg = pd.read_csv(DATA_PATH_WELL).infer_objects()

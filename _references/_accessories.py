@@ -3,15 +3,17 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 28-Apr-2021 12:04:54:543  GMT-0600
+# @Last modified time: 03-May-2021 11:05:92:929  GMT-0600
 # @License: [Private IP]
 
 import ast
 import functools
 import os
+import pickle
 import sys
 import time
 from contextlib import contextmanager
+from io import StringIO
 
 import pandas as pd
 from colorama import Fore, Style
@@ -45,7 +47,7 @@ def _print(txt: str, color: str = 'LIGHTGREEN_EX') -> None:
     exec(output)
 
 
-def retrieve_local_data_file(filedir):
+def retrieve_local_data_file(filedir, mode=1):
     data = None
     filename = filedir.split('/')[-1:][0]
     try:
@@ -54,9 +56,16 @@ def retrieve_local_data_file(filedir):
         elif(filename.endswith(('.xlsx', '.xls', '.xlsm', '.xlsb', '.odf', '.ods', '.odt'))):
             data = pd.read_excel(filedir).infer_objects()
         elif(filename.endswith('.pkl')):
-            with open(filedir, 'rb') as f:
-                data = f.readlines()[0]
-                data = ast.literal_eval(data.decode("utf-8").replace('\n', ''))
+            if mode == 1:
+                data = pickle.load(filedir).infer_objects()
+            elif mode == 2:
+                with open(filedir, 'rb') as f:
+                    data = f.readlines()[0]
+                    data = ast.literal_eval(data.decode("utf-8").replace('\n', ''))
+            elif mode == 3:
+                with open(filedir, 'r') as file:
+                    lines = file.readlines()
+                    data = pd.read_csv(StringIO(''.join(lines)), delim_whitespace=True).infer_objects()
         if(data is None):
             raise Exception
         _print(f'> Imported "{filename}"...', color='GREEN')

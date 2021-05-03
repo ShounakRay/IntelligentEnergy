@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 23:04:20:203  GMT-0600
+# @Last modified time: 03-May-2021 11:05:34:348  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -519,7 +519,7 @@ def distance_matrix(injector_coordinates, producer_coordinates, save=True):
     pro_inj_distance = pro_inj_distance.infer_objects()
 
     if(save):
-        _accessories.save_local_data_file(pro_inj_distance, 'Data/Pickles/DISTANCE_MATRIX.pkl')
+        _accessories.save_local_data_file(pro_inj_distance, 'Data/Pickles/DISTANCE_MATRIX.csv')
 
     return pro_inj_distance
 
@@ -655,8 +655,8 @@ _ = """
 def _INTELLIGENT_AGGREGATION():
     _accessories._print('Ingesting PHYSICS ENGINEERED and pad-well relationship data...', color='LIGHTYELLOW_EX')
     DATASETS = {'FINALE': _accessories.retrieve_local_data_file('Data/combined_ipc_engineered_phys_ALL.csv')}
-    INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/Pickles/INJECTION_[Well, Pad].pkl')
-    PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/Pickles/PRODUCTION_[Well, Pad].pkl')
+    INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/Pickles/INJECTION_[Well, Pad].pkl', mode=2)
+    PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/Pickles/PRODUCTION_[Well, Pad].pkl', mode=2)
 
     _accessories._print('Minor processing...', color='LIGHTYELLOW_EX')
     DATASETS['FINALE'] = minor_processing(DATASETS['FINALE'], PRO_PAD_KEYS)
@@ -668,16 +668,16 @@ def _INTELLIGENT_AGGREGATION():
     injector_coords = get_coordinates('INJECTION')
     producer_coords = get_coordinates('PRODUCTION')
 
-    # _accessories._print('Determining candidates and distance matrix...', color='LIGHTYELLOW_EX')
-    # available_pads_transformed = ['A', 'B']
-    # available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in available_pads_transformed]
-    # candidates_by_prodpad, candidates_by_prodwell = get_all_candidates(injector_coords, producer_coords,
-    #                                                                    available_pads_transformed,
-    #                                                                    available_pwells_transformed,
-    #                                                                    rel_rad=relative_radius,
-    #                                                                    save=True,
-    #                                                                    plot=plot_geo,
-    #                                                                    pro_well_pad_relationship=PRO_PAD_KEYS)
+    _accessories._print('Determining candidates and distance matrix...', color='LIGHTYELLOW_EX')
+    available_pads_transformed = ['A', 'B']
+    available_pwells_transformed = [k for k, v in PRO_PAD_KEYS.items() if v in available_pads_transformed]
+    candidates_by_prodpad, candidates_by_prodwell = get_all_candidates(injector_coords, producer_coords,
+                                                                       available_pads_transformed,
+                                                                       available_pwells_transformed,
+                                                                       rel_rad=relative_radius,
+                                                                       save=True,
+                                                                       plot=plot_geo,
+                                                                       pro_well_pad_relationship=PRO_PAD_KEYS)
 
     _ = distance_matrix(injector_coords, producer_coords, save=True)
 
