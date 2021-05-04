@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 03-May-2021 15:05:63:636  GMT-0600
+# @Last modified time: 04-May-2021 10:05:43:431  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -57,11 +57,12 @@ DATA_PATH_WELL: Final = 'Data/combined_ipc_engineered_phys.csv'    # Where the c
 DATA_PATH_WELL: Final = 'Data/combined_ipc_engineered_phys.csv'    # Where the client-specific pad data is located
 DATA_PATH_DMATRIX: Final = 'Data/Pickles/DISTANCE_MATRIX.csv'
 
-CLOSENESS_THRESH: Final = 0.1
+CLOSENESS_THRESH_PI: Final = 0.2
+CLOSENESS_THRESH_II: Final = 0.5
 
 _ = """
 #######################################################################################################################
-##################################################   EXPERIMENTATION   ################################################
+####################################################   DEFINITIONS   ##################################################
 #######################################################################################################################
 """
 
@@ -107,7 +108,7 @@ def pro_dist_matrix(PRODUCER_COORDINATES, scaled=False):
     return df_matrix.infer_objects()
 
 
-def candidate_impacts(CANDIDATES, PI_DIST_MATRIX, CLOSENESS_THRESH=CLOSENESS_THRESH, plot=True):
+def candidate_impacts(CANDIDATES, PI_DIST_MATRIX, CLOSENESS_THRESH_PI=CLOSENESS_THRESH_PI, plot=True):
     if(plot):
         fig, ax = plt.subplots(ncols=len(CANDIDATES.keys()), nrows=max([len(i) for p, i in CANDIDATES.items()]),
                                figsize=(60, 30))
@@ -119,7 +120,7 @@ def candidate_impacts(CANDIDATES, PI_DIST_MATRIX, CLOSENESS_THRESH=CLOSENESS_THR
             ip_distances = PI_DIST_MATRIX[['PRO_Well', iwell]].set_index('PRO_Well').to_dict().get(iwell)
             ip_distances = dict(sorted(ip_distances.items(), key=lambda tup: tup[1]))
             top_pwell, closest_distance = next(iter(ip_distances.items()))
-            search_scope = closest_distance * (1 + CLOSENESS_THRESH)
+            search_scope = closest_distance * (1 + CLOSENESS_THRESH_PI)
             impacts_on = {k: v for k, v in ip_distances.items() if v <= search_scope}
             impact_tracker[pwell][iwell] = {k: (v / sum(impacts_on.values())) for k, v in impacts_on.items()}
 
@@ -138,16 +139,50 @@ def candidate_impacts(CANDIDATES, PI_DIST_MATRIX, CLOSENESS_THRESH=CLOSENESS_THR
                                                                              axis=1).iloc[:, 0].to_dict().items(),
                                          key=lambda tup: tup[0]))
 
-    return cleaned_imapct_tracker
+    # Identify injectors that are isolated to a single well.
+    isolated = []
+    for name, impacts in cleaned_imapct_tracker.items():
+        if len(impacts) == 1:
+            isolated.append(name)
 
+    return cleaned_imapct_tracker, isolated
+
+
+def injector_impacts(II_DIST_MATRIX, CLOSENESS_THRESH_II=CLOSENESS_THRESH_II):
+    # NOTE: The purpose of this is to ballpark steam connections between injectors
+    links = {}
+    for iwell in II_DIST_MATRIX.columns:
+        # This is the distance between the iterated injector and all the other injectors
+        slice = dict(sorted(II_DIST_MATRIX[iwell].dropna().to_dict().items(), key=lambda x: x[1]))
+        thresh = list(slice.values())[0] * (1 + CLOSENESS_THRESH_II)
+        slice = {iwell: dist for iwell, dist in slice.items() if dist <= thresh}
+        slice = {iwell: dist / sum(list(slice.values())) for iwell, dist in slice.items() if dist <= thresh}
+        links[iwell] = slice
+
+    isolates = []
+    for iwell, options in links.items():
+        if len(options) == 1:
+            isolates.append(iwell)
+
+    return links, isolates
+
+
+_ = """
+#######################################################################################################################
+##################################################   EXPERIMENTATION   ################################################
+#######################################################################################################################
+"""
 
 CANDIDATES = _accessories.retrieve_local_data_file('Data/Pickles/WELL_Candidates.pkl', mode=2)
 PI_DIST_MATRIX = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
 II_DIST_MATRIX = inj_dist_matrix(S3.get_coordinates(data_group='INJECTION'))
 PP_DIST_MATRIX = pro_dist_matrix(S3.get_coordinates(data_group='PRODUCTION'))
 
-impact_tracker = candidate_impacts(CANDIDATES, PI_DIST_MATRIX, plot=False)
+impact_tracker_PI, isolates_PI = candidate_impacts(CANDIDATES, PI_DIST_MATRIX, plot=False)
+impact_tracker_II, isolates_II = injector_impacts(II_DIST_MATRIX, CLOSENESS_THRESH_II=CLOSENESS_THRESH_II)
 
+
+pd.DataFrame(links)
 
 # plt.figure(figsize=(15, 5))
 # sns.heatmap(PI_DIST_MATRIX.set_index('PRO_Well').select_dtypes(float))
