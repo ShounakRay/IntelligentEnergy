@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 04-May-2021 13:05:31:310  GMT-0600
+# @Last modified time: 04-May-2021 14:05:11:113  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -197,8 +197,11 @@ def produce_search_space(CANDIDATES, PI_DIST_MATRIX, II_DIST_MATRIX, RESOLUTION=
     return search_space_df
 
 
-def retrieve_search_space(min_bound=0.5):
+def retrieve_search_space(min_bound=0.5, early=False):
     search_space = _accessories.retrieve_local_data_file('Data/threshold_search_space.csv').drop('Unnamed: 0', 1)
+
+    if early:
+        return search_space
 
     search_space_df = search_space.set_index('index').applymap(lambda x: len(x)).reset_index()
     search_space_df = pd.melt(search_space_df, id_vars='index', value_vars=list(search_space_df)[1:]).infer_objects()
@@ -233,9 +236,9 @@ CANDIDATES = _accessories.retrieve_local_data_file('Data/Pickles/WELL_Candidates
 PI_DIST_MATRIX = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
 II_DIST_MATRIX = inj_dist_matrix(S3.get_coordinates(data_group='INJECTION'))
 PP_DIST_MATRIX = pro_dist_matrix(S3.get_coordinates(data_group='PRODUCTION'))
-search_space_df = retrieve_search_space()
+search_space_df = retrieve_search_space(early=True)
 
-plot_search_space(search_space_df, cmap=cm.Wistia)
+plot_search_space(retrieve_search_space(min_bound=0.3, early=False), cmap=cm.turbo)
 
 
 _ = """
