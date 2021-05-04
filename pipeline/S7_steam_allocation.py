@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 04-May-2021 11:05:54:548  GMT-0600
+# @Last modified time: 04-May-2021 12:05:82:824  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -17,9 +17,6 @@ if __name__ == '__main__':
     import matplotlib
     matplotlib.use('Qt5Agg')
     import matplotlib.pyplot as plt
-
-from itertools import product
-from multiprocessing import Pool
 
 import numpy as np
 import pandas as pd
@@ -68,6 +65,7 @@ DATA_PATH_DMATRIX: Final = 'Data/Pickles/DISTANCE_MATRIX.csv'
 
 CLOSENESS_THRESH_PI: Final = 0.1
 CLOSENESS_THRESH_II: Final = 0.1
+RESOLUTION = 0.01
 
 _ = """
 #######################################################################################################################
@@ -191,36 +189,21 @@ PI_DIST_MATRIX = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
 II_DIST_MATRIX = inj_dist_matrix(S3.get_coordinates(data_group='INJECTION'))
 PP_DIST_MATRIX = pro_dist_matrix(S3.get_coordinates(data_group='PRODUCTION'))
 
-
-# def get_optimals(CANDIDATES, PI_DIST_MATRIX, II_DIST_MATRIX, thresh_PI, thresh_II):
-#     impact_tracker_PI, isolates_PI = PI_imapcts(CANDIDATES, PI_DIST_MATRIX, CLOSENESS_THRESH_PI=thresh_PI)
-#     impact_tracker_II, isolates_II = II_impacts(II_DIST_MATRIX, CLOSENESS_THRESH_II=thresh_II)
-#     optimals = optimal_injectors(isolates_PI, isolates_II)
-#     return (thresh_PI, thresh_II, len(optimals))
-
-
+# 3 minutes and 15 seconds
 search_space = {}
-
-args = list(product(np.arange(0.0, 1.05, 0.05), np.arange(0.0, 1.05, 0.05)))
-args = list(zip([CANDIDATES] * len(args), PI_DIST_MATRIX * len(args), II_DIST_MATRIX, args))
-
-
-with Pool(os.cpu_count() - 1) as pool:
-    output = pool.starmap(get_optimals, args)
-
-for thresh_PI in np.arange(0.0, 1.05, 0.05):
+for thresh_PI in np.arange(0.0, 1 + RESOLUTION, RESOLUTION):
     search_space[thresh_PI] = {}
-    for thresh_II in np.arange(0.0, 1.05, 0.05):
-
-        # impact_tracker_PI, isolates_PI = PI_imapcts(CANDIDATES, PI_DIST_MATRIX,
-        #                                             CLOSENESS_THRESH_PI=thresh_PI)
-        # impact_tracker_II, isolates_II = II_impacts(II_DIST_MATRIX,
-        #                                             CLOSENESS_THRESH_II=thresh_II)
-        # optimals = optimal_injectors(isolates_PI, isolates_II)
-        # search_space[thresh_PI][thresh_II] = len(optimals)
-
+    for thresh_II in np.arange(0.0, 1 + RESOLUTION, RESOLUTION):
+        impact_tracker_PI, isolates_PI = PI_imapcts(CANDIDATES, PI_DIST_MATRIX,
+                                                    CLOSENESS_THRESH_PI=thresh_PI)
+        impact_tracker_II, isolates_II = II_impacts(II_DIST_MATRIX,
+                                                    CLOSENESS_THRESH_II=thresh_II)
+        optimals = optimal_injectors(isolates_PI, isolates_II)
+        search_space[thresh_PI][thresh_II] = optimals
 
 search_space_df = pd.DataFrame(search_space).reset_index()
+search_space_df.to_csv('Data/threshold_search_space.csv')
+
 search_space_df = pd.melt(search_space_df, id_vars='index', value_vars=list(search_space_df)[1:]).infer_objects()
 search_space_df.columns = ['thresh_PI', 'thresh_II', 'n_optimal']
 search_space_df = search_space_df[(search_space_df['thresh_PI'] < 0.5) & (search_space_df['thresh_II'] < 0.5)]
@@ -228,6 +211,12 @@ search_space_df = search_space_df[(search_space_df['thresh_PI'] < 0.5) & (search
 ax = Axes3D(plt.figure())
 ax.plot_trisurf(search_space_df['thresh_PI'], search_space_df['thresh_II'], search_space_df['n_optimal'],
                 cmap=cm.jet)
+ax.set_title('Search Space When Finding Optimal Injectors')
+ax.set_xlabel('thresh_PI')
+ax.set_ylabel('thresh_II')
+ax.set_zlabel('n_optimal')
+plt.tight_layout()
+plt.show()
 
 # plt.figure(figsize=(15, 5))
 # sns.heatmap(PI_DIST_MATRIX.set_index('PRO_Well').select_dtypes(float))
