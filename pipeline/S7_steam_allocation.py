@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 04-May-2021 14:05:11:113  GMT-0600
+# @Last modified time: 04-May-2021 16:05:55:550  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -237,6 +237,14 @@ PI_DIST_MATRIX = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
 II_DIST_MATRIX = inj_dist_matrix(S3.get_coordinates(data_group='INJECTION'))
 PP_DIST_MATRIX = pro_dist_matrix(S3.get_coordinates(data_group='PRODUCTION'))
 search_space_df = retrieve_search_space(early=True)
+
+impact_tracker_PI, isolates_PI = PI_imapcts(CANDIDATES, PI_DIST_MATRIX,
+                                            CLOSENESS_THRESH_PI=0.1)
+impact_tracker_II, isolates_II = II_impacts(II_DIST_MATRIX,
+                                            CLOSENESS_THRESH_II=0.1)
+
+# Go through and determine allocation
+
 
 plot_search_space(retrieve_search_space(min_bound=0.3, early=False), cmap=cm.turbo)
 
