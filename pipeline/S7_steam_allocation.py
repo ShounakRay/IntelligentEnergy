@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 06-May-2021 14:05:60:601  GMT-0600
+# @Last modified time: 06-May-2021 17:05:22:229  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -21,6 +21,9 @@ import pipeline.S3_weighting as S3
 import seaborn as sns
 from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
+
+# TODO: Heel constraints
+# TODO: Fiber Consideration
 
 
 def ensure_cwd(expected_parent):
