@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 05-May-2021 11:05:93:931  GMT-0600
+# @Last modified time: 05-May-2021 18:05:36:369  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -66,6 +66,43 @@ DATA_PATH_DMATRIX: Final = 'Data/Pickles/DISTANCE_MATRIX.csv'
 CLOSENESS_THRESH_PI: Final = 0.1
 CLOSENESS_THRESH_II: Final = 0.1
 RESOLUTION = 0.01
+
+pwell_allocation = pd.DataFrame([{'producer_well': 'EP4', 'recomm_steam': 190},
+                                 {'producer_well': 'CP3', 'recomm_steam': 211},
+                                 {'producer_well': 'CP8', 'recomm_steam': 150},
+                                 {'producer_well': 'EP7', 'recomm_steam': 154},
+                                 {'producer_well': 'EP3', 'recomm_steam': 187},
+                                 {'producer_well': 'FP7', 'recomm_steam': 2},
+                                 {'producer_well': 'FP6', 'recomm_steam': 81},
+                                 {'producer_well': 'CP5', 'recomm_steam': 188},
+                                 {'producer_well': 'EP2', 'recomm_steam': 202},
+                                 {'producer_well': 'AP4', 'recomm_steam': 82},
+                                 {'producer_well': 'AP7', 'recomm_steam': 157},
+                                 {'producer_well': 'CP1', 'recomm_steam': 30},
+                                 {'producer_well': 'FP4', 'recomm_steam': 85},
+                                 {'producer_well': 'FP5', 'recomm_steam': 127},
+                                 {'producer_well': 'CP7', 'recomm_steam': 241},
+                                 {'producer_well': 'EP6', 'recomm_steam': 125},
+                                 {'producer_well': 'CP4', 'recomm_steam': 117},
+                                 {'producer_well': 'BP6', 'recomm_steam': 161},
+                                 {'producer_well': 'AP2', 'recomm_steam': 261},
+                                 {'producer_well': 'AP5', 'recomm_steam': 146},
+                                 {'producer_well': 'FP1', 'recomm_steam': 86},
+                                 {'producer_well': 'BP3', 'recomm_steam': 165},
+                                 {'producer_well': 'CP6', 'recomm_steam': 175},
+                                 {'producer_well': 'AP6', 'recomm_steam': 146},
+                                 {'producer_well': 'FP2', 'recomm_steam': 134},
+                                 {'producer_well': 'BP2', 'recomm_steam': 172},
+                                 {'producer_well': 'AP3', 'recomm_steam': 214},
+                                 {'producer_well': 'BP1', 'recomm_steam': 259},
+                                 {'producer_well': 'BP5', 'recomm_steam': 297},
+                                 {'producer_well': 'BP4', 'recomm_steam': 125},
+                                 {'producer_well': 'CP2', 'recomm_steam': 214},
+                                 {'producer_well': 'AP8', 'recomm_steam': 46},
+                                 {'producer_well': 'FP3', 'recomm_steam': 87},
+                                 {'producer_well': 'EP5', 'recomm_steam': 50}]).set_index('producer_well'
+                                                                                          ).to_dict()['recomm_steam']
+
 
 _ = """
 #######################################################################################################################
@@ -226,6 +263,57 @@ def plot_search_space(search_space_df, cmap=cm.jet):
     plt.show()
 
 
+def naive_distance_allocation(PI_DIST_MATRIX, CANDIDATES, pwell_allocation, format='dict',
+                              min_steam=0.08, base_start=0, base_max=10**4):
+    def reformat_to_df(allocated_steam_values, allocated_steam_props):
+        # Reformatting
+        allocated_steam_values = pd.DataFrame(allocated_steam_values).infer_objects()
+        allocated_steam_props = pd.DataFrame(allocated_steam_props).infer_objects()
+        # Reordering
+        allocated_steam_props = allocated_steam_props.reset_index().sort_values(by='index').set_index('index')
+        allocated_steam_props.index.name = None
+        allocated_steam_values = allocated_steam_values.reset_index().sort_values(by='index').set_index('index')
+        allocated_steam_values.index.name = None
+
+        return allocated_steam_values, allocated_steam_props
+
+    allocated_steam_values = {}
+    allocated_steam_props = {}
+    for pwell in PI_DIST_MATRIX['PRO_Well'].unique():
+        # Get candidates for current producer well
+        pwell_candidates = CANDIDATES[pwell]
+        pwell_allocated_steam = pwell_allocation[pwell]
+
+        # Get sliced row from producer well pad for the specific producer well
+        sliced_row = PI_DIST_MATRIX[PI_DIST_MATRIX['PRO_Well'] == pwell][pwell_candidates].reset_index(drop=True).T
+        sliced_row = sliced_row.to_dict()[0]
+        # Normalize sliced row (with all injectors) (0 to 1)
+        for base in np.arange(base_start, base_max + 1, 1):
+            maximum = float(max(sliced_row.values()))
+            minimum = float(min(sliced_row.values()))
+            range = maximum - minimum
+            transformed = {inj: (maximum - i + base) / (range + base) for inj, i in sliced_row.items()}
+            summed = sum(transformed.values())
+            transformed = {inj: i / summed for inj, i in transformed.items()}
+
+            if(min(transformed.values()) < min_steam):
+                if(base == base_max):
+                    _accessories._print(f'Minimum: {min(transformed.values())} for {pwell}\n' +
+                                        f'The maximum bound of base was too low at {base_max}. Moving forward...',
+                                        color='LIGHTRED_EX')
+                    break
+                continue
+            else:  # elif(min(transformed.values()) >= min_steam)
+                break
+
+        # Multiply sliced row (with all injectors) by pad allocation and store
+        allocated_steam_values[pwell] = {inj: i * pwell_allocated_steam for inj, i in transformed.items()}
+        allocated_steam_props[pwell] = transformed
+    out = reformat_to_df(allocated_steam_values,
+                         allocated_steam_props) if format == 'df' else (allocated_steam_values, allocated_steam_props)
+    return out
+
+
 _ = """
 #######################################################################################################################
 ##################################################   EXPERIMENTATION   ################################################
@@ -238,13 +326,25 @@ II_DIST_MATRIX = inj_dist_matrix(S3.get_coordinates(data_group='INJECTION'))
 PP_DIST_MATRIX = pro_dist_matrix(S3.get_coordinates(data_group='PRODUCTION'))
 search_space_df = retrieve_search_space(early=True)
 
-impact_tracker_PI, isolates_PI = PI_imapcts(CANDIDATES, PI_DIST_MATRIX,
-                                            CLOSENESS_THRESH_PI=0.1)
-impact_tracker_II, isolates_II = II_impacts(II_DIST_MATRIX,
-                                            CLOSENESS_THRESH_II=0.1)
+impact_tracker_PI, isolates_PI = PI_imapcts(CANDIDATES, PI_DIST_MATRIX, CLOSENESS_THRESH_PI=0.1)
+impact_tracker_II, isolates_II = II_impacts(II_DIST_MATRIX, CLOSENESS_THRESH_II=0.1)
 
-for pwell, candidates in CANDIDATES.items():
-    3
+allocated_steam_values, allocated_steam_props = naive_distance_allocation(PI_DIST_MATRIX, CANDIDATES, pwell_allocation,
+                                                                          format='dict')
+
+
+for pwell, allocations in allocated_steam_props.items():
+    for inj, alloc_prop in allocations.items():
+        # Get producer impacts
+        impact_on_producer = impact_tracker_PI.get(inj)
+        importance_producer = impact_on_producer.get(pwell)
+        isolate_producer = True if len(impact_on_producer) == 1 else False
+
+        # Get injector impacts
+        impact_on_injector = impact_tracker_II.get(inj)
+        for ext_inj, importance in impact_on_injector.items():
+            importance_injector =
+
 
 plot_search_space(retrieve_search_space(min_bound=0.3, early=False), cmap=cm.turbo)
 
@@ -255,89 +355,13 @@ _ = """
 #######################################################################################################################
 """
 
-# Only needed to get available production wells
-model_data_agg = _accessories.retrieve_local_data_file(DATA_PATH_WELL)
+for pwell, allocs in allocated_steam_props.items():
+    summed = sum(allocs.values())
+    print(pwell, ' ', summed)
 
-pwells = list(model_data_agg['PRO_Well'].unique())
-pwell_allocation = pd.DataFrame([{'producer_well': 'EP4', 'recomm_steam': 190},
-                                 {'producer_well': 'CP3', 'recomm_steam': 211},
-                                 {'producer_well': 'CP8', 'recomm_steam': 150},
-                                 {'producer_well': 'EP7', 'recomm_steam': 154},
-                                 {'producer_well': 'EP3', 'recomm_steam': 187},
-                                 {'producer_well': 'FP7', 'recomm_steam': 2},
-                                 {'producer_well': 'FP6', 'recomm_steam': 81},
-                                 {'producer_well': 'CP5', 'recomm_steam': 188},
-                                 {'producer_well': 'EP2', 'recomm_steam': 202},
-                                 {'producer_well': 'AP4', 'recomm_steam': 82},
-                                 {'producer_well': 'AP7', 'recomm_steam': 157},
-                                 {'producer_well': 'CP1', 'recomm_steam': 30},
-                                 {'producer_well': 'FP4', 'recomm_steam': 85},
-                                 {'producer_well': 'FP5', 'recomm_steam': 127},
-                                 {'producer_well': 'CP7', 'recomm_steam': 241},
-                                 {'producer_well': 'EP6', 'recomm_steam': 125},
-                                 {'producer_well': 'CP4', 'recomm_steam': 117},
-                                 {'producer_well': 'BP6', 'recomm_steam': 161},
-                                 {'producer_well': 'AP2', 'recomm_steam': 261},
-                                 {'producer_well': 'AP5', 'recomm_steam': 146},
-                                 {'producer_well': 'FP1', 'recomm_steam': 86},
-                                 {'producer_well': 'BP3', 'recomm_steam': 165},
-                                 {'producer_well': 'CP6', 'recomm_steam': 175},
-                                 {'producer_well': 'AP6', 'recomm_steam': 146},
-                                 {'producer_well': 'FP2', 'recomm_steam': 134},
-                                 {'producer_well': 'BP2', 'recomm_steam': 172},
-                                 {'producer_well': 'AP3', 'recomm_steam': 214},
-                                 {'producer_well': 'BP1', 'recomm_steam': 259},
-                                 {'producer_well': 'BP5', 'recomm_steam': 297},
-                                 {'producer_well': 'BP4', 'recomm_steam': 125},
-                                 {'producer_well': 'CP2', 'recomm_steam': 214},
-                                 {'producer_well': 'AP8', 'recomm_steam': 46},
-                                 {'producer_well': 'FP3', 'recomm_steam': 87},
-                                 {'producer_well': 'EP5', 'recomm_steam': 50}]).set_index('producer_well'
-                                                                                          ).to_dict()['recomm_steam']
-# NOTE: Load in pickled distance matrix
-all_injs = list(PI_DIST_MATRIX.columns)[1:]
-# NOTE: Load in producer well candidates
-# candidates_by_prodpad = pickle.load(open('Data/candidates_by_prodpad.pkl', 'rb'))
-
-# NOTE: Get sliced row from distance matrix for the specific producer well
-allocated_steam_values = {}
-allocated_steam_props = {}
-for pwell in PI_DIST_MATRIX['PRO_Well'].unique():
-    # Get candidates for current producer well
-    pwell_candidates = CANDIDATES[pwell]
-    pwell_allocated_steam = pwell_allocation[pwell]
-
-    # Get sliced row from producer well pad for the specific producer well
-    sliced_row = PI_DIST_MATRIX[PI_DIST_MATRIX['PRO_Well'] == pwell][pwell_candidates].reset_index(drop=True).T
-    # Normalize sliced row (with all injectors) (0 to 1)
-    max = float(sliced_row.max())
-    range = max - float(sliced_row.min())
-    const = range / 2
-    sliced_row[pwell] = [(max - i + const) / (1.5 * range) for i in sliced_row[0]]
-    sliced_row[pwell] = sliced_row[pwell] / sliced_row[pwell].sum()
-    sliced_row.drop(0, axis=1, inplace=True)
-
-    # Multiply sliced row (with all injectors) by pad allocation and store
-    allocated_steam_values[pwell] = list((sliced_row * pwell_allocated_steam).to_dict().values())[0]
-    allocated_steam_props[pwell] = list(sliced_row.to_dict().values())[0]
-
-# Reformatting
-allocated_steam_values = pd.DataFrame(allocated_steam_values).infer_objects()
-allocated_steam_props = pd.DataFrame(allocated_steam_props).infer_objects()
-
-# Reordering
-allocated_steam_props = allocated_steam_props.reset_index().sort_values(by='index')
-allocated_steam_props.index = allocated_steam_props['index']
-allocated_steam_props.drop('index', axis=1, inplace=True)
-allocated_steam_props.index.name = None
-allocated_steam_values = allocated_steam_values.reset_index().sort_values(by='index')
-allocated_steam_values.index = allocated_steam_values['index']
-allocated_steam_values.drop('index', axis=1, inplace=True)
-allocated_steam_values.index.name = None
 
 # Plotting
 fig, ax = plt.subplots(ncols=2, figsize=(12, 10))
-
 sns.heatmap(allocated_steam_props, ax=ax[0])
 ax[0].set_title('Relative Allocated Steam values')
 ax[0].set_xlabel('Producer Wells')
