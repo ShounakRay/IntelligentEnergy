@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 05-May-2021 18:05:36:369  GMT-0600
+# @Last modified time: 06-May-2021 00:05:70:704  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -15,7 +15,7 @@ from typing import Final
 
 if __name__ == '__main__':
     import matplotlib
-    matplotlib.use('Qt5Agg')
+    # matplotlib.use('Qt5Agg')
     import matplotlib.pyplot as plt
 
 import numpy as np
@@ -195,6 +195,7 @@ def PI_imapcts(CANDIDATES, PI_DIST_MATRIX, CLOSENESS_THRESH_PI=CLOSENESS_THRESH_
 def II_impacts(II_DIST_MATRIX, CLOSENESS_THRESH_II=CLOSENESS_THRESH_II):
     # NOTE: The purpose of this is to ballpark steam connections between injectors
     links = {}
+    u = []
     for iwell in II_DIST_MATRIX.columns:
         # This is the distance between the iterated injector and all the other injectors
         slice = dict(sorted(II_DIST_MATRIX[iwell].dropna().to_dict().items(), key=lambda x: x[1]))
@@ -332,18 +333,60 @@ impact_tracker_II, isolates_II = II_impacts(II_DIST_MATRIX, CLOSENESS_THRESH_II=
 allocated_steam_values, allocated_steam_props = naive_distance_allocation(PI_DIST_MATRIX, CANDIDATES, pwell_allocation,
                                                                           format='dict')
 
-
+injector_tracks = []
 for pwell, allocations in allocated_steam_props.items():
     for inj, alloc_prop in allocations.items():
         # Get producer impacts
         impact_on_producer = impact_tracker_PI.get(inj)
-        importance_producer = impact_on_producer.get(pwell)
-        isolate_producer = True if len(impact_on_producer) == 1 else False
+        importance_candidate = impact_on_producer.get(pwell)
+        isolate_candidate = True if len(impact_on_producer) == 1 else False
+
+        if(isolate_candidate):
+            state_on_candidate = 'AMAZING'
+        else:
+            state_on_candidate = 'OKAY'
+        score_on_candidate = importance_candidate
+        dist_on_candidate = 1 / len(impact_on_producer)
 
         # Get injector impacts
-        impact_on_injector = impact_tracker_II.get(inj)
-        for ext_inj, importance in impact_on_injector.items():
-            importance_injector =
+        secondary_impact_on_injector = impact_tracker_II.get(inj)
+        for ext_inj, importance_secondary_injector in secondary_impact_on_injector.items():
+            secondary_impact_on_producer = impact_tracker_PI.get(inj)
+            # Does this external injector impact the current producer?
+            secondary_isolate_producer = True if pwell in secondary_impact_on_producer else False
+            if(secondary_impact_on_producer):
+                if len(secondary_impact_on_producer) == 1:
+                    status_on_external = 'AMAZING'
+                elif len(secondary_impact_on_producer) > 1:
+                    status_on_external = 'OKAY'
+                score_on_external = 1 / len(secondary_impact_on_producer)
+                dist_on_external = importance_secondary_injector
+            else:
+                status_on_external = 'POOR'
+                score_on_external = 0
+                dist_on_external = 0
+            injector_tracks.append([pwell, inj, alloc_prop,
+                                    state_on_candidate, score_on_candidate, dist_on_candidate,
+                                    ext_inj, status_on_external, score_on_external, dist_on_external])
+            # print(pwell, ' ', inj, ' ', ext_inj, ' ', status_on_external)
+        # print('---')
+    # print('\n\n')
+
+decisions = pd.DataFrame(injector_tracks, columns=['PRO_Well',
+                                                   'Candidate_Injector', 'Naive_Allocation', 'Candidate_Decision',
+                                                   'Candidate_Distance_Importance', 'Candidate_Distributed_Importance',
+                                                   'External_Injector', 'External_Decision',
+                                                   'External_Distance_Importance', 'External_Distributed_Importance'])
+# NOTE: Any NaN values in the 'Candidate_Distance_Importance' column means that the original candidates for the
+# producer well included this injector. However, the producer–injector matrix did not due to a low
+#   `CLOSENESS_THRESH_PI` threshold. This column will be forced to 1.0 (since candidates matter the most) and the
+#   respective 'Candidate_Decision' column value will be switched from 'AMAZING' to 'FORCED'
+decisions['Candidate_Decision'] = decisions.apply(lambda row: 'FORCED'
+                                                  if pd.isna(row['Candidate_Distance_Importance'])
+                                                  else row['Candidate_Decision'], axis=1)
+decisions['Candidate_Distance_Importance'] = decisions.apply(lambda row: 1.0
+                                                             if pd.isna(row['Candidate_Distance_Importance'])
+                                                             else row['Candidate_Distance_Importance'], axis=1)
 
 
 plot_search_space(retrieve_search_space(min_bound=0.3, early=False), cmap=cm.turbo)
