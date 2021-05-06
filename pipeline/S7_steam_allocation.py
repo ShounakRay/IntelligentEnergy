@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 06-May-2021 00:05:70:704  GMT-0600
+# @Last modified time: 06-May-2021 00:05:83:832  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -102,6 +102,7 @@ pwell_allocation = pd.DataFrame([{'producer_well': 'EP4', 'recomm_steam': 190},
                                  {'producer_well': 'FP3', 'recomm_steam': 87},
                                  {'producer_well': 'EP5', 'recomm_steam': 50}]).set_index('producer_well'
                                                                                           ).to_dict()['recomm_steam']
+pwell_allocation = dict(sorted(pwell_allocation.items()))
 
 
 _ = """
@@ -387,7 +388,39 @@ decisions['Candidate_Decision'] = decisions.apply(lambda row: 'FORCED'
 decisions['Candidate_Distance_Importance'] = decisions.apply(lambda row: 1.0
                                                              if pd.isna(row['Candidate_Distance_Importance'])
                                                              else row['Candidate_Distance_Importance'], axis=1)
+decisions['Final_Factor'] = decisions.apply(lambda row: np.average([row['Candidate_Distance_Importance'],
+                                                                    row['Candidate_Distributed_Importance'],
+                                                                    row['External_Distance_Importance'],
+                                                                    row['External_Distributed_Importance']],
+                                                                   weights=[2, 2, 1, 1]), axis=1)
+decisions['Revised_Allocation'] = decisions['Naive_Allocation'] * decisions['Final_Factor']
+decisions['DELTA'] = decisions['Naive_Allocation'] - decisions['Revised_Allocation']
+sns.histplot(decisions['DELTA'])
 
+# Check how much steam is accounted and unaccounted for.
+accounted_proportions = {}
+accounted_units = {}
+for pwell, group_df in decisions.groupby(['PRO_Well']):
+    proportion_covered = group_df.groupby('Candidate_Injector')['Revised_Allocation'].mean().sum()
+    proportion_left = 1 - proportion_covered
+    accounted_proportions[pwell] = proportion_covered
+    accounted_units[pwell] = proportion_covered * pwell_allocation.get(pwell)
+
+# Compare to pad-level constraints
+# trimmed_birds_allocations = ({k: v for k, v in pwell_allocation.items() if k in ['AP2', 'AP3', 'AP4',
+#                                                                                  'AP5', 'AP6', 'AP7', 'AP8']})
+trimmed_birds_allocations = ({k: v for k, v in pwell_allocation.items() if k in ['AP2', 'AP3', 'AP4',
+                                                                                 'AP5', 'AP6', 'AP7', 'AP8',
+                                                                                 'BP1', 'BP2', 'BP3', 'BP4',
+                                                                                 'BP5', 'BP6']})
+# suggested_trimmed_allocations = {k: v for k, v in accounted_units.items() if k in ['AP2', 'AP3', 'AP4',
+#                                                                                    'AP5', 'AP6', 'AP7', 'AP8']}
+suggested_trimmed_allocations = {k: v for k, v in accounted_units.items() if k in ['AP2', 'AP3', 'AP4',
+                                                                                   'AP5', 'AP6', 'AP7', 'AP8',
+                                                                                   'BP1', 'BP2', 'BP3', 'BP4',
+                                                                                   'BP5', 'BP6']}
+available_REAL = sum(trimmed_birds_allocations.values())
+available_FINAL = sum(suggested_trimmed_allocations.values())
 
 plot_search_space(retrieve_search_space(min_bound=0.3, early=False), cmap=cm.turbo)
 
