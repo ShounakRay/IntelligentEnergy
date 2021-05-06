@@ -3,14 +3,11 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 06-May-2021 00:05:83:832  GMT-0600
+# @Last modified time: 06-May-2021 14:05:60:601  GMT-0600
 # @License: [Private IP]
 
 import os
-import pickle
-import random
 import sys
-from io import StringIO
 from typing import Final
 
 if __name__ == '__main__':
@@ -59,8 +56,6 @@ _ = """
 #######################################################################################################################
 """
 # Only needed to get available production wells
-DATA_PATH_WELL: Final = 'Data/combined_ipc_engineered_phys.csv'    # Where the client-specific pad data is located
-DATA_PATH_WELL: Final = 'Data/combined_ipc_engineered_phys.csv'    # Where the client-specific pad data is located
 DATA_PATH_DMATRIX: Final = 'Data/Pickles/DISTANCE_MATRIX.csv'
 
 CLOSENESS_THRESH_PI: Final = 0.1
@@ -334,6 +329,7 @@ impact_tracker_II, isolates_II = II_impacts(II_DIST_MATRIX, CLOSENESS_THRESH_II=
 allocated_steam_values, allocated_steam_props = naive_distance_allocation(PI_DIST_MATRIX, CANDIDATES, pwell_allocation,
                                                                           format='dict')
 
+# Determining injector scores and rankings
 injector_tracks = []
 for pwell, allocations in allocated_steam_props.items():
     for inj, alloc_prop in allocations.items():
@@ -372,7 +368,6 @@ for pwell, allocations in allocated_steam_props.items():
             # print(pwell, ' ', inj, ' ', ext_inj, ' ', status_on_external)
         # print('---')
     # print('\n\n')
-
 decisions = pd.DataFrame(injector_tracks, columns=['PRO_Well',
                                                    'Candidate_Injector', 'Naive_Allocation', 'Candidate_Decision',
                                                    'Candidate_Distance_Importance', 'Candidate_Distributed_Importance',
@@ -395,7 +390,7 @@ decisions['Final_Factor'] = decisions.apply(lambda row: np.average([row['Candida
                                                                    weights=[2, 2, 1, 1]), axis=1)
 decisions['Revised_Allocation'] = decisions['Naive_Allocation'] * decisions['Final_Factor']
 decisions['DELTA'] = decisions['Naive_Allocation'] - decisions['Revised_Allocation']
-sns.histplot(decisions['DELTA'])
+# sns.histplot(decisions['DELTA'])
 
 # Check how much steam is accounted and unaccounted for.
 accounted_proportions = {}
@@ -421,6 +416,58 @@ suggested_trimmed_allocations = {k: v for k, v in accounted_units.items() if k i
                                                                                    'BP5', 'BP6']}
 available_REAL = sum(trimmed_birds_allocations.values())
 available_FINAL = sum(suggested_trimmed_allocations.values())
+units_remaining = available_REAL - available_FINAL
+
+pwell_trimmed_dist = {k: v / sum(suggested_trimmed_allocations.values())
+                      for k, v in suggested_trimmed_allocations.items()}
+FINALE = []
+if units_remaining > 0:
+    print('Units remaining to be allocated.')
+    # These are allocations on the producer well level
+    additional_units = {k: v * units_remaining for k, v in pwell_trimmed_dist.items()}
+    final_allocations = {k: v + suggested_trimmed_allocations.get(k) for k, v in additional_units.items()}
+    # These are allocations on the injector well level (from the producer level)
+    # NOTE: How to distribute `pwell_trimmed_dist` to to the injectors
+    for pwell, group_df in decisions.groupby(['PRO_Well']):
+        proportion_per_iwell = group_df.groupby('Candidate_Injector')['Revised_Allocation'].mean().to_dict()
+        proportion_per_iwell = {k: v / sum(proportion_per_iwell.values()) for k, v in proportion_per_iwell.items()}
+        units_to_allocate = final_allocations.get(pwell)
+        final_unit_allocation = {k: v * units_to_allocate for k, v in proportion_per_iwell.items()}
+        for iwell in proportion_per_iwell.keys():
+            FINALE.append((pwell, additional_units.get(pwell), final_allocations.get(pwell), iwell,
+                           proportion_per_iwell.get(iwell), final_unit_allocation.get(iwell)))
+elif units_remaining == 0:
+    print('All units were already allocated.')
+else:
+    print('ERROR: Units were over-allocated')
+
+suggestions = pd.DataFrame(FINALE, columns=['PRO_Well', 'PRO_Well_Additional_Units', 'PRO_Well_Final_Allocation',
+                                            'Candidate_Injector', 'Candidate_Proportion', 'Candidate_Units'])
+suggestions['PRO_Well_Initial_Allocation'] = [pwell_allocation.get(x) for x in suggestions['PRO_Well']]
+suggestions['Delta'] = suggestions['PRO_Well_Final_Allocation'] - suggestions['PRO_Well_Initial_Allocation']
+suggestions = suggestions[['PRO_Well', 'PRO_Well_Additional_Units', 'PRO_Well_Initial_Allocation', 'Delta',
+                           'PRO_Well_Final_Allocation', 'Candidate_Injector', 'Candidate_Proportion',
+                           'Candidate_Units']]
+
+# suggestions.infer_objects().to_csv('Data/final_suggestions.csv')
+# suggestions.dtypes
+# suggestions.head(50)
+
+fig, ax = plt.subplots(figsize=(10, 28), nrows=len(suggestions['PRO_Well'].unique()))
+for pwell, group_df in suggestions.groupby('PRO_Well'):
+    axis = ax[list(suggestions['PRO_Well'].unique()).index(pwell)]
+    axis.set_title(f'Production Well: {pwell}')
+    group_df.plot(x='Candidate_Injector', y='Candidate_Proportion', ax=axis, kind='bar')
+plt.tight_layout()
+
+
+fig, ax = plt.subplots(figsize=(10, 10))
+plt.tight_layout()
+
+_temp = suggestions[['PRO_Well', 'Delta']].drop_duplicates().reset_index(drop=True).set_index('PRO_Well')
+fig, ax = plt.subplots(figsize=(12, 8))
+_temp.plot(kind='bar', ax=ax)
+plt.title('Delta from original allocation to revised allocation')
 
 plot_search_space(retrieve_search_space(min_bound=0.3, early=False), cmap=cm.turbo)
 
