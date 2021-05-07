@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 06-May-2021 17:05:22:229  GMT-0600
+# @Last modified time: 07-May-2021 10:05:76:767  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -11,7 +11,7 @@ import sys
 from typing import Final
 
 if __name__ == '__main__':
-    import matplotlib
+    # import matplotlib
     # matplotlib.use('Qt5Agg')
     import matplotlib.pyplot as plt
 
@@ -194,7 +194,6 @@ def PI_imapcts(CANDIDATES, PI_DIST_MATRIX, CLOSENESS_THRESH_PI=CLOSENESS_THRESH_
 def II_impacts(II_DIST_MATRIX, CLOSENESS_THRESH_II=CLOSENESS_THRESH_II):
     # NOTE: The purpose of this is to ballpark steam connections between injectors
     links = {}
-    u = []
     for iwell in II_DIST_MATRIX.columns:
         # This is the distance between the iterated injector and all the other injectors
         slice = dict(sorted(II_DIST_MATRIX[iwell].dropna().to_dict().items(), key=lambda x: x[1]))
@@ -230,6 +229,7 @@ def produce_search_space(CANDIDATES, PI_DIST_MATRIX, II_DIST_MATRIX, RESOLUTION=
             search_space[thresh_PI][thresh_II] = optimals
     search_space_df = pd.DataFrame(search_space).reset_index().infer_objects()
     _accessories.save_local_data_file(search_space_df, 'Data/threshold_search_space.csv')
+    print('SAVED')
 
     return search_space_df
 
@@ -324,7 +324,6 @@ CANDIDATES = _accessories.retrieve_local_data_file('Data/Pickles/WELL_Candidates
 PI_DIST_MATRIX = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
 II_DIST_MATRIX = inj_dist_matrix(S3.get_coordinates(data_group='INJECTION'))
 PP_DIST_MATRIX = pro_dist_matrix(S3.get_coordinates(data_group='PRODUCTION'))
-search_space_df = retrieve_search_space(early=True)
 
 impact_tracker_PI, isolates_PI = PI_imapcts(CANDIDATES, PI_DIST_MATRIX, CLOSENESS_THRESH_PI=0.1)
 impact_tracker_II, isolates_II = II_impacts(II_DIST_MATRIX, CLOSENESS_THRESH_II=0.1)
@@ -463,14 +462,12 @@ for pwell, group_df in suggestions.groupby('PRO_Well'):
     group_df.plot(x='Candidate_Injector', y='Candidate_Proportion', ax=axis, kind='bar')
 plt.tight_layout()
 
-
-fig, ax = plt.subplots(figsize=(10, 10))
-plt.tight_layout()
-
 _temp = suggestions[['PRO_Well', 'Delta']].drop_duplicates().reset_index(drop=True).set_index('PRO_Well')
 fig, ax = plt.subplots(figsize=(12, 8))
 _temp.plot(kind='bar', ax=ax)
 plt.title('Delta from original allocation to revised allocation')
+
+SEARCH_SPACE = produce_search_space(CANDIDATES, PI_DIST_MATRIX, II_DIST_MATRIX, RESOLUTION=0.001)
 
 plot_search_space(retrieve_search_space(min_bound=0.3, early=False), cmap=cm.turbo)
 
