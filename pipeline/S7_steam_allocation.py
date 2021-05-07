@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 07-May-2021 10:05:76:767  GMT-0600
+# @Last modified time: 07-May-2021 11:05:68:688  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -55,11 +55,9 @@ if __name__ == '__main__':
 
 _ = """
 #######################################################################################################################
-##################################################   HYPERPARAMETERS   ################################################
+#############################################   HYPERPARAMETER SETTINGS   #############################################
 #######################################################################################################################
 """
-# Only needed to get available production wells
-DATA_PATH_DMATRIX: Final = 'Data/Pickles/DISTANCE_MATRIX.csv'
 
 CLOSENESS_THRESH_PI: Final = 0.1
 CLOSENESS_THRESH_II: Final = 0.1
@@ -105,50 +103,54 @@ pwell_allocation = dict(sorted(pwell_allocation.items()))
 
 _ = """
 #######################################################################################################################
-####################################################   DEFINITIONS   ##################################################
+##############################################   FUNCTION DEFINITIONS   ###############################################
 #######################################################################################################################
 """
 
 
-def inj_dist_matrix(INJECTOR_COORDINATES):
-    df_matrix = pd.DataFrame([], columns=INJECTOR_COORDINATES.keys(), index=INJECTOR_COORDINATES.keys())
-    for iwell in df_matrix.columns:
-        iwell_coord = INJECTOR_COORDINATES.get(iwell)
-        dists = [S3.euclidean_2d_distance(iwell_coord, dyn_coord) for dyn_coord in INJECTOR_COORDINATES.values()]
-        df_matrix[iwell] = dists
-    np.fill_diagonal(df_matrix.values, np.nan)
-    return df_matrix.infer_objects()
+def distance_matrix(request, INJECTOR_COORDINATES, PRODUCER_COORDINATES, scaled=False):
+    if(request == 'II'):
+        df_matrix = pd.DataFrame([], columns=INJECTOR_COORDINATES.keys(), index=INJECTOR_COORDINATES.keys())
+        for iwell in df_matrix.columns:
+            iwell_coord = INJECTOR_COORDINATES.get(iwell)
+            dists = [S3.euclidean_2d_distance(iwell_coord, dyn_coord) for dyn_coord in INJECTOR_COORDINATES.values()]
+            df_matrix[iwell] = dists
+        np.fill_diagonal(df_matrix.values, np.nan)
 
+        if(scaled):
+            df_matrix = df_matrix / df_matrix.max()
 
-def pro_dist_matrix(PRODUCER_COORDINATES, scaled=False):
-    per_pwell = {}
-    for pwell in PRODUCER_COORDINATES.keys():
-        # Get the coordinates (plural) for the specific producer
-        pwell_coords = PRODUCER_COORDINATES.get(pwell)
-        avg_distance_cd = {}
-        for cd in pwell_coords:
-            # Get each SPECIFIC coordinate for the specific producer
-            avg_distance = {}
-            for pwell_name, pwell_coords_again in PRODUCER_COORDINATES.items():
-                # Access the coordinates (plural) for the specific producer again
-                # print(f'PWELL_FIRST: {pwell}, PWELL_SECOND: {pwell_name}')
-                vals = [S3.euclidean_2d_distance(cd, dyn_coord)
-                        for dyn_coord in pwell_coords_again]
-                # Average distance between one SPECIFIC coordinate of upper-level producer AND all the coordinates
-                #   of all the other producers
-                avg_distance[pwell_name] = np.mean(vals)
-            avg_distance_cd[pwell_coords.index(cd)] = avg_distance
-        per_pwell[pwell] = avg_distance_cd
+        df_matrix = df_matrix.infer_objects()
+    elif(request == 'PP'):
+        per_pwell = {}
+        for pwell in PRODUCER_COORDINATES.keys():
+            # Get the coordinates (plural) for the specific producer
+            pwell_coords = PRODUCER_COORDINATES.get(pwell)
+            avg_distance_cd = {}
+            for cd in pwell_coords:
+                # Get each SPECIFIC coordinate for the specific producer
+                avg_distance = {}
+                for pwell_name, pwell_coords_again in PRODUCER_COORDINATES.items():
+                    # Access the coordinates (plural) for the specific producer again
+                    # print(f'PWELL_FIRST: {pwell}, PWELL_SECOND: {pwell_name}')
+                    vals = [S3.euclidean_2d_distance(cd, dyn_coord)
+                            for dyn_coord in pwell_coords_again]
+                    # Average distance between one SPECIFIC coordinate of upper-level producer AND all the coordinates
+                    #   of all the other producers
+                    avg_distance[pwell_name] = np.mean(vals)
+                avg_distance_cd[pwell_coords.index(cd)] = avg_distance
+            per_pwell[pwell] = avg_distance_cd
 
-    for pwell in per_pwell.keys():
-        per_pwell[pwell] = pd.DataFrame(per_pwell.get(pwell)).T.min().to_dict()
-    df_matrix = pd.DataFrame(per_pwell)
-    np.fill_diagonal(df_matrix.values, np.nan)
+        for pwell in per_pwell.keys():
+            per_pwell[pwell] = pd.DataFrame(per_pwell.get(pwell)).T.min().to_dict()
+        df_matrix = pd.DataFrame(per_pwell)
+        np.fill_diagonal(df_matrix.values, np.nan)
 
-    if(scaled):
-        df_matrix = df_matrix / df_matrix.max()
-
-    return df_matrix.infer_objects()
+        if(scaled):
+            df_matrix = df_matrix / df_matrix.max()
+        df_matrix = df_matrix.infer_objects()
+    else:
+        raise ValueError('Improper argument for `request` in `distance_matrix`')
 
 
 def PI_imapcts(CANDIDATES, PI_DIST_MATRIX, CLOSENESS_THRESH_PI=CLOSENESS_THRESH_PI, plot=False):
@@ -251,7 +253,7 @@ def retrieve_search_space(min_bound=0.5, early=False):
     return search_space_df
 
 
-def plot_search_space(search_space_df, cmap=cm.jet):
+def plot_search_space(search_space_df, cmap=cm.turbo):
     ax = Axes3D(plt.figure())
     ax.plot_trisurf(search_space_df['thresh_PI'], search_space_df['thresh_II'], search_space_df['n_optimal'],
                     cmap=cmap)
@@ -314,190 +316,205 @@ def naive_distance_allocation(PI_DIST_MATRIX, CANDIDATES, pwell_allocation, form
     return out
 
 
+def plot_relative_allocations(suggestions):
+    fig, ax = plt.subplots(figsize=(10, 28), nrows=len(suggestions['PRO_Well'].unique()))
+    for pwell, group_df in suggestions.groupby('PRO_Well'):
+        axis = ax[list(suggestions['PRO_Well'].unique()).index(pwell)]
+        axis.set_title(f'Production Well: {pwell}')
+        group_df.plot(x='Candidate_Injector', y='Candidate_Proportion', ax=axis, kind='bar')
+    plt.tight_layout()
+
+
+def plot_producer_delta(suggestions):
+    _temp = suggestions[['PRO_Well', 'Delta']].drop_duplicates().reset_index(drop=True).set_index('PRO_Well')
+    fig, ax = plt.subplots(figsize=(12, 8))
+    _temp.plot(kind='bar', ax=ax)
+    plt.title('Delta from original allocation to revised allocation')
+
+
+_ = """
+#######################################################################################################################
+#####################################################   WRAPPERS  #####################################################
+#######################################################################################################################
+"""
+
+
+def initial_allocations(allocated_steam_props: dict,
+                        impact_tracker_PI: pd.core.frames.DataFrame, impact_tracker_II: pd.core.frames.DataFrame):
+    # Determining injector scores and rankings
+    injector_tracks = []
+    for pwell, allocations in allocated_steam_props.items():
+        for inj, alloc_prop in allocations.items():
+            # Get producer impacts
+            impact_on_producer = impact_tracker_PI.get(inj)
+            importance_candidate = impact_on_producer.get(pwell)
+            isolate_candidate = True if len(impact_on_producer) == 1 else False
+
+            if(isolate_candidate):
+                state_on_candidate = 'AMAZING'
+            else:
+                state_on_candidate = 'OKAY'
+            score_on_candidate = importance_candidate
+            dist_on_candidate = 1 / len(impact_on_producer)
+
+            # IDEA: Get injector impacts
+            secondary_impact_on_injector = impact_tracker_II.get(inj)
+            for ext_inj, importance_secondary_injector in secondary_impact_on_injector.items():
+                secondary_impact_on_producer = impact_tracker_PI.get(inj)
+                # Does this external injector impact the current producer?
+                secondary_isolate_producer = True if pwell in secondary_impact_on_producer else False
+                if(secondary_isolate_producer):
+                    if len(secondary_impact_on_producer) == 1:
+                        status_on_external = 'AMAZING'
+                    elif len(secondary_impact_on_producer) > 1:
+                        status_on_external = 'OKAY'
+                    score_on_external = 1 / len(secondary_impact_on_producer)
+                    dist_on_external = importance_secondary_injector
+                else:
+                    status_on_external = 'POOR'
+                    score_on_external = 0
+                    dist_on_external = 0
+                injector_tracks.append([pwell, inj, alloc_prop,
+                                        state_on_candidate, score_on_candidate, dist_on_candidate,
+                                        ext_inj, status_on_external, score_on_external, dist_on_external])
+
+    decisions = pd.DataFrame(injector_tracks, columns=['PRO_Well',
+                                                       'Candidate_Injector', 'Naive_Allocation', 'Candidate_Decision',
+                                                       'Candidate_Distance_Importance',
+                                                       'Candidate_Distributed_Importance',
+                                                       'External_Injector', 'External_Decision',
+                                                       'External_Distance_Importance',
+                                                       'External_Distributed_Importance'])
+    # NOTE: Any NaN values in the 'Candidate_Distance_Importance' column means that the original candidates for the
+    # producer well included this injector. However, the producer–injector matrix did not due to a low
+    #   `CLOSENESS_THRESH_PI` threshold. This column will be forced to 1.0 (since candidates matter the most) and the
+    #   respective 'Candidate_Decision' column value will be switched from 'AMAZING' to 'FORCED'
+    decisions['Candidate_Decision'] = decisions.apply(lambda row: 'FORCED'
+                                                      if pd.isna(row['Candidate_Distance_Importance'])
+                                                      else row['Candidate_Decision'], axis=1)
+    decisions['Candidate_Distance_Importance'] = decisions.apply(lambda row: 1.0
+                                                                 if pd.isna(row['Candidate_Distance_Importance'])
+                                                                 else row['Candidate_Distance_Importance'], axis=1)
+    decisions['Final_Factor'] = decisions.apply(lambda row: np.average([row['Candidate_Distance_Importance'],
+                                                                        row['Candidate_Distributed_Importance'],
+                                                                        row['External_Distance_Importance'],
+                                                                        row['External_Distributed_Importance']],
+                                                                       weights=[2, 2, 1, 1]), axis=1)
+    decisions['Revised_Allocation'] = decisions['Naive_Allocation'] * decisions['Final_Factor']
+    decisions['DELTA'] = decisions['Naive_Allocation'] - decisions['Revised_Allocation']
+    # sns.histplot(decisions['DELTA'])
+
+    return decisions.infer_objects()
+
+
+def accounted_for(decisions, group_name='PRO_Well', pad_filter=['A', 'B']):
+    # Check how much steam is accounted and unaccounted for.
+    # accounted_proportions = {}
+    accounted_units = {}
+    for pwell, group_df in decisions.groupby([group_name]):
+        proportion_covered = group_df.groupby('Candidate_Injector')['Revised_Allocation'].mean().sum()
+        # accounted_proportions[pwell] = proportion_covered
+        accounted_units[pwell] = proportion_covered * pwell_allocation.get(pwell)
+
+    pwell_allocation = {k: v for k, v in pwell_allocation.items() if k in ['AP2', 'AP3', 'AP4',
+                                                                           'AP5', 'AP6', 'AP7', 'AP8',
+                                                                           'BP1', 'BP2', 'BP3', 'BP4',
+                                                                           'BP5', 'BP6']}
+    accounted_units = {k: v for k, v in accounted_units.items() if k in ['AP2', 'AP3', 'AP4',
+                                                                                       'AP5', 'AP6', 'AP7', 'AP8',
+                                                                                       'BP1', 'BP2', 'BP3', 'BP4',
+                                                                                       'BP5', 'BP6']}
+    available_REAL = sum(pwell_allocation.values())
+    available_FINAL = sum(accounted_units.values())
+    units_remaining = available_REAL - available_FINAL
+
+    return accounted_units, units_remaining
+
+
+def maximize_allocations(accounted_units, units_remaining, decisions):
+    pwell_trimmed_dist = {k: v / sum(accounted_units.values())
+                          for k, v in accounted_units.items()}
+    FINALE = []
+    if units_remaining > 0:
+        print('Units remaining to be allocated.')
+        # These are allocations on the producer well level
+        additional_units = {k: v * units_remaining for k, v in pwell_trimmed_dist.items()}
+        final_allocations = {k: v + accounted_units.get(k) for k, v in additional_units.items()}
+        # These are allocations on the injector well level (from the producer level)
+        # NOTE: How to distribute `pwell_trimmed_dist` to to the injectors
+        for pwell, group_df in decisions.groupby(['PRO_Well']):
+            proportion_per_iwell = group_df.groupby('Candidate_Injector')['Revised_Allocation'].mean().to_dict()
+            proportion_per_iwell = {k: v / sum(proportion_per_iwell.values()) for k, v in proportion_per_iwell.items()}
+            units_to_allocate = final_allocations.get(pwell)
+            final_unit_allocation = {k: v * units_to_allocate for k, v in proportion_per_iwell.items()}
+            for iwell in proportion_per_iwell.keys():
+                FINALE.append((pwell, additional_units.get(pwell), final_allocations.get(pwell), iwell,
+                               proportion_per_iwell.get(iwell), final_unit_allocation.get(iwell)))
+    elif units_remaining == 0:
+        print('All units were already allocated.')
+    else:
+        print('ERROR: Units were over-allocated')
+
+    suggestions = pd.DataFrame(FINALE, columns=['PRO_Well', 'PRO_Well_Additional_Units', 'PRO_Well_Final_Allocation',
+                                                'Candidate_Injector', 'Candidate_Proportion', 'Candidate_Units'])
+    suggestions['PRO_Well_Initial_Allocation'] = [pwell_allocation.get(x) for x in suggestions['PRO_Well']]
+    suggestions['Delta'] = suggestions['PRO_Well_Final_Allocation'] - suggestions['PRO_Well_Initial_Allocation']
+    suggestions = suggestions[['PRO_Well', 'PRO_Well_Additional_Units', 'PRO_Well_Initial_Allocation', 'Delta',
+                               'PRO_Well_Final_Allocation', 'Candidate_Injector', 'Candidate_Proportion',
+                               'Candidate_Units']]
+
+    return suggestions.infer_objects()
+
+
 _ = """
 #######################################################################################################################
 ##################################################   EXPERIMENTATION   ################################################
 #######################################################################################################################
 """
 
-CANDIDATES = _accessories.retrieve_local_data_file('Data/Pickles/WELL_Candidates.pkl', mode=2)
-PI_DIST_MATRIX = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
-II_DIST_MATRIX = inj_dist_matrix(S3.get_coordinates(data_group='INJECTION'))
-PP_DIST_MATRIX = pro_dist_matrix(S3.get_coordinates(data_group='PRODUCTION'))
 
-impact_tracker_PI, isolates_PI = PI_imapcts(CANDIDATES, PI_DIST_MATRIX, CLOSENESS_THRESH_PI=0.1)
-impact_tracker_II, isolates_II = II_impacts(II_DIST_MATRIX, CLOSENESS_THRESH_II=0.1)
+def _INJECTOR_ALLOCATION(CLOSENESS_THRESH_PI=0.1, CLOSENESS_THRESH_II=0.1):
+    # Ingest Dataset
+    DATA_PATH_DMATRIX: Final = 'Data/Pickles/DISTANCE_MATRIX.csv'
+    DATA_PATH_CANDIDATES: Final = 'Data/Pickles/WELL_Candidates.pkl'
+    DATA_PATH_ALLOCATIONS: Final = None
 
-allocated_steam_values, allocated_steam_props = naive_distance_allocation(PI_DIST_MATRIX, CANDIDATES, pwell_allocation,
-                                                                          format='dict')
+    DATASETS = {}
+    DATASETS['CANDIDATES'] = _accessories.retrieve_local_data_file(DATA_PATH_CANDIDATES, mode=2)
+    DATASETS['PI_DIST_MATRIX'] = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
+    DATASETS['II_DIST_MATRIX'] = distance_matrix('II', S3.get_coordinates(data_group='INJECTION'), scaled=False)
+    DATASETS['PP_DIST_MATRIX'] = distance_matrix('PP', S3.get_coordinates(data_group='PRODUCTION'), scaled=False)
 
-# Determining injector scores and rankings
-injector_tracks = []
-for pwell, allocations in allocated_steam_props.items():
-    for inj, alloc_prop in allocations.items():
-        # Get producer impacts
-        impact_on_producer = impact_tracker_PI.get(inj)
-        importance_candidate = impact_on_producer.get(pwell)
-        isolate_candidate = True if len(impact_on_producer) == 1 else False
+    # Engineer Impact Area Datasets
+    impact_tracker_PI, isolates_PI = PI_imapcts(DATASETS['CANDIDATES'].copy(), DATASETS['PI_DIST_MATRIX'].copy(),
+                                                CLOSENESS_THRESH_PI=CLOSENESS_THRESH_PI)
+    impact_tracker_II, isolates_II = II_impacts(DATASETS['II_DIST_MATRIX'].copy(),
+                                                CLOSENESS_THRESH_II=CLOSENESS_THRESH_II)
 
-        if(isolate_candidate):
-            state_on_candidate = 'AMAZING'
-        else:
-            state_on_candidate = 'OKAY'
-        score_on_candidate = importance_candidate
-        dist_on_candidate = 1 / len(impact_on_producer)
+    # Get naive allocations
+    allocated_steam_values, allocated_steam_props = naive_distance_allocation(DATASETS['PI_DIST_MATRIX'].copy(),
+                                                                              DATASETS['CANDIDATES'].copy(),
+                                                                              pwell_allocation,
+                                                                              format='dict')
 
-        # Get injector impacts
-        secondary_impact_on_injector = impact_tracker_II.get(inj)
-        for ext_inj, importance_secondary_injector in secondary_impact_on_injector.items():
-            secondary_impact_on_producer = impact_tracker_PI.get(inj)
-            # Does this external injector impact the current producer?
-            secondary_isolate_producer = True if pwell in secondary_impact_on_producer else False
-            if(secondary_impact_on_producer):
-                if len(secondary_impact_on_producer) == 1:
-                    status_on_external = 'AMAZING'
-                elif len(secondary_impact_on_producer) > 1:
-                    status_on_external = 'OKAY'
-                score_on_external = 1 / len(secondary_impact_on_producer)
-                dist_on_external = importance_secondary_injector
-            else:
-                status_on_external = 'POOR'
-                score_on_external = 0
-                dist_on_external = 0
-            injector_tracks.append([pwell, inj, alloc_prop,
-                                    state_on_candidate, score_on_candidate, dist_on_candidate,
-                                    ext_inj, status_on_external, score_on_external, dist_on_external])
-            # print(pwell, ' ', inj, ' ', ext_inj, ' ', status_on_external)
-        # print('---')
-    # print('\n\n')
-decisions = pd.DataFrame(injector_tracks, columns=['PRO_Well',
-                                                   'Candidate_Injector', 'Naive_Allocation', 'Candidate_Decision',
-                                                   'Candidate_Distance_Importance', 'Candidate_Distributed_Importance',
-                                                   'External_Injector', 'External_Decision',
-                                                   'External_Distance_Importance', 'External_Distributed_Importance'])
-# NOTE: Any NaN values in the 'Candidate_Distance_Importance' column means that the original candidates for the
-# producer well included this injector. However, the producer–injector matrix did not due to a low
-#   `CLOSENESS_THRESH_PI` threshold. This column will be forced to 1.0 (since candidates matter the most) and the
-#   respective 'Candidate_Decision' column value will be switched from 'AMAZING' to 'FORCED'
-decisions['Candidate_Decision'] = decisions.apply(lambda row: 'FORCED'
-                                                  if pd.isna(row['Candidate_Distance_Importance'])
-                                                  else row['Candidate_Decision'], axis=1)
-decisions['Candidate_Distance_Importance'] = decisions.apply(lambda row: 1.0
-                                                             if pd.isna(row['Candidate_Distance_Importance'])
-                                                             else row['Candidate_Distance_Importance'], axis=1)
-decisions['Final_Factor'] = decisions.apply(lambda row: np.average([row['Candidate_Distance_Importance'],
-                                                                    row['Candidate_Distributed_Importance'],
-                                                                    row['External_Distance_Importance'],
-                                                                    row['External_Distributed_Importance']],
-                                                                   weights=[2, 2, 1, 1]), axis=1)
-decisions['Revised_Allocation'] = decisions['Naive_Allocation'] * decisions['Final_Factor']
-decisions['DELTA'] = decisions['Naive_Allocation'] - decisions['Revised_Allocation']
-# sns.histplot(decisions['DELTA'])
+    # Determine initial injector allocations
+    decisions = initial_allocations(allocated_steam_props, impact_tracker_PI, impact_tracker_II)
 
-# Check how much steam is accounted and unaccounted for.
-accounted_proportions = {}
-accounted_units = {}
-for pwell, group_df in decisions.groupby(['PRO_Well']):
-    proportion_covered = group_df.groupby('Candidate_Injector')['Revised_Allocation'].mean().sum()
-    proportion_left = 1 - proportion_covered
-    accounted_proportions[pwell] = proportion_covered
-    accounted_units[pwell] = proportion_covered * pwell_allocation.get(pwell)
+    # Get unaccounted values
+    accounted_units, units_remaining = accounted_for(decisions)
 
-# Compare to pad-level constraints
-# trimmed_birds_allocations = ({k: v for k, v in pwell_allocation.items() if k in ['AP2', 'AP3', 'AP4',
-#                                                                                  'AP5', 'AP6', 'AP7', 'AP8']})
-trimmed_birds_allocations = ({k: v for k, v in pwell_allocation.items() if k in ['AP2', 'AP3', 'AP4',
-                                                                                 'AP5', 'AP6', 'AP7', 'AP8',
-                                                                                 'BP1', 'BP2', 'BP3', 'BP4',
-                                                                                 'BP5', 'BP6']})
-# suggested_trimmed_allocations = {k: v for k, v in accounted_units.items() if k in ['AP2', 'AP3', 'AP4',
-#                                                                                    'AP5', 'AP6', 'AP7', 'AP8']}
-suggested_trimmed_allocations = {k: v for k, v in accounted_units.items() if k in ['AP2', 'AP3', 'AP4',
-                                                                                   'AP5', 'AP6', 'AP7', 'AP8',
-                                                                                   'BP1', 'BP2', 'BP3', 'BP4',
-                                                                                   'BP5', 'BP6']}
-available_REAL = sum(trimmed_birds_allocations.values())
-available_FINAL = sum(suggested_trimmed_allocations.values())
-units_remaining = available_REAL - available_FINAL
+    # Fill the remaining steam allocation per injector based on pad level contraints
+    suggestions = maximize_allocations(accounted_units, units_remaining, decisions)
 
-pwell_trimmed_dist = {k: v / sum(suggested_trimmed_allocations.values())
-                      for k, v in suggested_trimmed_allocations.items()}
-FINALE = []
-if units_remaining > 0:
-    print('Units remaining to be allocated.')
-    # These are allocations on the producer well level
-    additional_units = {k: v * units_remaining for k, v in pwell_trimmed_dist.items()}
-    final_allocations = {k: v + suggested_trimmed_allocations.get(k) for k, v in additional_units.items()}
-    # These are allocations on the injector well level (from the producer level)
-    # NOTE: How to distribute `pwell_trimmed_dist` to to the injectors
-    for pwell, group_df in decisions.groupby(['PRO_Well']):
-        proportion_per_iwell = group_df.groupby('Candidate_Injector')['Revised_Allocation'].mean().to_dict()
-        proportion_per_iwell = {k: v / sum(proportion_per_iwell.values()) for k, v in proportion_per_iwell.items()}
-        units_to_allocate = final_allocations.get(pwell)
-        final_unit_allocation = {k: v * units_to_allocate for k, v in proportion_per_iwell.items()}
-        for iwell in proportion_per_iwell.keys():
-            FINALE.append((pwell, additional_units.get(pwell), final_allocations.get(pwell), iwell,
-                           proportion_per_iwell.get(iwell), final_unit_allocation.get(iwell)))
-elif units_remaining == 0:
-    print('All units were already allocated.')
-else:
-    print('ERROR: Units were over-allocated')
+    # Finalize datasets (esp. suggestions)
+    _accessories.finalize_all(DATASETS)
 
-suggestions = pd.DataFrame(FINALE, columns=['PRO_Well', 'PRO_Well_Additional_Units', 'PRO_Well_Final_Allocation',
-                                            'Candidate_Injector', 'Candidate_Proportion', 'Candidate_Units'])
-suggestions['PRO_Well_Initial_Allocation'] = [pwell_allocation.get(x) for x in suggestions['PRO_Well']]
-suggestions['Delta'] = suggestions['PRO_Well_Final_Allocation'] - suggestions['PRO_Well_Initial_Allocation']
-suggestions = suggestions[['PRO_Well', 'PRO_Well_Additional_Units', 'PRO_Well_Initial_Allocation', 'Delta',
-                           'PRO_Well_Final_Allocation', 'Candidate_Injector', 'Candidate_Proportion',
-                           'Candidate_Units']]
+    # Save to local file
+    _accessories.save_local_data_file(suggestions, 'Data/final_suggestions.csv')
 
-# suggestions.infer_objects().to_csv('Data/final_suggestions.csv')
-# suggestions.dtypes
-# suggestions.head(50)
-
-fig, ax = plt.subplots(figsize=(10, 28), nrows=len(suggestions['PRO_Well'].unique()))
-for pwell, group_df in suggestions.groupby('PRO_Well'):
-    axis = ax[list(suggestions['PRO_Well'].unique()).index(pwell)]
-    axis.set_title(f'Production Well: {pwell}')
-    group_df.plot(x='Candidate_Injector', y='Candidate_Proportion', ax=axis, kind='bar')
-plt.tight_layout()
-
-_temp = suggestions[['PRO_Well', 'Delta']].drop_duplicates().reset_index(drop=True).set_index('PRO_Well')
-fig, ax = plt.subplots(figsize=(12, 8))
-_temp.plot(kind='bar', ax=ax)
-plt.title('Delta from original allocation to revised allocation')
 
 SEARCH_SPACE = produce_search_space(CANDIDATES, PI_DIST_MATRIX, II_DIST_MATRIX, RESOLUTION=0.001)
 
 plot_search_space(retrieve_search_space(min_bound=0.3, early=False), cmap=cm.turbo)
-
-
-_ = """
-#######################################################################################################################
-##############################################   NAIVE DISTANCE APPROACH   ############################################
-#######################################################################################################################
-"""
-
-for pwell, allocs in allocated_steam_props.items():
-    summed = sum(allocs.values())
-    print(pwell, ' ', summed)
-
-
-# Plotting
-fig, ax = plt.subplots(ncols=2, figsize=(12, 10))
-sns.heatmap(allocated_steam_props, ax=ax[0])
-ax[0].set_title('Relative Allocated Steam values')
-ax[0].set_xlabel('Producer Wells')
-ax[0].set_ylabel('Candidate Injectors')
-sns.heatmap(allocated_steam_values, ax=ax[1])
-ax[1].set_title('Absolute Allocated Steam values')
-ax[1].set_xlabel('Producer Wells')
-ax[1].set_ylabel('Candidate Injectors')
-fig.tight_layout()
-fig.savefig('Modeling Reference Files/Steam Allocation.pdf', bbox_inches='tight')
-
-# >
-
-# NOTE: Now you have your allocated steam values
 
 # EOF

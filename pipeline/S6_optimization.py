@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 29-Apr-2021 13:04:87:879  GMT-0600
+# @Last modified time: 07-May-2021 11:05:25:253  GMT-0600
 # @License: [Private IP]
 
 
@@ -145,9 +145,6 @@ def create_scenarios(pad_df, date, features, steam_range):
             scenario_df[f] = op_condition.iloc[-1][f]
 
     return scenario_df
-
-
-# date = dates[0]
 
 
 def generate_optimization_table(field_df, date, steam_range=steam_range,
