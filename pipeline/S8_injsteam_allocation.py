@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 10-May-2021 10:05:52:527  GMT-0600
+# @Last modified time: 10-May-2021 11:05:21:218  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -64,45 +64,6 @@ _ = """
 CLOSENESS_THRESH_PI: Final = 0.1
 CLOSENESS_THRESH_II: Final = 0.1
 RESOLUTION = 0.01
-
-# pwell_allocation = pd.DataFrame([{'producer_well': 'EP4', 'recomm_steam': 190},
-#                                  {'producer_well': 'CP3', 'recomm_steam': 211},
-#                                  {'producer_well': 'CP8', 'recomm_steam': 150},
-#                                  {'producer_well': 'EP7', 'recomm_steam': 154},
-#                                  {'producer_well': 'EP3', 'recomm_steam': 187},
-#                                  {'producer_well': 'FP7', 'recomm_steam': 2},
-#                                  {'producer_well': 'FP6', 'recomm_steam': 81},
-#                                  {'producer_well': 'CP5', 'recomm_steam': 188},
-#                                  {'producer_well': 'EP2', 'recomm_steam': 202},
-#                                  {'producer_well': 'AP4', 'recomm_steam': 82},
-#                                  {'producer_well': 'AP7', 'recomm_steam': 157},
-#                                  {'producer_well': 'CP1', 'recomm_steam': 30},
-#                                  {'producer_well': 'FP4', 'recomm_steam': 85},
-#                                  {'producer_well': 'FP5', 'recomm_steam': 127},
-#                                  {'producer_well': 'CP7', 'recomm_steam': 241},
-#                                  {'producer_well': 'EP6', 'recomm_steam': 125},
-#                                  {'producer_well': 'CP4', 'recomm_steam': 117},
-#                                  {'producer_well': 'BP6', 'recomm_steam': 161},
-#                                  {'producer_well': 'AP2', 'recomm_steam': 261},
-#                                  {'producer_well': 'AP5', 'recomm_steam': 146},
-#                                  {'producer_well': 'FP1', 'recomm_steam': 86},
-#                                  {'producer_well': 'BP3', 'recomm_steam': 165},
-#                                  {'producer_well': 'CP6', 'recomm_steam': 175},
-#                                  {'producer_well': 'AP6', 'recomm_steam': 146},
-#                                  {'producer_well': 'FP2', 'recomm_steam': 134},
-#                                  {'producer_well': 'BP2', 'recomm_steam': 172},
-#                                  {'producer_well': 'AP3', 'recomm_steam': 214},
-#                                  {'producer_well': 'BP1', 'recomm_steam': 259},
-#                                  {'producer_well': 'BP5', 'recomm_steam': 297},
-#                                  {'producer_well': 'BP4', 'recomm_steam': 125},
-#                                  {'producer_well': 'CP2', 'recomm_steam': 214},
-#                                  {'producer_well': 'AP8', 'recomm_steam': 46},
-#                                  {'producer_well': 'FP3', 'recomm_steam': 87},
-#                                  {'producer_well': 'EP5', 'recomm_steam': 50}]).set_index('producer_well'
-#                                                                                           ).to_dict()['recomm_steam']
-# pwell_allocation = dict(sorted(pwell_allocation.items()))
-#
-# _accessories.save_local_data_file(pwell_allocation, 'Data/Pickles/pwell_allocations.pkl')
 
 _ = """
 #######################################################################################################################
@@ -237,7 +198,7 @@ def produce_search_space(CANDIDATES, PI_DIST_MATRIX, II_DIST_MATRIX, RESOLUTION=
             optimals = optimal_injectors(isolates_PI, isolates_II)
             search_space[thresh_PI][thresh_II] = optimals
     search_space_df = pd.DataFrame(search_space).reset_index().infer_objects()
-    _accessories.save_local_data_file(search_space_df, 'Data/S7 Files/threshold_search_space.csv')
+    _accessories.save_local_data_file(search_space_df, 'Data/S8 Files/threshold_search_space.csv')
     print('SAVED')
 
     return search_space_df
@@ -245,7 +206,7 @@ def produce_search_space(CANDIDATES, PI_DIST_MATRIX, II_DIST_MATRIX, RESOLUTION=
 
 def retrieve_search_space(min_bound=0.5, early=False):
     search_space = _accessories.retrieve_local_data_file(
-        'Data/S7 Files/threshold_search_space.csv').drop('Unnamed: 0', 1)
+        'Data/S8 Files/threshold_search_space.csv').drop('Unnamed: 0', 1)
 
     if early:
         return search_space
@@ -476,7 +437,7 @@ def maximize_allocations(pwell_allocation, accounted_units, units_remaining, dec
 
 _ = """
 #######################################################################################################################
-##################################################   EXPERIMENTATION   ################################################
+##################################################   CORE EXECUTION   #################################################
 #######################################################################################################################
 """
 
@@ -516,7 +477,7 @@ def _INJECTOR_ALLOCATION(CLOSENESS_THRESH_PI=0.1, CLOSENESS_THRESH_II=0.1):
 
     _accessories._print('Finalizing and saving injection suggestion data...')
     _accessories.finalize_all(DATASETS, coerce_date=False)
-    _accessories.save_local_data_file(suggestions, 'Data/S7 Files/final_suggestions.csv')
+    _accessories.save_local_data_file(suggestions, 'Data/S8 Files/final_suggestions.csv')
 
 
 if __name__ == '__main__':
