@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 10-May-2021 09:05:88:883  GMT-0600
+# @Last modified time: 10-May-2021 10:05:39:390  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -439,7 +439,7 @@ def accounted_for(decisions, pwell_allocation, group_name='PRO_Well', pad_filter
     return accounted_units, units_remaining
 
 
-def maximize_allocations(accounted_units, units_remaining, decisions):
+def maximize_allocations(pwell_allocation, accounted_units, units_remaining, decisions):
     pwell_trimmed_dist = {k: v / sum(accounted_units.values())
                           for k, v in accounted_units.items()}
     FINALE = []
@@ -512,7 +512,7 @@ def _INJECTOR_ALLOCATION(CLOSENESS_THRESH_PI=0.1, CLOSENESS_THRESH_II=0.1):
     _accessories._print('Proportionally adding steam to reach maximum capacity...')
     accounted_units, units_remaining = accounted_for(decisions, DATASETS['CONSTRAINTS'].copy())
     # Fill the remaining steam allocation per injector based on pad level contraints
-    suggestions = maximize_allocations(accounted_units, units_remaining, decisions)
+    suggestions = maximize_allocations(DATASETS['CONSTRAINTS'], accounted_units, units_remaining, decisions)
 
     _accessories._print('Finalizing and saving injection suggestion data...')
     _accessories.finalize_all(DATASETS, coerce_date=False)
