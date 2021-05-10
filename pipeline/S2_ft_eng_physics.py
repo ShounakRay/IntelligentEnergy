@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: feature_engineering.py
 # @Last modified by:   Ray
-# @Last modified time: 26-Apr-2021 17:04:58:589  GMT-0600
+# @Last modified time: 10-May-2021 09:05:09:091  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -114,7 +114,7 @@ _ = """
 
 def _FEATENG_PHYS():
     _accessories._print('Ingesting JOINED DATA data...', color='LIGHTYELLOW_EX')
-    DATASETS = {'JOINED_SOURCE': _accessories.retrieve_local_data_file('Data/combined_ipc_ALL.csv')}
+    DATASETS = {'JOINED_SOURCE': _accessories.retrieve_local_data_file('Data/S1 Files/combined_ipc_ALL.csv')}
 
     _accessories._print('Engineering initial physics features...', color='LIGHTYELLOW_EX')
     engineer_initial_features(DATASETS['JOINED_SOURCE'])
@@ -132,7 +132,7 @@ def _FEATENG_PHYS():
     DATASETS['THEORETICAL'].drop(NOT_REQUIRED, axis=1, inplace=True)
     _accessories.finalize_all(DATASETS, skip=[])
 
-    _accessories.save_local_data_file(DATASETS['THEORETICAL'], 'Data/combined_ipc_engineered_phys_ALL.csv')
+    _accessories.save_local_data_file(DATASETS['THEORETICAL'], 'Data/S2 Files/combined_ipc_engineered_phys_ALL.csv')
 
 
 if __name__ == '__main__':

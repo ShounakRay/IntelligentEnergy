@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 07-May-2021 11:05:68:688  GMT-0600
+# @Last modified time: 10-May-2021 09:05:88:883  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -18,7 +18,7 @@ if __name__ == '__main__':
 import numpy as np
 import pandas as pd
 import pipeline.S3_weighting as S3
-import seaborn as sns
+# import seaborn as sns
 from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -51,7 +51,9 @@ if __name__ == '__main__':
     sys.path.insert(1, os.getcwd() + '/_references')
     sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
     import _accessories
+    import _traversal
 
+_traversal.print_tree_to_txt(PATH='_configs/FILE_STRUCTURE.txt')
 
 _ = """
 #######################################################################################################################
@@ -63,43 +65,44 @@ CLOSENESS_THRESH_PI: Final = 0.1
 CLOSENESS_THRESH_II: Final = 0.1
 RESOLUTION = 0.01
 
-pwell_allocation = pd.DataFrame([{'producer_well': 'EP4', 'recomm_steam': 190},
-                                 {'producer_well': 'CP3', 'recomm_steam': 211},
-                                 {'producer_well': 'CP8', 'recomm_steam': 150},
-                                 {'producer_well': 'EP7', 'recomm_steam': 154},
-                                 {'producer_well': 'EP3', 'recomm_steam': 187},
-                                 {'producer_well': 'FP7', 'recomm_steam': 2},
-                                 {'producer_well': 'FP6', 'recomm_steam': 81},
-                                 {'producer_well': 'CP5', 'recomm_steam': 188},
-                                 {'producer_well': 'EP2', 'recomm_steam': 202},
-                                 {'producer_well': 'AP4', 'recomm_steam': 82},
-                                 {'producer_well': 'AP7', 'recomm_steam': 157},
-                                 {'producer_well': 'CP1', 'recomm_steam': 30},
-                                 {'producer_well': 'FP4', 'recomm_steam': 85},
-                                 {'producer_well': 'FP5', 'recomm_steam': 127},
-                                 {'producer_well': 'CP7', 'recomm_steam': 241},
-                                 {'producer_well': 'EP6', 'recomm_steam': 125},
-                                 {'producer_well': 'CP4', 'recomm_steam': 117},
-                                 {'producer_well': 'BP6', 'recomm_steam': 161},
-                                 {'producer_well': 'AP2', 'recomm_steam': 261},
-                                 {'producer_well': 'AP5', 'recomm_steam': 146},
-                                 {'producer_well': 'FP1', 'recomm_steam': 86},
-                                 {'producer_well': 'BP3', 'recomm_steam': 165},
-                                 {'producer_well': 'CP6', 'recomm_steam': 175},
-                                 {'producer_well': 'AP6', 'recomm_steam': 146},
-                                 {'producer_well': 'FP2', 'recomm_steam': 134},
-                                 {'producer_well': 'BP2', 'recomm_steam': 172},
-                                 {'producer_well': 'AP3', 'recomm_steam': 214},
-                                 {'producer_well': 'BP1', 'recomm_steam': 259},
-                                 {'producer_well': 'BP5', 'recomm_steam': 297},
-                                 {'producer_well': 'BP4', 'recomm_steam': 125},
-                                 {'producer_well': 'CP2', 'recomm_steam': 214},
-                                 {'producer_well': 'AP8', 'recomm_steam': 46},
-                                 {'producer_well': 'FP3', 'recomm_steam': 87},
-                                 {'producer_well': 'EP5', 'recomm_steam': 50}]).set_index('producer_well'
-                                                                                          ).to_dict()['recomm_steam']
-pwell_allocation = dict(sorted(pwell_allocation.items()))
-
+# pwell_allocation = pd.DataFrame([{'producer_well': 'EP4', 'recomm_steam': 190},
+#                                  {'producer_well': 'CP3', 'recomm_steam': 211},
+#                                  {'producer_well': 'CP8', 'recomm_steam': 150},
+#                                  {'producer_well': 'EP7', 'recomm_steam': 154},
+#                                  {'producer_well': 'EP3', 'recomm_steam': 187},
+#                                  {'producer_well': 'FP7', 'recomm_steam': 2},
+#                                  {'producer_well': 'FP6', 'recomm_steam': 81},
+#                                  {'producer_well': 'CP5', 'recomm_steam': 188},
+#                                  {'producer_well': 'EP2', 'recomm_steam': 202},
+#                                  {'producer_well': 'AP4', 'recomm_steam': 82},
+#                                  {'producer_well': 'AP7', 'recomm_steam': 157},
+#                                  {'producer_well': 'CP1', 'recomm_steam': 30},
+#                                  {'producer_well': 'FP4', 'recomm_steam': 85},
+#                                  {'producer_well': 'FP5', 'recomm_steam': 127},
+#                                  {'producer_well': 'CP7', 'recomm_steam': 241},
+#                                  {'producer_well': 'EP6', 'recomm_steam': 125},
+#                                  {'producer_well': 'CP4', 'recomm_steam': 117},
+#                                  {'producer_well': 'BP6', 'recomm_steam': 161},
+#                                  {'producer_well': 'AP2', 'recomm_steam': 261},
+#                                  {'producer_well': 'AP5', 'recomm_steam': 146},
+#                                  {'producer_well': 'FP1', 'recomm_steam': 86},
+#                                  {'producer_well': 'BP3', 'recomm_steam': 165},
+#                                  {'producer_well': 'CP6', 'recomm_steam': 175},
+#                                  {'producer_well': 'AP6', 'recomm_steam': 146},
+#                                  {'producer_well': 'FP2', 'recomm_steam': 134},
+#                                  {'producer_well': 'BP2', 'recomm_steam': 172},
+#                                  {'producer_well': 'AP3', 'recomm_steam': 214},
+#                                  {'producer_well': 'BP1', 'recomm_steam': 259},
+#                                  {'producer_well': 'BP5', 'recomm_steam': 297},
+#                                  {'producer_well': 'BP4', 'recomm_steam': 125},
+#                                  {'producer_well': 'CP2', 'recomm_steam': 214},
+#                                  {'producer_well': 'AP8', 'recomm_steam': 46},
+#                                  {'producer_well': 'FP3', 'recomm_steam': 87},
+#                                  {'producer_well': 'EP5', 'recomm_steam': 50}]).set_index('producer_well'
+#                                                                                           ).to_dict()['recomm_steam']
+# pwell_allocation = dict(sorted(pwell_allocation.items()))
+#
+# _accessories.save_local_data_file(pwell_allocation, 'Data/Pickles/pwell_allocations.pkl')
 
 _ = """
 #######################################################################################################################
@@ -108,8 +111,9 @@ _ = """
 """
 
 
-def distance_matrix(request, INJECTOR_COORDINATES, PRODUCER_COORDINATES, scaled=False):
+def distance_matrix(request, data, scaled=False):
     if(request == 'II'):
+        INJECTOR_COORDINATES = data
         df_matrix = pd.DataFrame([], columns=INJECTOR_COORDINATES.keys(), index=INJECTOR_COORDINATES.keys())
         for iwell in df_matrix.columns:
             iwell_coord = INJECTOR_COORDINATES.get(iwell)
@@ -122,6 +126,7 @@ def distance_matrix(request, INJECTOR_COORDINATES, PRODUCER_COORDINATES, scaled=
 
         df_matrix = df_matrix.infer_objects()
     elif(request == 'PP'):
+        PRODUCER_COORDINATES = data
         per_pwell = {}
         for pwell in PRODUCER_COORDINATES.keys():
             # Get the coordinates (plural) for the specific producer
@@ -151,6 +156,8 @@ def distance_matrix(request, INJECTOR_COORDINATES, PRODUCER_COORDINATES, scaled=
         df_matrix = df_matrix.infer_objects()
     else:
         raise ValueError('Improper argument for `request` in `distance_matrix`')
+
+    return df_matrix
 
 
 def PI_imapcts(CANDIDATES, PI_DIST_MATRIX, CLOSENESS_THRESH_PI=CLOSENESS_THRESH_PI, plot=False):
@@ -230,14 +237,15 @@ def produce_search_space(CANDIDATES, PI_DIST_MATRIX, II_DIST_MATRIX, RESOLUTION=
             optimals = optimal_injectors(isolates_PI, isolates_II)
             search_space[thresh_PI][thresh_II] = optimals
     search_space_df = pd.DataFrame(search_space).reset_index().infer_objects()
-    _accessories.save_local_data_file(search_space_df, 'Data/threshold_search_space.csv')
+    _accessories.save_local_data_file(search_space_df, 'Data/S7 Files/threshold_search_space.csv')
     print('SAVED')
 
     return search_space_df
 
 
 def retrieve_search_space(min_bound=0.5, early=False):
-    search_space = _accessories.retrieve_local_data_file('Data/threshold_search_space.csv').drop('Unnamed: 0', 1)
+    search_space = _accessories.retrieve_local_data_file(
+        'Data/S7 Files/threshold_search_space.csv').drop('Unnamed: 0', 1)
 
     if early:
         return search_space
@@ -340,7 +348,7 @@ _ = """
 
 
 def initial_allocations(allocated_steam_props: dict,
-                        impact_tracker_PI: pd.core.frames.DataFrame, impact_tracker_II: pd.core.frames.DataFrame):
+                        impact_tracker_PI: pd.core.frame.DataFrame, impact_tracker_II: pd.core.frame.DataFrame):
     # Determining injector scores and rankings
     injector_tracks = []
     for pwell, allocations in allocated_steam_props.items():
@@ -407,7 +415,7 @@ def initial_allocations(allocated_steam_props: dict,
     return decisions.infer_objects()
 
 
-def accounted_for(decisions, group_name='PRO_Well', pad_filter=['A', 'B']):
+def accounted_for(decisions, pwell_allocation, group_name='PRO_Well', pad_filter=['A', 'B']):
     # Check how much steam is accounted and unaccounted for.
     # accounted_proportions = {}
     accounted_units = {}
@@ -436,7 +444,7 @@ def maximize_allocations(accounted_units, units_remaining, decisions):
                           for k, v in accounted_units.items()}
     FINALE = []
     if units_remaining > 0:
-        print('Units remaining to be allocated.')
+        _accessories._print('Units remaining to be allocated.')
         # These are allocations on the producer well level
         additional_units = {k: v * units_remaining for k, v in pwell_trimmed_dist.items()}
         final_allocations = {k: v + accounted_units.get(k) for k, v in additional_units.items()}
@@ -451,9 +459,9 @@ def maximize_allocations(accounted_units, units_remaining, decisions):
                 FINALE.append((pwell, additional_units.get(pwell), final_allocations.get(pwell), iwell,
                                proportion_per_iwell.get(iwell), final_unit_allocation.get(iwell)))
     elif units_remaining == 0:
-        print('All units were already allocated.')
+        _accessories._print('All units were already allocated.')
     else:
-        print('ERROR: Units were over-allocated')
+        _accessories._print('ERROR: Units were over-allocated')
 
     suggestions = pd.DataFrame(FINALE, columns=['PRO_Well', 'PRO_Well_Additional_Units', 'PRO_Well_Final_Allocation',
                                                 'Candidate_Injector', 'Candidate_Proportion', 'Candidate_Units'])
@@ -474,47 +482,47 @@ _ = """
 
 
 def _INJECTOR_ALLOCATION(CLOSENESS_THRESH_PI=0.1, CLOSENESS_THRESH_II=0.1):
-    # Ingest Dataset
+    _accessories._print('Ingesting the positional data matrixes and candidate relationships...')
     DATA_PATH_DMATRIX: Final = 'Data/Pickles/DISTANCE_MATRIX.csv'
     DATA_PATH_CANDIDATES: Final = 'Data/Pickles/WELL_Candidates.pkl'
-    DATA_PATH_ALLOCATIONS: Final = None
+    DATA_PATH_ALLOCATIONS: Final = 'Data/Pickles/pwell_allocations.pkl'
 
     DATASETS = {}
     DATASETS['CANDIDATES'] = _accessories.retrieve_local_data_file(DATA_PATH_CANDIDATES, mode=2)
     DATASETS['PI_DIST_MATRIX'] = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
     DATASETS['II_DIST_MATRIX'] = distance_matrix('II', S3.get_coordinates(data_group='INJECTION'), scaled=False)
     DATASETS['PP_DIST_MATRIX'] = distance_matrix('PP', S3.get_coordinates(data_group='PRODUCTION'), scaled=False)
+    DATASETS['CONSTRAINTS'] = _accessories.retrieve_local_data_file(DATA_PATH_ALLOCATIONS, mode=2)
 
-    # Engineer Impact Area Datasets
+    _accessories._print('Engineering impact area/overlap datasets...')
     impact_tracker_PI, isolates_PI = PI_imapcts(DATASETS['CANDIDATES'].copy(), DATASETS['PI_DIST_MATRIX'].copy(),
                                                 CLOSENESS_THRESH_PI=CLOSENESS_THRESH_PI)
     impact_tracker_II, isolates_II = II_impacts(DATASETS['II_DIST_MATRIX'].copy(),
                                                 CLOSENESS_THRESH_II=CLOSENESS_THRESH_II)
 
-    # Get naive allocations
+    _accessories._print('Determining over-allocated naïve solution...')
     allocated_steam_values, allocated_steam_props = naive_distance_allocation(DATASETS['PI_DIST_MATRIX'].copy(),
                                                                               DATASETS['CANDIDATES'].copy(),
-                                                                              pwell_allocation,
+                                                                              DATASETS['CONSTRAINTS'].copy(),
                                                                               format='dict')
 
-    # Determine initial injector allocations
+    _accessories._print('Taking positional relationship into account and adjusting allocations...')
     decisions = initial_allocations(allocated_steam_props, impact_tracker_PI, impact_tracker_II)
 
-    # Get unaccounted values
-    accounted_units, units_remaining = accounted_for(decisions)
-
+    _accessories._print('Proportionally adding steam to reach maximum capacity...')
+    accounted_units, units_remaining = accounted_for(decisions, DATASETS['CONSTRAINTS'].copy())
     # Fill the remaining steam allocation per injector based on pad level contraints
     suggestions = maximize_allocations(accounted_units, units_remaining, decisions)
 
-    # Finalize datasets (esp. suggestions)
-    _accessories.finalize_all(DATASETS)
-
-    # Save to local file
-    _accessories.save_local_data_file(suggestions, 'Data/final_suggestions.csv')
+    _accessories._print('Finalizing and saving injection suggestion data...')
+    _accessories.finalize_all(DATASETS, coerce_date=False)
+    _accessories.save_local_data_file(suggestions, 'Data/S7 Files/final_suggestions.csv')
 
 
-SEARCH_SPACE = produce_search_space(CANDIDATES, PI_DIST_MATRIX, II_DIST_MATRIX, RESOLUTION=0.001)
+if __name__ == '__main__':
+    _INJECTOR_ALLOCATION()
 
-plot_search_space(retrieve_search_space(min_bound=0.3, early=False), cmap=cm.turbo)
+# SEARCH_SPACE = produce_search_space(CANDIDATES, PI_DIST_MATRIX, II_DIST_MATRIX, RESOLUTION=0.001)
+# plot_search_space(retrieve_search_space(min_bound=0.3, early=False), cmap=cm.turbo)
 
 # EOF

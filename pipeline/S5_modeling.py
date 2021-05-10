@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S5_modeling.py
 # @Last modified by:   Ray
-# @Last modified time: 28-Apr-2021 01:04:88:889  GMT-0600
+# @Last modified time: 10-May-2021 09:05:90:904  GMT-0600
 # @License: [Private IP]
 
 # HELPFUL NOTES:
@@ -94,8 +94,8 @@ _ = """
 #######################################################################################################################
 """
 # Data Ingestion Constants
-DATA_PATH_PAD: Final = 'Data/combined_ipc_engineered_math.csv'    # Where the client-specific pad data is located
-DATA_PATH_PAD_vanilla = 'Data/combined_ipc_aggregates.csv'        # No feature engineering
+DATA_PATH_PAD: Final = 'Data/S4 Files/combined_ipc_engineered_math.csv'    # Where the client-specific pad data is located
+DATA_PATH_PAD_vanilla = 'Data/S3 Files/combined_ipc_aggregates.csv'        # No feature engineering
 
 # H2O Server Constants
 IP_LINK: Final = 'localhost'                                  # Initializing the server on the local host (temporary)
@@ -1480,7 +1480,7 @@ def _MODELING(math_eng=False, weighting=False, MAX_EXP_RUNTIME=60, plot_for_ref=
     setup_and_server()
 
     _accessories._print('Retreiving pre-model data...')
-    PATH_PAD = 'Data/combined_ipc_aggregates_ALL.csv'
+    PATH_PAD = 'Data/S3 Files/combined_ipc_aggregates_ALL.csv'
     pd_data_pad = _accessories.retrieve_local_data_file(PATH_PAD)
 
     _accessories._print('Creating validation sets...')

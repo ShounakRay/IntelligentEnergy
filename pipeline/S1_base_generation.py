@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 10:04:61:617  GMT-0600
+# @Last modified time: 10-May-2021 09:05:00:009  GMT-0600
 # @License: [Private IP]
 
 
@@ -221,7 +221,7 @@ def _INGESTION():
     _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
     _accessories.finalize_all(DATASETS, skip=[])
     merged_df = merge(DATASETS)
-    _accessories.save_local_data_file(merged_df, 'Data/combined_ipc_ALL.csv')
+    _accessories.save_local_data_file(merged_df, 'Data/S1 Files/combined_ipc_ALL.csv')
 
 
 if __name__ == '__main__':

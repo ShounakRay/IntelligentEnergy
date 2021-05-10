@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 07-May-2021 11:05:25:253  GMT-0600
+# @Last modified time: 10-May-2021 09:05:79:794  GMT-0600
 # @License: [Private IP]
 
 
@@ -363,8 +363,10 @@ def _OPTIMIZATION(start_date='2015-04-01', end_date='2020-12-20', engineered=Tru
     setup_and_server()
 
     _accessories._print('Loading the most basic, aggregated + mathematically engineered datasets...')
-    DATASETS = {'AGGREGATED_NOENG': _accessories.retrieve_local_data_file('Data/combined_ipc_aggregates_ALL.csv'),
-                'AGGREGATED_ENG': _accessories.retrieve_local_data_file('Data/combined_ipc_engineered_math.csv')}
+    DATASETS = {'AGGREGATED_NOENG':
+                _accessories.retrieve_local_data_file('Data/S3 Files/combined_ipc_aggregates_ALL.csv'),
+                'AGGREGATED_ENG':
+                _accessories.retrieve_local_data_file('Data/S4 Files/combined_ipc_engineered_math.csv')}
 
     # results = []
     # for date in dates:
@@ -383,10 +385,8 @@ def _OPTIMIZATION(start_date='2015-04-01', end_date='2020-12-20', engineered=Tru
     aggregate_results = run(DATASETS['AGGREGATED_NOENG'].copy(), dates)
     aggregate_results = configure_aggregates(aggregate_results, rell)
 
-    # _accessories.auto_make_path('Optimization Reference Files/Backtests/')
     _accessories.save_local_data_file(aggregate_results,
-                                      f'Optimization Reference Files/Backtests/Aggregates_{start_date}_{end_date}.csv')
-    # aggregate_results.to_csv('Optimization Reference Files/Backtests/Aggregates_{start_date}_{end_date}.csv')
+                                      f'Data/S6 Files/Aggregates_{start_date}_{end_date}.csv')
 
     _accessories._print('Shutting down H2O server...')
     shutdown_confirm(h2o)

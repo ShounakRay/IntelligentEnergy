@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 03-May-2021 11:05:34:348  GMT-0600
+# @Last modified time: 10-May-2021 09:05:26:268  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -654,7 +654,7 @@ _ = """
 
 def _INTELLIGENT_AGGREGATION():
     _accessories._print('Ingesting PHYSICS ENGINEERED and pad-well relationship data...', color='LIGHTYELLOW_EX')
-    DATASETS = {'FINALE': _accessories.retrieve_local_data_file('Data/combined_ipc_engineered_phys_ALL.csv')}
+    DATASETS = {'FINALE': _accessories.retrieve_local_data_file('Data/S2 Files/combined_ipc_engineered_phys_ALL.csv')}
     INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/Pickles/INJECTION_[Well, Pad].pkl', mode=2)
     PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/Pickles/PRODUCTION_[Well, Pad].pkl', mode=2)
 
@@ -699,7 +699,7 @@ def _INTELLIGENT_AGGREGATION():
     _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
     _accessories.finalize_all(DATASETS, skip=[])
     merged_df = merge(DATASETS, ['A', 'B', 'C', 'D', 'E', 'F'])
-    _accessories.save_local_data_file(merged_df, 'Data/combined_ipc_aggregates_ALL.csv')
+    _accessories.save_local_data_file(merged_df, 'Data/S3 Files/combined_ipc_aggregates_ALL.csv')
 
 
 if __name__ == '__main__':

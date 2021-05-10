@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: ft_eng_math.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 11:04:93:930  GMT-0600
+# @Last modified time: 10-May-2021 09:05:73:731  GMT-0600
 # @License: [Private IP]
 
 import itertools
@@ -112,7 +112,7 @@ def generate_new_features(df, RESPONDER, group_colname='PRO_Pad', save=True, **k
         new_ft[group] = (feateng_X_TRAIN, model_feateng.new_feat_cols_)
 
     if(save):
-        _accessories.save_local_data_file(new_ft, f'Data/FEATENGS_[{group_colname}, Engineered].pkl')
+        _accessories.save_local_data_file(new_ft, f'Data/Pickles/FEATENGS_[{group_colname}, Engineered].pkl')
 
     return new_ft, CORE_FEATURES
 
@@ -220,7 +220,7 @@ def _FEATENG_MATH(data=None, RESPONDER='PRO_Total_Fluid', skip_save=True):
         _accessories._print('Ingesting PHYSICS ENGINEERD, WEIGHTED data...', color='LIGHTYELLOW_EX')
         _accessories._print('WARNING: Mathematical feature engineering is isolated from modelling component.\n' +
                             'This is not representative of the production pipeline.')
-        loaded_data = _accessories.retrieve_local_data_file('Data/combined_ipc_aggregates.csv')
+        loaded_data = _accessories.retrieve_local_data_file('Data/S3 Files/combined_ipc_aggregates.csv')
     elif type(data) is pd.core.frame.DataFrame:
         _accessories._print('Model-group specific data is loaded for feature engineering...', color='LIGHTYELLOW_EX')
         loaded_data = data.infer_objects()
@@ -244,7 +244,7 @@ def _FEATENG_MATH(data=None, RESPONDER='PRO_Total_Fluid', skip_save=True):
 
         _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
         _accessories.finalize_all(DATASETS, skip=[])
-        _accessories.save_local_data_file(DATASETS['CONCATENATED'], 'Data/combined_ipc_engineered_math.csv')
+        _accessories.save_local_data_file(DATASETS['CONCATENATED'], 'Data/S4 Files/combined_ipc_engineered_math.csv')
     else:
         return groups_engdfs, CORE_FEATURES
 

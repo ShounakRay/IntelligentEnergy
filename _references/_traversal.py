@@ -3,7 +3,7 @@
 # @Profile:  https://stackoverflow.com/users/2479038/abstrus
 # @Filename: util_traversal.py
 # @Last modified by:   Ray
-# @Last modified time: 17-Apr-2021 04:04:71:714  GMT-0600
+# @Last modified time: 10-May-2021 09:05:37:377  GMT-0600
 # @License: [Private IP]
 
 # @Source: https://stackoverflow.com/a/49912639/9582712
@@ -84,7 +84,7 @@ class DisplayablePath(object):
         return ''.join(reversed(parts))
 
 
-def print_tree_to_txt(skip_git=True, PATH='FILE_STRUCTURE.txt'):
+def print_tree_to_txt(skip_git=True, PATH='_configs/FILE_STRUCTURE.txt'):
     segments = ''
     paths = DisplayablePath.make_tree(Path(os.getcwd()))
     for path in paths:

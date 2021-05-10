@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 03-May-2021 11:05:92:929  GMT-0600
+# @Last modified time: 10-May-2021 09:05:35:358  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -87,6 +87,9 @@ def save_local_data_file(data, filepath, **kwargs):
 
 def finalize_all(datasets, skip=[], coerce_date=True, nan_check=True, **kwargs):
     for name, df in datasets.items():
+        if type(df) != pd.core.frame.DataFrame:
+            skip.append(name)
+            skip = list(set(skip))
         if name in skip:
             continue
         _temp = df.infer_objects()
@@ -98,7 +101,7 @@ def finalize_all(datasets, skip=[], coerce_date=True, nan_check=True, **kwargs):
                 _print(f'NaN Checks: for {name} dataset', color='CYAN')
                 na_eda(df, 'PRO_Well', threshold=kwargs.get('threshold'))
             else:
-                _print('WARNING: No expected group in data to perform NaN check. Skipping...')
+                _print('WARNING: No expected group in data to perform NaN check. Skipping...', color='RED')
         if(coerce_date):
             _temp['Date'] = pd.to_datetime(_temp['Date'])
         datasets[name] = _temp
@@ -144,18 +147,22 @@ def suppress_stdout():
 
 
 def na_eda(df, group, show='selective', threshold=0.7):
+    never_again = False
     if(threshold is None):
         threshold = 0.7
     df = df.copy()
     for g in df[group].unique():
         gdf = df[df[group] == g].reset_index(drop=True)
-        _print(f'"{g}" grouped by "{group}"', color='CYAN')
         content = dict(gdf.isna().sum() / len(gdf))
         if(show == "all"):
+            _print(f'"{g}" grouped by "{group}"', color='CYAN')
             print(content)
         elif(show == 'selective'):
             for col, prop in content.items():
                 if(prop > threshold):
+                    if not never_again:
+                        _print(f'"{g}" grouped by "{group}"', color='CYAN')
+                    never_again = True
                     _print(f'WARNING: Column "{col}" in group "{g}" exceeded threshold of {threshold} with ' +
                            f'a NaN proportion of {prop}', color='LIGHTRED_EX')
 
