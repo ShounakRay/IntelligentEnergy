@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 10-May-2021 11:05:39:399  GMT-0600
+# @Last modified time: 10-May-2021 11:05:79:798  GMT-0600
 # @License: [Private IP]
 
 
@@ -338,7 +338,7 @@ _ = """
 """
 
 
-def _OPTIMIZATION(start_date='2020-06-01', end_date='2020-12-20', engineered=True):
+def _OPTIMIZATION(start_date='2015-04-01', end_date='2020-12-20', engineered=True):
     rell = {'A': 159.394495, 'B': 132.758275, 'C': 154.587740, 'E': 151.573186, 'F': 103.389248}
 
     _accessories._print('Initializing H2O server to access model files...')
@@ -379,18 +379,6 @@ def _OPTIMIZATION(start_date='2020-06-01', end_date='2020-12-20', engineered=Tru
 
 if __name__ == '__main__':
     _OPTIMIZATION()
-
-
-# merged_df.to_csv('btest.csv')
-
-
-# # Plot
-# _temp = aggregate_results.sort_values('Date')
-# _temp = _temp[_temp['PRO_Pad'] == 'A']
-# _temp = _temp[['Date', 'Steam', 'Pred_Steam']]
-# plt.figure(figsize=(20, 10))
-# plt.plot(_temp['Date'], _temp['Steam'])
-# plt.plot(_temp['Date'], _temp['Pred_Steam'])
 
 
 # ###
