@@ -3,15 +3,13 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 10-May-2021 09:05:79:794  GMT-0600
+# @Last modified time: 10-May-2021 11:05:39:399  GMT-0600
 # @License: [Private IP]
 
 
 import os
-import pickle
 import subprocess
 import sys
-import traceback
 from typing import Final
 
 import billiard as mp
@@ -115,7 +113,8 @@ injector_wells = {
     "F": []
 }
 
-BEST_MODEL_PATHS = _accessories.retrieve_local_data_file('Data/Model Candidates/best_models_nomatheng.pkl')
+BEST_MODEL_PATHS = _accessories.retrieve_local_data_file(
+    'Data/S5 Files/Model Candidates/best_models_nomatheng.pkl', mode=2)
 
 _ = """
 #######################################################################################################################
@@ -124,14 +123,12 @@ _ = """
 """
 
 
-def data_prep(field_df, *args):
-    # PREPARE DATA FRAME, CLEANING, FEATURE ENGINEERING, OTHERS...
-    return field_df
-
-
-def build_pad_model(pad_df, injector_wells, features, target):
-    # PREDICT TARGET ON THE PAD LEVEL, GIVEN INJECTOR WELLS,
-    return model, metrics
+# def data_prep(field_df, *args):
+#     # PREPARE DATA FRAME, CLEANING, FEATURE ENGINEERING, OTHERS...
+#     return field_df
+# def build_pad_model(pad_df, injector_wells, features, target):
+#     # PREDICT TARGET ON THE PAD LEVEL, GIVEN INJECTOR WELLS,
+#     return model, metrics
 
 
 def create_scenarios(pad_df, date, features, steam_range):
@@ -252,8 +249,6 @@ def parallel_optimize(field_df, date, grouper='PRO_Pad', target='PRO_Total_Fluid
     except Exception as e:
         _accessories._print(str(e))
         return
-        # print(traceback.print_exc())
-        # pass
 
 
 def run(data, dates):
@@ -273,23 +268,17 @@ def run(data, dates):
     return agg_final
 
 
-def well_setpoints(solution, well_constraints):
-
-    # WELL LEVEL SOLUTION
-    # 1. NAIVE SOLUTION (divide by number of wells)
-    # 2. SOR-ECONOMICS BASED (STEAM SHOULD NOT BE MORE THAN MAX SOR x OIL PRODUCTION)
-    # 3. CHLORIDE CONTROL (MIN STEAM SHOULD RESIST CHLORIDE BREAKTHROUGHS)
-    # 4. CORRELATION BASED SOLUTION
-
-    return
-
-
-def max_sor_steam():
-    return
-
-
-def min_chloride_control_steam():
-    return
+# def well_setpoints(solution, well_constraints):
+#     # WELL LEVEL SOLUTION
+#     # 1. NAIVE SOLUTION (divide by number of wells)
+#     # 2. SOR-ECONOMICS BASED (STEAM SHOULD NOT BE MORE THAN MAX SOR x OIL PRODUCTION)
+#     # 3. CHLORIDE CONTROL (MIN STEAM SHOULD RESIST CHLORIDE BREAKTHROUGHS)
+#     # 4. CORRELATION BASED SOLUTION
+#     return
+# def max_sor_steam():
+#     return
+# def min_chloride_control_steam():
+#     return
 
 
 _ = """
@@ -333,18 +322,11 @@ def shutdown_confirm(h2o_instance: type(h2o)) -> None:
     # SHUT DOWN the cluster after you're done working with it
     h2o_instance.remove_all()
     h2o_instance.cluster().shutdown()
-    # Double checking...
-    try:
-        snapshot(h2o_instance.cluster)
-        raise ValueError('ERROR: H2O cluster improperly closed!')
-    except Exception:
-        pass
 
 
 def configure_aggregates(aggregate_results, rell):
-    aggregate_results['rmse'] = aggregate_results['rmse'] / 2
-    aggregate_results['rel_rmse'] = (aggregate_results['rmse']) - \
-        aggregate_results['PRO_Pad'].apply(lambda x: rell.get(x))
+    aggregate_results['allowable_rmse'] = aggregate_results['PRO_Pad'].apply(lambda x: rell.get(x))
+    aggregate_results['rel_rmse'] = (aggregate_results['rmse']) - aggregate_results['allowable_rmse']
 
     return aggregate_results
 
@@ -356,7 +338,7 @@ _ = """
 """
 
 
-def _OPTIMIZATION(start_date='2015-04-01', end_date='2020-12-20', engineered=True):
+def _OPTIMIZATION(start_date='2020-06-01', end_date='2020-12-20', engineered=True):
     rell = {'A': 159.394495, 'B': 132.758275, 'C': 154.587740, 'E': 151.573186, 'F': 103.389248}
 
     _accessories._print('Initializing H2O server to access model files...')
@@ -384,6 +366,9 @@ def _OPTIMIZATION(start_date='2015-04-01', end_date='2020-12-20', engineered=Tru
     dates = pd.date_range(*(start_date, end_date)).strftime('%Y-%m-%d')
     aggregate_results = run(DATASETS['AGGREGATED_NOENG'].copy(), dates)
     aggregate_results = configure_aggregates(aggregate_results, rell)
+
+    # aggregate_results[aggregate_results['PRO_Pad'] == 'F'].sort_values(
+    #     'Date')['rel_rmse'].reset_index(drop=True).plot()
 
     _accessories.save_local_data_file(aggregate_results,
                                       f'Data/S6 Files/Aggregates_{start_date}_{end_date}.csv')
