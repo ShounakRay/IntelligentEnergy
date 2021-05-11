@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 11-May-2021 15:05:05:055  GMT-0600
+# @Last modified time: 11-May-2021 16:05:62:628  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -47,9 +47,9 @@ if __name__ == '__main__':
     import _accessories
     # import _context_managers
     import _multiprocessed.defs as defs
+    import _positional.coordinates as coordinates
 
     # import _traversal
-
 
 # _traversal.print_tree_to_txt(PATH='_configs/FILE_STRUCTURE.txt')
 
@@ -326,60 +326,63 @@ def euclidean_2d_distance(c1, c2):
 
 def get_coordinates(data_group):
     def get_injector_coordinates():
-        INJ_relcoords = {}
-        INJ_relcoords = {'I02': '(757, 534)',
-                         'I03': '(709, 519)',
-                         'I04': '(760, 488)',
-                         'I05': '(708, 443)',
-                         'I06': '(825, 537)',
-                         'I07': '(823, 461)',
-                         'I08': '(997, 571)',
-                         'I09': '(940, 516)',
-                         'I10': '(872, 489)',
-                         'I11': '(981, 477)',
-                         'I12': '(1026, 495)',
-                         'I13': '(1034, 444)',
-                         'I14': '(935, 440)',
-                         'I15': '(709, 686)',
-                         'I16': '(694, 611)',
-                         'I17': '(758, 649)',
-                         'I18': '(760, 571)',
-                         'I19': '(818, 684)',
-                         'I20': '(880, 645)',
-                         'I21': '(817, 606)',
-                         'I22': '(881, 565)',
-                         'I23': '(946, 682)',
-                         'I24': '(1066, 679)',
-                         'I25': '(1063, 604)',
-                         'I26': '(995, 643)',
-                         'I27': '(940, 604)',
-                         'I28': '(758, 801)',
-                         'I29': '(701, 766)',
-                         'I30': '(825, 763)',
-                         'I31': '(759, 736)',
-                         'I32': '(871, 716)',
-                         'I33': '(939, 739)',
-                         'I34': '(873, 801)',
-                         'I35': '(1023, 727)',
-                         'I36': '(996, 789)',
-                         'I37': '(1061, 782)',
-                         'I38': '(982, 529)',
-                         'I86': '(792, 385)',
-                         'I80': '(880, 416)',
-                         'I61': '(928, 370)',
-                         'I59': '(928, 334)',
-                         'I60': '(1036, 374)',
-                         'I47': '(1085, 411)',
-                         'I44': '(1144, 409)'}
-        # for inj in [k for k in INJ_PAD_KEYS.keys() if INJ_PAD_KEYS[k] in ['A', '15-05', '16-05', '11-05', '10-05',
-        #                                                                   '09-05', '06-05', '08-05']]:
-        #     INJ_relcoords[inj] = input(prompt='Please enter coordinates for injector {}'.format(inj))
-        for k, v in INJ_relcoords.items():
-            # String to tuple
-            INJ_relcoords[k] = eval(v)
-            v = INJ_relcoords[k]
-            # Re-scaling
-            INJ_relcoords[k] = (v[0] - x_delta, y_delta - v[1])
+        if False:
+            INJ_relcoords = {}
+            INJ_relcoords = {'I02': '(757, 534)',
+                             'I03': '(709, 519)',
+                             'I04': '(760, 488)',
+                             'I05': '(708, 443)',
+                             'I06': '(825, 537)',
+                             'I07': '(823, 461)',
+                             'I08': '(997, 571)',
+                             'I09': '(940, 516)',
+                             'I10': '(872, 489)',
+                             'I11': '(981, 477)',
+                             'I12': '(1026, 495)',
+                             'I13': '(1034, 444)',
+                             'I14': '(935, 440)',
+                             'I15': '(709, 686)',
+                             'I16': '(694, 611)',
+                             'I17': '(758, 649)',
+                             'I18': '(760, 571)',
+                             'I19': '(818, 684)',
+                             'I20': '(880, 645)',
+                             'I21': '(817, 606)',
+                             'I22': '(881, 565)',
+                             'I23': '(946, 682)',
+                             'I24': '(1066, 679)',
+                             'I25': '(1063, 604)',
+                             'I26': '(995, 643)',
+                             'I27': '(940, 604)',
+                             'I28': '(758, 801)',
+                             'I29': '(701, 766)',
+                             'I30': '(825, 763)',
+                             'I31': '(759, 736)',
+                             'I32': '(871, 716)',
+                             'I33': '(939, 739)',
+                             'I34': '(873, 801)',
+                             'I35': '(1023, 727)',
+                             'I36': '(996, 789)',
+                             'I37': '(1061, 782)',
+                             'I38': '(982, 529)',
+                             'I86': '(792, 385)',
+                             'I80': '(880, 416)',
+                             'I61': '(928, 370)',
+                             'I59': '(928, 334)',
+                             'I60': '(1036, 374)',
+                             'I47': '(1085, 411)',
+                             'I44': '(1144, 409)'}
+            # for inj in [k for k in INJ_PAD_KEYS.keys() if INJ_PAD_KEYS[k] in ['A', '15-05', '16-05', '11-05', '10-05',
+            #                                                                   '09-05', '06-05', '08-05']]:
+            #     INJ_relcoords[inj] = input(prompt='Please enter coordinates for injector {}'.format(inj))
+            for k, v in INJ_relcoords.items():
+                # String to tuple
+                INJ_relcoords[k] = eval(v)
+                v = INJ_relcoords[k]
+                # Re-scaling
+                INJ_relcoords[k] = (v[0] - x_delta, y_delta - v[1])
+        else:
+
         return INJ_relcoords
 
     def get_producer_coordinates(nb_points=8):
@@ -443,7 +446,7 @@ def get_coordinates(data_group):
         raise ValueError('Improperly entered `data_group` in `get_coordinates`.')
 
 
-get_coordinates('PRODUCTION')
+get_coordinates('INJECTION')
 
 
 def distance_matrix(injector_coordinates, producer_coordinates, save=True):

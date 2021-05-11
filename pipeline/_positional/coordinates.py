@@ -3,14 +3,14 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: coordinate_playground.py
 # @Last modified by:   Ray
-# @Last modified time: 11-May-2021 16:05:78:787  GMT-0600
+# @Last modified time: 11-May-2021 16:05:20:204  GMT-0600
 # @License: [Private IP]
 
 import os
 import re
+import sys
 from io import StringIO
 
-import _references._accessories as _accessories
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -20,6 +20,35 @@ import pandas as pd
 # TODO: Injector Re-Scaling
 # TODO: Injector Level Toggling
 
+
+def ensure_cwd(expected_parent):
+    init_cwd = os.getcwd()
+    sub_dir = init_cwd.split('/')[-1]
+
+    if(sub_dir != expected_parent):
+        new_cwd = init_cwd
+        print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
+              f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
+    else:
+        new_cwd = init_cwd.replace('/' + sub_dir, '')
+        print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
+        os.chdir(new_cwd)
+
+
+if __name__ == '__main__':
+    try:
+        _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
+    except Exception:
+        _EXPECTED_PARENT_NAME = 'pipeline'
+        print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
+              f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
+    ensure_cwd(_EXPECTED_PARENT_NAME)
+    sys.path.insert(1, os.getcwd() + '/_references')
+    sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
+
+if True:
+    import _accessories
+
 _ = """
 #######################################################################################################################
 ################################################   DATA REQUIREMENTS   ################################################
@@ -28,6 +57,8 @@ _ = """
 # FILE PATHS AND RELATIONSHIPS
 LINER_PATH = 'Data/Coordinates/Liner Depths (measured depth).xlsx'
 INJECTOR_COORDINATE_PATH = 'Data/Coordinates/OLT Verical Injector Bottom Hole Coordinates.xlsx'
+with _accessories.suppress_stdout():
+    rell_data = _accessories.retrieve_local_data_file('Data/Pickles/PRODUCTION_[Well, Pad].pkl', mode=2)
 
 _ = """
 #######################################################################################################################
@@ -36,7 +67,7 @@ _ = """
 """
 
 
-def get_producer_positions(rell_data, liner_path=LINER_PATH, cut_liner=True, up_scalar=100):
+def get_producer_positions(rell_data=rell_data, liner_path=LINER_PATH, cut_liner=True, up_scalar=100):
     liner_bounds = pd.read_excel(liner_path).infer_objects().set_index('Well')
     f_paths = [f for f in sorted(['Data/Coordinates/' + c for c in list(os.walk('Data/Coordinates'))[0][2]])
                if ('BPRI' in f)]
@@ -109,7 +140,7 @@ def get_injector_coordinates(path=INJECTOR_COORDINATE_PATH, up_scalar=100):
     return injector_coordinates
 
 
-def plot_positions(rell_data, producer_data=None, injector_data=None,
+def plot_positions(rell_data=rell_data, producer_data=None, injector_data=None,
                    for_pads=['A', 'B', 'C', 'D', 'E', 'F', 'I2'], annotate='PI'):
     fig_opened = False
     if producer_data is not None:
@@ -142,17 +173,13 @@ _ = """
 """
 
 if __name__ == '__main__':
-    # FILE PATHS AND RELATIONSHIPS
-    rell_data = _accessories.retrieve_local_data_file('Data/Pickles/PRODUCTION_[Well, Pad].pkl', mode=2)
-
     # CALCULATE PRODUCER POSITIONS
-    all_positions, subsets = get_producer_positions(rell_data, cut_liner=False, up_scalar=100)
+    all_positions, subsets = get_producer_positions(cut_liner=True, up_scalar=100)
     injector_coordinates = get_injector_coordinates(up_scalar=100)
 
     # PLOT POSITIONS
     plot_positions(producer_data=all_positions, injector_data=injector_coordinates,
                    annotate='I', rell_data=rell_data)
-
 
 # EOF
 

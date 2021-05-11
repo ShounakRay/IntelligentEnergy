@@ -26,7 +26,9 @@ IntelligentEnergy/
 ├── alloc_sandbox.py
 ├── Data/
 │   ├── .DS_Store
+│   ├── candidate_selected_pressures_dTime.csv
 │   ├── Coordinates/
+│   │   ├── .DS_Store
 │   │   ├── BPRI ONION LAKE N 1AP2 Hz 7A13-5-4D9-5-56-27(14-3317 Final Surveys).txt
 │   │   ├── BPRI ONION LAKE N 1AP3 HZ 11A13-5-4D9-5-56-27_14-3646 Final Surveys.txt
 │   │   ├── BPRI ONION LAKE N 1AP4 HZ 15A13-5-1A16-5-56-27 (14-3647 Final Survey).txt
@@ -40,8 +42,30 @@ IntelligentEnergy/
 │   │   ├── BPRI Onion Lake N 1BP4 HZ 3B5-5-1D8-5-56-27_Final Surveys.txt
 │   │   ├── BPRI Onion Lake N 1BP5 HZ 7B5-5-4A8-5-56-27_14-3897 Final Surveys.txt
 │   │   ├── BPRI Onion Lake N 1BP6 HZ 11B5-5-1A8-5-56-27 (14-3898 Final ).txt
+│   │   ├── BPRI Onion Lake N Hz 1CP1 4B5-4-2A16-5-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lake N HZ 1CP2 8B5-4-4D16-5-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lake N HZ 1CP3 12B5-4-3C13-4-56-27_Final Surveys (NAD 83).txt
+│   │   ├── BPRI Onion Lake N HZ 1CP4 16B5-4-4C13-4-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lake N HZ 1CP5 3A5-4-8C13-4-56-27_Final Surveys (NAD 83).txt
+│   │   ├── BPRI Onion Lake N HZ 1CP6 7A5-4-7D13-4-56-27_Final Surveys (NAD 83).txt
+│   │   ├── BPRI Onion Lake N HZ 1CP7 11A5-4-4D13-4-56-27_Final Surveys_NAD83.txt
+│   │   ├── BPRI Onion Lake N HZ 1CP8 15A5-4-8D13-4-56-27_Final Surveys Rev 1 (NAD 83).txt
+│   │   ├── BPRI Onion Lake North 1EP2 HZ 14A6-9-1B2-8-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lake North 1EP3 HZ 10A6-9-4B2-8-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lake North 1EP4 HZ 6A6-9-5C2-8-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lake North 1EP5 HZ 2A6-9-1C2-8-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lake North 1EP6 HZ 7A6-9-4C2-8-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lake North 1EP7 3A6-9-5B7-8-56-27_Final Surveys.txt
 │   │   ├── BPRI Onion LakeN 1AI2 HZ 2D13-5-8D9-5-56-27 March 21 Final Surveys.txt
-│   │   └── Liner Depths (measured depth).xlsx
+│   │   ├── BPRI Onion Lk N 1FP1 HZ 8D12-4-2A1-5-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lk N 1FP2 HZ 12D12-4-5A1-5-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lk N 1FP3 HZ 16D12-4-2B4-4-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lk N 1FP4 HZ 20D12-4-5B4-4-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lk N 1FP5 HZ 24D12-4-6A4-4-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lk N 1FP6 HZ 28D12-4-1A4-4-56-27_Final Surveys.txt
+│   │   ├── BPRI Onion Lk N 1FP7 HZ 32D12-4-5A4-4-56-27_Final Surveys.txt
+│   │   ├── Liner Depths (measured depth).xlsx
+│   │   └── OLT Verical Injector Bottom Hole Coordinates.xlsx
 │   ├── DTS/
 │   │   ├── .DS_Store
 │   │   ├── AP2/
@@ -163,9 +187,6 @@ IntelligentEnergy/
 │   │   ├── aggregate_fiber.csv
 │   │   ├── candidate_selected_pressures_dTime.csv
 │   │   ├── combined_ipc_aggregates_PWELL.csv
-│   │   ├── Model Candidates/
-│   │   │   ├── best_models.pkl
-│   │   │   └── best_models_nomatheng.pkl
 │   │   └── res_2020-01-01.csv
 │   ├── Pickles/
 │   │   ├── .DS_Store
@@ -190,13 +211,17 @@ IntelligentEnergy/
 │   ├── S4 Files/
 │   │   └── combined_ipc_engineered_math.csv
 │   ├── S5 Files/
+│   │   ├── Model Candidates/
+│   │   │   ├── best_models.pkl
+│   │   │   └── best_models_nomatheng.pkl
 │   │   ├── modeling_benchmarks.txt
 │   │   └── modeling_benchmarks_2ALLOCSTEAM.txt
 │   ├── S6 Files/
 │   │   ├── Aggregates_2015-04-01_2020-12-20.csv
 │   │   ├── Aggregates_2015-04-01_2020-12-20_ABSmartSteam.csv
 │   │   └── Final_Some.csv
-│   └── S7 Files/
+│   ├── S7 Files/
+│   └── S8 Files/
 │       ├── final_suggestions.csv
 │       └── threshold_search_space.csv
 ├── images/
@@ -521,12 +546,6 @@ IntelligentEnergy/
 │   │   │   ├── XRT_1_AutoML_20210428_134328
 │   │   │   └── XRT_1_AutoML_20210428_134522
 │   │   └── MODELS_652.csv
-│   ├── Benchmarking Anomaly Detection.png
-│   ├── Engineered Features.png
-│   ├── Final Schematics/
-│   │   ├── Candidate_Impacts.png
-│   │   └── Selective, Average Producer Pressures Over Time.png
-│   ├── ft_end_correlations.png
 │   ├── Manipulation Validation/
 │   │   ├── IPC_Validation_initial.pdf
 │   │   └── IPC_Validation_revised.pdf
@@ -562,39 +581,31 @@ IntelligentEnergy/
 │   │   ├── IPC_BASE.png
 │   │   └── IPC_BASE.svg
 │   ├── Schematic 4/
+│   │   ├── ft_end_correlations.png
 │   │   ├── Screen Shot 2021-03-22 at 3.26.28 PM (2).png
 │   │   └── Screen Shot 2021-03-22 at 3.26.31 PM (2).png
-│   ├── Weight EDA/
-│   │   ├── Weight TS PRO_Pad = A.png
-│   │   ├── Weight TS PRO_Pad = B.png
-│   │   ├── Weight TS PRO_Well = AP2.png
-│   │   ├── Weight TS PRO_Well = AP3.png
-│   │   ├── Weight TS PRO_Well = AP4.png
-│   │   ├── Weight TS PRO_Well = AP5.png
-│   │   ├── Weight TS PRO_Well = AP6.png
-│   │   ├── Weight TS PRO_Well = AP7.png
-│   │   ├── Weight TS PRO_Well = AP8.png
-│   │   ├── Weight TS PRO_Well = BP1.png
-│   │   ├── Weight TS PRO_Well = BP2.png
-│   │   ├── Weight TS PRO_Well = BP3.png
-│   │   ├── Weight TS PRO_Well = BP4.png
-│   │   ├── Weight TS PRO_Well = BP5.png
-│   │   └── Weight TS PRO_Well = BP6.png
-│   ├── Weight TS PRO_Pad = A.png
-│   ├── Weight TS PRO_Pad = B.png
-│   ├── Weight TS PRO_Well = AP2.png
-│   ├── Weight TS PRO_Well = AP3.png
-│   ├── Weight TS PRO_Well = AP4.png
-│   ├── Weight TS PRO_Well = AP5.png
-│   ├── Weight TS PRO_Well = AP6.png
-│   ├── Weight TS PRO_Well = AP7.png
-│   ├── Weight TS PRO_Well = AP8.png
-│   ├── Weight TS PRO_Well = BP1.png
-│   ├── Weight TS PRO_Well = BP2.png
-│   ├── Weight TS PRO_Well = BP3.png
-│   ├── Weight TS PRO_Well = BP4.png
-│   ├── Weight TS PRO_Well = BP5.png
-│   └── Weight TS PRO_Well = BP6.png
+│   ├── Schematic 5/
+│   │   ├── Benchmarking Anomaly Detection.png
+│   │   ├── Candidate_Impacts.png
+│   │   ├── Coordinates_Issue.jpg
+│   │   ├── Engineered Features.png
+│   │   └── Selective, Average Producer Pressures Over Time.png
+│   └── Weight EDA/
+│       ├── Weight TS PRO_Pad = A.png
+│       ├── Weight TS PRO_Pad = B.png
+│       ├── Weight TS PRO_Well = AP2.png
+│       ├── Weight TS PRO_Well = AP3.png
+│       ├── Weight TS PRO_Well = AP4.png
+│       ├── Weight TS PRO_Well = AP5.png
+│       ├── Weight TS PRO_Well = AP6.png
+│       ├── Weight TS PRO_Well = AP7.png
+│       ├── Weight TS PRO_Well = AP8.png
+│       ├── Weight TS PRO_Well = BP1.png
+│       ├── Weight TS PRO_Well = BP2.png
+│       ├── Weight TS PRO_Well = BP3.png
+│       ├── Weight TS PRO_Well = BP4.png
+│       ├── Weight TS PRO_Well = BP5.png
+│       └── Weight TS PRO_Well = BP6.png
 ├── Modeling Reference Files/
 │   ├── .DS_Store
 │   ├── 1 – Benchmarks/
@@ -26101,6 +26112,9 @@ IntelligentEnergy/
 │   │   ├── __pycache__/
 │   │   │   └── defs.cpython-38.pyc
 │   │   └── defs.py
+│   ├── _positional/
+│   │   ├── coordinate_playground.py
+│   │   └── pressure_proxies.py
 │   ├── modeling_bare_minimum.py
 │   ├── S1_base_generation.py
 │   ├── S2_ft_eng_physics.py
@@ -26108,7 +26122,8 @@ IntelligentEnergy/
 │   ├── S4_ft_eng_math.py
 │   ├── S5_modeling.py
 │   ├── S6_optimization.py
-│   └── S7_steam_allocation.py
+│   ├── S7_prosteam_allocation.py
+│   └── S8_injsteam_allocation.py
 ├── process_flow.drawio
 ├── R&D References/
 │   ├── Adaptive TS SVM.pdf
@@ -26122,43 +26137,43 @@ IntelligentEnergy/
 │   ├── TS Phase Space Theoretical.pdf
 │   └── TS Phase Space.pdf
 ├── README.md
-├── Statis Code/
-│   ├── Approach 1/
-│   │   ├── .DS_Store
-│   │   ├── AUTO-IPC_Real_Manipulation.py
-│   │   ├── CrossCorrelation/
-│   │   │   ├── .DS_Store
-│   │   │   ├── Injector Cross Correlation.png
-│   │   │   ├── selective_matrix.pdf
-│   │   │   ├── selective_matrix.png
-│   │   │   ├── test copy.mp4
-│   │   │   ├── test.mp4
-│   │   │   ├── WELL-ALL_PRODUCTION_TARGET-UNSPECIFIED.png
-│   │   │   └── WELL-ALL_PRODUCTION_TARGET-UNSPECIFIED_TIMED-True.png
-│   │   ├── Exploratory Data Analysis/
-│   │   │   ├── report_DATA_INJECTION_PRESS.html
-│   │   │   ├── report_DATA_INJECTION_STEAM.html
-│   │   │   ├── report_DATA_PRODUCTION.html
-│   │   │   ├── report_DATA_TEST.html
-│   │   │   ├── report_FIBER_DATA.html
-│   │   │   ├── report_FINALE.html
-│   │   │   ├── report_PRODUCTION_WELL_INTER.html
-│   │   │   └── report_PRODUCTION_WELL_WSENSOR.html
-│   │   ├── heatmap_anitest.py
-│   │   ├── HTML/
-│   │   │   ├── just_foref.html
-│   │   │   ├── nx_visjs.html
-│   │   │   └── nx_visjs_TAILOR.html
-│   │   ├── IPC_Real_Manipulation.py
-│   │   ├── IPC_Real_Modeling.py
-│   │   ├── MAIN_COPY.py
-│   │   └── vis/
-│   │       ├── .babelrc
-│   │       ├── .codeclimate.yml
-│   │       ├── .csslintrc
-│   │       ├── .DS_Store
-│   │       ├── .eslintrc
-│   │       ├── .github/
-│   │       │   ├── ISSUE_TEMPLATE.md
-│   │       │   └── PULL_REQUEST_TEMPLATE.md
-│   │       
+└── Statis Code/
+    ├── Approach 1/
+    │   ├── .DS_Store
+    │   ├── AUTO-IPC_Real_Manipulation.py
+    │   ├── CrossCorrelation/
+    │   │   ├── .DS_Store
+    │   │   ├── Injector Cross Correlation.png
+    │   │   ├── selective_matrix.pdf
+    │   │   ├── selective_matrix.png
+    │   │   ├── test copy.mp4
+    │   │   ├── test.mp4
+    │   │   ├── WELL-ALL_PRODUCTION_TARGET-UNSPECIFIED.png
+    │   │   └── WELL-ALL_PRODUCTION_TARGET-UNSPECIFIED_TIMED-True.png
+    │   ├── Exploratory Data Analysis/
+    │   │   ├── report_DATA_INJECTION_PRESS.html
+    │   │   ├── report_DATA_INJECTION_STEAM.html
+    │   │   ├── report_DATA_PRODUCTION.html
+    │   │   ├── report_DATA_TEST.html
+    │   │   ├── report_FIBER_DATA.html
+    │   │   ├── report_FINALE.html
+    │   │   ├── report_PRODUCTION_WELL_INTER.html
+    │   │   └── report_PRODUCTION_WELL_WSENSOR.html
+    │   ├── heatmap_anitest.py
+    │   ├── HTML/
+    │   │   ├── just_foref.html
+    │   │   ├── nx_visjs.html
+    │   │   └── nx_visjs_TAILOR.html
+    │   ├── IPC_Real_Manipulation.py
+    │   ├── IPC_Real_Modeling.py
+    │   ├── MAIN_COPY.py
+    │   └── vis/
+    │       ├── .babelrc
+    │       ├── .codeclimate.yml
+    │       ├── .csslintrc
+    │       ├── .DS_Store
+    │       ├── .eslintrc
+    │       ├── .github/
+    │       │   ├── ISSUE_TEMPLATE.md
+    │       │   └── PULL_REQUEST_TEMPLATE.md
+    │       
