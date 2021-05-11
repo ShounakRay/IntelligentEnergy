@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: coordinate_playground.py
 # @Last modified by:   Ray
-# @Last modified time: 11-May-2021 14:05:58:585  GMT-0600
+# @Last modified time: 11-May-2021 14:05:71:710  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -66,14 +66,15 @@ for file_path in all_file_paths:
     df = df.select_dtypes(np.number)
     df.columns = ['Depth', 'Incl', 'Azim', 'SubSea_Depth', 'Vertical_Depth', 'Local_Northing',
                   'Local_Easting', 'UTM_Northing', 'UTM_Easting', 'Vertical_Section', 'Dogleg']
-    subsets[well_group] = df[['UTM_Northing', 'UTM_Easting']].values.tolist()
-    # Contrain data based on liner bounds
 
+    # Constrain data based on liner bounds
     start_bound = liner_bounds.loc[well_group, 'Liner Start (mD)']
     end_bound = liner_bounds.loc[well_group, 'Liner End (mD)']
-    final_df = df[(df['Depth'] > start_bound) & (df['Depth'] < end_bound)].reset_index(drop=True)
-    final_df = df
+    final_df = df[(df['Depth'] > start_bound) & (df['Depth'] < end_bound)]
     all_positions[well_group] = final_df.sort_values('Depth').reset_index(drop=True)
+
+    # Store subset coordinates for normalization
+    subsets[well_group] = final_df[['UTM_Northing', 'UTM_Easting']].values.tolist()
 
 # Normalize the coordinates
 subsets = _accessories.norm_base(subsets, out_of_scope=True)
@@ -136,15 +137,12 @@ for inj in all_injs:
 # Scale down to 0–1 range
 injector_coordinates = _accessories.norm_base(injector_coordinates)
 
-
 # PLOT INJECTOR POSITIONS
-fig_2, ax_2 = plt.subplots(nrows=1, ncols=2, figsize=(30, 12))
+# fig_2, ax_2 = plt.subplots(nrows=1, ncols=2, figsize=(30, 12))
 for inj in all_injs:
     coord = injector_coordinates.get(inj)
-    ax_2[0].plot(*coord)
-    ax_2[0].annotate(inj, coord)
-    ax_2[1].plot(*coord)
-    ax_2[1].annotate(inj, coord)
+    ax_2.scatter(*coord, c='red')
+    ax_2.annotate(inj, coord)
 plt.tight_layout()
 
 # EOF
