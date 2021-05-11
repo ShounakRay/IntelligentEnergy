@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 27-Apr-2021 14:04:65:654  GMT-0600
+# @Last modified time: 11-May-2021 15:05:91:913  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -564,3 +564,24 @@
 #                                                                      kind='scatter', label='Naive',
 #                                                                      c='green')
 # _ = plt.legend(loc='upper left')
+
+# fig, ax = plt.subplots(nrows=len(all_positions.keys()), ncols=2, figsize=(15, 100))
+# for well in all_positions.keys():
+#     group_df = all_positions[well]  # /all_positions[well].max()
+#     axes_1 = ax[list(all_positions.keys()).index(well)][0]
+#     axes_1.plot(group_df['UTM_Easting'], group_df['UTM_Northing'])
+#     axes_1.set_xlabel('UTM Easting')
+#     axes_1.set_ylabel('UTM Northing')
+#     axes_1.set_title(well + ' UTM Coordinates')
+#     # axes_1.set_ylim(1000000 + 3.963 * 10**6, 1000000 + 5.963 * 10**6)
+#
+#     axes_2 = ax[list(all_positions.keys()).index(well)][1]
+#     axes_2.plot(group_df['Local_Easting'], group_df['Local_Northing'])
+#     axes_2.set_xlabel('Local Easting')
+#     axes_2.set_ylabel('Local Northing')
+#     axes_2.set_title(well + ' Local Coordinates')
+#     # axes_2.set_ylim(0, 225)
+# plt.tight_layout()
+# fig.suptitle('Coordinates Bounded by Provided Liner Depths XLSX File')
+# plt.savefig('Modeling Reference Files/Candidate Selection Images/provided_coordinate_plots.png',
+#             bbox_inches='tight')

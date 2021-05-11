@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 11-May-2021 13:05:40:406  GMT-0600
+# @Last modified time: 11-May-2021 16:05:29:293  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -233,7 +233,7 @@ class timeit:
         return wrapper
 
 
-def norm_base(some_data, out_of_scope=False):
+def norm_base(some_data, out_of_scope=False, up_scalar=1):
     def get_xy_bounds(some_data):
         x_max = max([iterable[0] for iterable in some_data])
         x_min = min([iterable[0] for iterable in some_data])
@@ -242,7 +242,7 @@ def norm_base(some_data, out_of_scope=False):
         return x_max, x_min, y_max, y_min
 
     def _list_norm(some_data, pre_maxima=None, pre_minima=None,
-                   pre_x_max=None, pre_y_max=None, pre_x_min=None, pre_y_min=None):
+                   pre_x_max=None, pre_y_max=None, pre_x_min=None, pre_y_min=None, up_scalar=1):
         if len(some_data) <= 1:
             raise ValueError('Iterable must have more than one element!')
         if is_a_number(some_data[0]):
@@ -257,7 +257,8 @@ def norm_base(some_data, out_of_scope=False):
                 x_max, x_min, y_max, y_min = get_xy_bounds(some_data)
             else:
                 x_max, x_min, y_max, y_min = pre_x_max, pre_x_min, pre_y_max, pre_y_min
-            some_data = [((iterable[0] - x_min) / (x_max - x_min), (iterable[1] - y_min) / (y_max - y_min))
+            some_data = [(up_scalar * (iterable[0] - x_min) / (x_max - x_min),
+                          up_scalar * (iterable[1] - y_min) / (y_max - y_min))
                          for iterable in some_data]
             return some_data
 
@@ -268,17 +269,18 @@ def norm_base(some_data, out_of_scope=False):
                 # Consider all coordinates in dictionary when determining bounds
                 _converted = list(chain.from_iterable(list(some_data.values())))
                 x_max, x_min, y_max, y_min = get_xy_bounds(_converted)
-                some_data = {k: _list_norm(v, pre_x_max=x_max, pre_y_max=y_max, pre_x_min=x_min, pre_y_min=y_min)
+                some_data = {k: _list_norm(v, pre_x_max=x_max, pre_y_max=y_max,
+                                           pre_x_min=x_min, pre_y_min=y_min, up_scalar=up_scalar)
                              for k, v in some_data.items()}
             else:
                 # Pairwise normalization
-                some_data = {k: _list_norm(v) for k, v in some_data.items()}
+                some_data = {k: _list_norm(v, up_scalar=up_scalar) for k, v in some_data.items()}
         else:
             _converted = list(some_data.values())
-            _converted = _list_norm(_converted)
+            _converted = _list_norm(_converted, up_scalar=up_scalar)
             some_data = {k: _converted[list(some_data.keys()).index(k)] for k, v in some_data.items()}
     elif type(some_data) == list or type(some_data) == tuple:
-        some_data = _list_norm(some_data)
+        some_data = _list_norm(some_data, up_scalar=up_scalar)
     else:
         raise TypeError('Data type not supported for normalization!')
     return some_data

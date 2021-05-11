@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 11-May-2021 15:05:92:921  GMT-0600
+# @Last modified time: 11-May-2021 15:05:05:055  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -441,6 +441,9 @@ def get_coordinates(data_group):
         return get_injector_coordinates()
     else:
         raise ValueError('Improperly entered `data_group` in `get_coordinates`.')
+
+
+get_coordinates('PRODUCTION')
 
 
 def distance_matrix(injector_coordinates, producer_coordinates, save=True):
