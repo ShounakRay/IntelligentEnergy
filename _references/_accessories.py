@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: acessory.py
 # @Last modified by:   Ray
-# @Last modified time: 10-May-2021 09:05:35:358  GMT-0600
+# @Last modified time: 11-May-2021 13:05:40:406  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -14,7 +14,9 @@ import sys
 import time
 from contextlib import contextmanager
 from io import StringIO
+from itertools import chain
 
+import numpy as np
 import pandas as pd
 from colorama import Fore, Style
 
@@ -229,3 +231,58 @@ class timeit:
 
             return res
         return wrapper
+
+
+def norm_base(some_data, out_of_scope=False):
+    def get_xy_bounds(some_data):
+        x_max = max([iterable[0] for iterable in some_data])
+        x_min = min([iterable[0] for iterable in some_data])
+        y_max = max([iterable[1] for iterable in some_data])
+        y_min = min([iterable[1] for iterable in some_data])
+        return x_max, x_min, y_max, y_min
+
+    def _list_norm(some_data, pre_maxima=None, pre_minima=None,
+                   pre_x_max=None, pre_y_max=None, pre_x_min=None, pre_y_min=None):
+        if len(some_data) <= 1:
+            raise ValueError('Iterable must have more than one element!')
+        if is_a_number(some_data[0]):
+            maxima = max(some_data) if pre_maxima is None else pre_maxima
+            minima = min(some_data) if pre_minima is None else pre_minima
+            some_data = [(val - minima) / (maxima - minima) for val in some_data]
+        elif type(some_data[0]) == list or type(some_data[0]) == tuple:
+            # Must be two dimensional
+            if len(some_data[0]) > 2:
+                raise ValueError('Two-dimension maximum supported only!')
+            if pre_x_max is None:
+                x_max, x_min, y_max, y_min = get_xy_bounds(some_data)
+            else:
+                x_max, x_min, y_max, y_min = pre_x_max, pre_x_min, pre_y_max, pre_y_min
+            some_data = [((iterable[0] - x_min) / (x_max - x_min), (iterable[1] - y_min) / (y_max - y_min))
+                         for iterable in some_data]
+            return some_data
+
+    if type(some_data) == dict:
+        first_value = list(some_data.values())[0]
+        if (type(first_value[0]) == list or type(first_value[0]) == tuple):  # list of lists
+            if(out_of_scope):
+                # Consider all coordinates in dictionary when determining bounds
+                _converted = list(chain.from_iterable(list(some_data.values())))
+                x_max, x_min, y_max, y_min = get_xy_bounds(_converted)
+                some_data = {k: _list_norm(v, pre_x_max=x_max, pre_y_max=y_max, pre_x_min=x_min, pre_y_min=y_min)
+                             for k, v in some_data.items()}
+            else:
+                # Pairwise normalization
+                some_data = {k: _list_norm(v) for k, v in some_data.items()}
+        else:
+            _converted = list(some_data.values())
+            _converted = _list_norm(_converted)
+            some_data = {k: _converted[list(some_data.keys()).index(k)] for k, v in some_data.items()}
+    elif type(some_data) == list or type(some_data) == tuple:
+        some_data = _list_norm(some_data)
+    else:
+        raise TypeError('Data type not supported for normalization!')
+    return some_data
+
+
+def is_a_number(thing):
+    return str(thing).replace('.', '').isdigit()

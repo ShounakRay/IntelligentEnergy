@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: coordinate_playground.py
 # @Last modified by:   Ray
-# @Last modified time: 10-May-2021 15:05:43:439  GMT-0600
+# @Last modified time: 11-May-2021 14:05:58:585  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -15,6 +15,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+# DONE: Coordinate Injestion and Processing
+# DONE: Producer Re-Scaling
+# TODO: Injector Re-Scaling
+# TODO: Injector Level Toggling
+
+_ = """
+#######################################################################################################################
+################################################   DATA REQUIREMENTS   ################################################
+#######################################################################################################################
+"""
 # FILE PATHS AND RELATIONSHIPS
 all_file_paths = [f for f in sorted(
     ['Data/Coordinates/' + c for c in list(os.walk('Data/Coordinates'))[0][2]]) if ('BPRI' in f)]
@@ -23,23 +33,20 @@ all_wells = sorted(list(rell_data.keys()))
 all_pads = list(set(list(rell_data.values())))
 
 # LINER BOUNDS
-liner_bounds = pd.read_excel('Data/Coordinates/Liner Depths (measured depth).xlsx').infer_objects()
+liner_bounds = pd.read_excel('Data/Coordinates/Liner Depths (measured depth).xlsx').infer_objects().set_index("Well")
 
-# INJECTOR COORDINATES
-inj_coords = pd.read_excel('Data/Coordinates/OLT Verical Injector Bottom Hole Coordinates.xlsx')
-inj_coords.columns = ['Injector', 'Lat_Y', 'Long_X']
-inj_coords['Lat_Y'] = inj_coords['Lat_Y'].apply(lambda x: float(str(x)[:-1]))
-inj_coords['Long_X'] = inj_coords['Long_X'].apply(lambda x: float(str(x)[:-1]))
-inj_coords = inj_coords.set_index('Injector').to_dict()
-all_injs = sorted(list(inj_coords['Lat_Y'].keys()))
+_ = """
+#######################################################################################################################
+##################################################   PRODUCER STEPS   #################################################
+#######################################################################################################################
+"""
 
-# PARSE PRODUCER POSITIONS
-all_files = {}
+# CALCULATE PRODUCER POSITIONS
+subsets = {}
 all_positions = {}
 for file_path in all_file_paths:
     well_group = str([group for group in all_wells + ['I2'] if group in file_path][0])
     lines = open(file_path, 'r', errors='ignore').readlines()
-    all_files[file_path] = lines
 
     try:
         data_line = [line.split('\n') for line in ''.join(
@@ -55,20 +62,24 @@ for file_path in all_file_paths:
                                       for i in range(len(data_string[0].split(' ')))])) + '\n'
     str_obj_input = StringIO(dummy_columns + ''.join(map(str, data_string)))
     df = pd.read_csv(str_obj_input, delim_whitespace=True, error_bad_lines=False)
-    _accessories._print(f'Well: {well_group}')
-    print(df)
     # df = pd.read_csv(str_obj_input, sep=' ', error_bad_lines=False).dropna(1).infer_objects()
     df = df.select_dtypes(np.number)
     df.columns = ['Depth', 'Incl', 'Azim', 'SubSea_Depth', 'Vertical_Depth', 'Local_Northing',
                   'Local_Easting', 'UTM_Northing', 'UTM_Easting', 'Vertical_Section', 'Dogleg']
-    # df = df[['UTM_Easting', 'UTM_Northing']]
+    subsets[well_group] = df[['UTM_Northing', 'UTM_Easting']].values.tolist()
+    # Contrain data based on liner bounds
 
-    # start_bound = float(liner_bounds[liner_bounds['Well'] == well_group]['Liner Start (mD)'])
-    # end_bound = float(liner_bounds[liner_bounds['Well'] == well_group]['Liner End (mD)'])
-    # final_df = df[(df['Depth'] > start_bound) & (df['Depth'] < end_bound)]
+    start_bound = liner_bounds.loc[well_group, 'Liner Start (mD)']
+    end_bound = liner_bounds.loc[well_group, 'Liner End (mD)']
+    final_df = df[(df['Depth'] > start_bound) & (df['Depth'] < end_bound)].reset_index(drop=True)
     final_df = df
     all_positions[well_group] = final_df.sort_values('Depth').reset_index(drop=True)
 
+# Normalize the coordinates
+subsets = _accessories.norm_base(subsets, out_of_scope=True)
+for well_group, df in all_positions.items():
+    df['UTM_Northing'] = [tup[0] for tup in subsets.get(well_group)]
+    df['UTM_Easting'] = [tup[1] for tup in subsets.get(well_group)]
 
 # fig, ax = plt.subplots(nrows=len(all_positions.keys()), ncols=2, figsize=(15, 100))
 # for well in all_positions.keys():
@@ -93,25 +104,48 @@ for file_path in all_file_paths:
 
 # PLOT PRODUCER POSITIONS
 _temp = {k: v for k, v in all_positions.items() if rell_data.get(k) in ['A', 'B', 'C', 'D', 'E', 'F', 'I2']}
-fig_2, ax_2 = plt.subplots(nrows=1, ncols=2, figsize=(30, 12))
-ax_2[0].set_ylabel('UTM_Northing')
-ax_2[1].set_ylabel('Local_Northing')
+fig_2, ax_2 = plt.subplots(nrows=1, ncols=1, figsize=(15, 12))
+ax_2.set_ylabel('UTM_Northing')
+ax_2.set_ylabel('Local_Northing')
 for well, df in _temp.items():
     last_point = tuple(df[['UTM_Easting', 'UTM_Northing']].tail(1).reset_index(drop=True).iloc[0])
-    ax_2[0].annotate(well, last_point)
-    df.plot(x='UTM_Easting', y='UTM_Northing', ax=ax_2[0], label=well, legend=None)
-    last_point = tuple(df[['Local_Easting', 'Local_Northing']].tail(1).reset_index(drop=True).iloc[0])
-    ax_2[1].annotate(well, last_point)
-    df.plot(x='Local_Easting', y='Local_Northing', ax=ax_2[1], label=well, legend=None)
+    ax_2.annotate(well, last_point)
+    df.plot(x='UTM_Easting', y='UTM_Northing', ax=ax_2, label=well, legend=None)
 plt.tight_layout()
-# PLOT INJECTOR POSITIONS
+
+_ = """
+#######################################################################################################################
+##################################################   INJECTOR STEPS   #################################################
+#######################################################################################################################
+"""
+# INJECTOR COORDINATES
+inj_coords = pd.read_excel('Data/Coordinates/OLT Verical Injector Bottom Hole Coordinates.xlsx')
+inj_coords.columns = ['Injector', 'Lat_Y', 'Long_X']
+inj_coords['Lat_Y'] = inj_coords['Lat_Y'].apply(lambda x: float(str(x)[:-1]))
+inj_coords['Long_X'] = inj_coords['Long_X'].apply(lambda x: float(str(x)[:-1]))
+inj_coords = inj_coords.set_index('Injector').to_dict()
+all_injs = sorted(list(inj_coords['Lat_Y'].keys()))
+
+# CALCULATE INJECTOR POSITIONS
+injector_coordinates = {}
 for inj in all_injs:
-    coord = (inj_coords['Long_X'].get(inj), inj_coords['Lat_Y'].get(inj))
+    map_x = -1
+    map_y = 1
+    coord = (inj_coords['Long_X'].get(inj) * map_x, inj_coords['Lat_Y'].get(inj) * map_y)
+    injector_coordinates[inj] = coord
+# Scale down to 0–1 range
+injector_coordinates = _accessories.norm_base(injector_coordinates)
+
+
+# PLOT INJECTOR POSITIONS
+fig_2, ax_2 = plt.subplots(nrows=1, ncols=2, figsize=(30, 12))
+for inj in all_injs:
+    coord = injector_coordinates.get(inj)
     ax_2[0].plot(*coord)
     ax_2[0].annotate(inj, coord)
     ax_2[1].plot(*coord)
     ax_2[1].annotate(inj, coord)
-
+plt.tight_layout()
 
 # EOF
 
