@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: coordinate_playground.py
 # @Last modified by:   Ray
-# @Last modified time: 11-May-2021 14:05:71:710  GMT-0600
+# @Last modified time: 11-May-2021 14:05:97:979  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -110,7 +110,7 @@ ax_2.set_ylabel('UTM_Northing')
 ax_2.set_ylabel('Local_Northing')
 for well, df in _temp.items():
     last_point = tuple(df[['UTM_Easting', 'UTM_Northing']].tail(1).reset_index(drop=True).iloc[0])
-    ax_2.annotate(well, last_point)
+    # ax_2.annotate(well, last_point)
     df.plot(x='UTM_Easting', y='UTM_Northing', ax=ax_2, label=well, legend=None)
 plt.tight_layout()
 
@@ -138,7 +138,7 @@ for inj in all_injs:
 injector_coordinates = _accessories.norm_base(injector_coordinates)
 
 # PLOT INJECTOR POSITIONS
-# fig_2, ax_2 = plt.subplots(nrows=1, ncols=2, figsize=(30, 12))
+# fig_2, ax_2 = plt.subplots(nrows=1, ncols=1, figsize=(15, 12))
 for inj in all_injs:
     coord = injector_coordinates.get(inj)
     ax_2.scatter(*coord, c='red')
