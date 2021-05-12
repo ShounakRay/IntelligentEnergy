@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 12-May-2021 11:05:36:365  GMT-0600
+# @Last modified time: 12-May-2021 11:05:98:989  GMT-0600
 # @License: [Private IP]
 
 
@@ -141,9 +141,9 @@ _ = """
 #  'EP7': ['I63', 'I56', 'I55']}
 CANDIDATES = _accessories.retrieve_local_data_file('Data/Pickles/WELL_Candidates.pkl', mode=2)
 # Manually add other injector data
-EXTRA = ['FP1', 'FP2', 'FP3', 'FP4', 'FP5', 'FP6', 'FP7'] + \
-        ['CP1', 'CP2', 'CP3', 'CP4', 'CP5', 'CP6', 'CP7', 'CP8'] + \
-        ['EP2', 'EP3', 'EP4', 'EP5', 'EP6', 'EP7']
+# EXTRA = ['FP1', 'FP2', 'FP3', 'FP4', 'FP5', 'FP6', 'FP7'] + \
+#         ['CP1', 'CP2', 'CP3', 'CP4', 'CP5', 'CP6', 'CP7', 'CP8'] + \
+#         ['EP2', 'EP3', 'EP4', 'EP5', 'EP6', 'EP7']
 # for extra_prod in EXTRA:
 #     CANDIDATES[extra_prod] = ast.literal_eval(input(f'Candidates for {extra_prod}:'))
 #     print('Stored...')
@@ -156,7 +156,6 @@ concatenated = pd.concat(all_dfs).reset_index()
 
 _accessories.save_local_data_file(concatenated, 'Data/candidate_selected_pressures_dTime.csv')
 
-concatenated = concatenated[concatenated['PRO_Well'].isin(EXTRA)].reset_index(drop=True)
 available = list(concatenated['PRO_Well'].unique())
 fig, ax = plt.subplots(nrows=len(available), ncols=2, figsize=(10, 30), constrained_layout=True)
 for pwell in available:
