@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 10-May-2021 11:05:21:218  GMT-0600
+# @Last modified time: 12-May-2021 16:05:59:590  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -14,6 +14,8 @@ if __name__ == '__main__':
     # import matplotlib
     # matplotlib.use('Qt5Agg')
     import matplotlib.pyplot as plt
+
+import random
 
 import numpy as np
 import pandas as pd
@@ -453,7 +455,11 @@ def _INJECTOR_ALLOCATION(CLOSENESS_THRESH_PI=0.1, CLOSENESS_THRESH_II=0.1):
     DATASETS['PI_DIST_MATRIX'] = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
     DATASETS['II_DIST_MATRIX'] = distance_matrix('II', S3.get_coordinates(data_group='INJECTION'), scaled=False)
     DATASETS['PP_DIST_MATRIX'] = distance_matrix('PP', S3.get_coordinates(data_group='PRODUCTION'), scaled=False)
-    DATASETS['CONSTRAINTS'] = _accessories.retrieve_local_data_file(DATA_PATH_ALLOCATIONS, mode=2)
+    DATASETS['PRO_CONSTRAINTS'] = _accessories.retrieve_local_data_file(DATA_PATH_ALLOCATIONS, mode=2)
+
+    # Arbitrary contraints generation
+    _all_injectors = list(DATASETS['II_DIST_MATRIX'])
+    INJECTOR_CONSTRAINTS = {inj: (random.randint(5, 20), random.randint(20, 40)) for inj in _all_injectors}
 
     _accessories._print('Engineering impact area/overlap datasets...')
     impact_tracker_PI, isolates_PI = PI_imapcts(DATASETS['CANDIDATES'].copy(), DATASETS['PI_DIST_MATRIX'].copy(),
@@ -464,16 +470,16 @@ def _INJECTOR_ALLOCATION(CLOSENESS_THRESH_PI=0.1, CLOSENESS_THRESH_II=0.1):
     _accessories._print('Determining over-allocated naïve solution...')
     allocated_steam_values, allocated_steam_props = naive_distance_allocation(DATASETS['PI_DIST_MATRIX'].copy(),
                                                                               DATASETS['CANDIDATES'].copy(),
-                                                                              DATASETS['CONSTRAINTS'].copy(),
+                                                                              DATASETS['PRO_CONSTRAINTS'].copy(),
                                                                               format='dict')
 
     _accessories._print('Taking positional relationship into account and adjusting allocations...')
     decisions = initial_allocations(allocated_steam_props, impact_tracker_PI, impact_tracker_II)
 
     _accessories._print('Proportionally adding steam to reach maximum capacity...')
-    accounted_units, units_remaining = accounted_for(decisions, DATASETS['CONSTRAINTS'].copy())
+    accounted_units, units_remaining = accounted_for(decisions, DATASETS['PRO_CONSTRAINTS'].copy())
     # Fill the remaining steam allocation per injector based on pad level contraints
-    suggestions = maximize_allocations(DATASETS['CONSTRAINTS'], accounted_units, units_remaining, decisions)
+    suggestions = maximize_allocations(DATASETS['PRO_CONSTRAINTS'], accounted_units, units_remaining, decisions)
 
     _accessories._print('Finalizing and saving injection suggestion data...')
     _accessories.finalize_all(DATASETS, coerce_date=False)
