@@ -3,10 +3,11 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 04-May-2021 14:05:46:464  GMT-0600
+# @Last modified time: 12-May-2021 11:05:36:365  GMT-0600
 # @License: [Private IP]
 
 
+import ast
 import math
 
 import _references._accessories as _accessories
@@ -111,14 +112,41 @@ DATA_INJECTION = DATA_INJECTION.pivot_table(['Meter_Steam', 'Pressure'],
                                             'Date', ['Well'], dropna=False)
 DATA_INJECTION.columns.names = (None, None)
 DATA_INJECTION_PRESS = DATA_INJECTION['Pressure']
-
+list(DATA_INJECTION_PRESS)
 _ = """
 #######################################################################################################################
 ##################################################   CANDIDATE CONSIDERATION   ########################################
 #######################################################################################################################
 """
-
+# {'FP1': ['I37', 'I72', 'I70'],
+#  'FP2': ['I64', 'I73', 'I69', 'I37', 'I72', 'I70'],
+#  'FP3': ['I64', 'I74', 'I73', 'I69', 'I71'],
+#  'FP4': ['I74', 'I71', 'I75', 'I76'],
+#  'FP5': ['I67', 'I75', 'I77', 'I76', 'I66'],
+#  'FP6': ['I67', 'I65', 'I78', 'I77', 'I79', 'I68'],
+#  'FP7': ['I65', 'I68', 'I79'],
+#  'CP1': ['I25', 'I24', 'I26', 'I08'],
+#  'CP2': ['I24', 'I49', 'I45', 'I46', 'I39', 'I47'],
+#  'CP3': ['I47', 'I39', 'I46', 'I45', 'I49'],
+#  'CP4': ['I44', 'I43', 'I45', 'I51', 'I48'],
+#  'CP5': ['I40', 'I43', 'I51', 'I50'],
+#  'CP6': ['I40', 'I41', 'I50', 'CI06'],
+#  'CP7': ['I42', 'I41', 'CI06'],
+#  'CP8': ['I41', 'I42', 'CI06'],
+#  'EP2': ['I61', 'I60', 'I53'],
+#  'EP3': ['I59', 'I52', 'I61', 'I60', 'I53'],
+#  'EP4': ['I59', 'I52', 'I57', 'I54'],
+#  'EP5': ['I62', 'I57', 'I56', 'I54'],
+#  'EP6': ['I62', 'I56', 'I58', 'I55'],
+#  'EP7': ['I63', 'I56', 'I55']}
 CANDIDATES = _accessories.retrieve_local_data_file('Data/Pickles/WELL_Candidates.pkl', mode=2)
+# Manually add other injector data
+EXTRA = ['FP1', 'FP2', 'FP3', 'FP4', 'FP5', 'FP6', 'FP7'] + \
+        ['CP1', 'CP2', 'CP3', 'CP4', 'CP5', 'CP6', 'CP7', 'CP8'] + \
+        ['EP2', 'EP3', 'EP4', 'EP5', 'EP6', 'EP7']
+# for extra_prod in EXTRA:
+#     CANDIDATES[extra_prod] = ast.literal_eval(input(f'Candidates for {extra_prod}:'))
+#     print('Stored...')
 all_dfs = []
 for pwell, cands in CANDIDATES.items():
     df = pd.DataFrame(DATA_INJECTION_PRESS[cands].mean(axis=1), columns=['Pressure_Average'])
@@ -128,6 +156,7 @@ concatenated = pd.concat(all_dfs).reset_index()
 
 _accessories.save_local_data_file(concatenated, 'Data/candidate_selected_pressures_dTime.csv')
 
+concatenated = concatenated[concatenated['PRO_Well'].isin(EXTRA)].reset_index(drop=True)
 available = list(concatenated['PRO_Well'].unique())
 fig, ax = plt.subplots(nrows=len(available), ncols=2, figsize=(10, 30), constrained_layout=True)
 for pwell in available:
