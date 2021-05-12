@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 11-May-2021 16:05:62:628  GMT-0600
+# @Last modified time: 12-May-2021 11:05:77:771  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -326,7 +326,7 @@ def euclidean_2d_distance(c1, c2):
 
 def get_coordinates(data_group):
     def get_injector_coordinates():
-        if False:
+        if True:
             INJ_relcoords = {}
             INJ_relcoords = {'I02': '(757, 534)',
                              'I03': '(709, 519)',
@@ -382,7 +382,7 @@ def get_coordinates(data_group):
                 # Re-scaling
                 INJ_relcoords[k] = (v[0] - x_delta, y_delta - v[1])
         else:
-
+            None
         return INJ_relcoords
 
     def get_producer_coordinates(nb_points=8):

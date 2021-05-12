@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 10-May-2021 11:05:79:798  GMT-0600
+# @Last modified time: 12-May-2021 15:05:09:090  GMT-0600
 # @License: [Private IP]
 
 
@@ -327,6 +327,18 @@ def shutdown_confirm(h2o_instance: type(h2o)) -> None:
 def configure_aggregates(aggregate_results, rell):
     aggregate_results['allowable_rmse'] = aggregate_results['PRO_Pad'].apply(lambda x: rell.get(x))
     aggregate_results['rel_rmse'] = (aggregate_results['rmse']) - aggregate_results['allowable_rmse']
+    old_raw = _accessories.retrieve_local_data_file('Data/S3 Files/combined_ipc_aggregates_ALL.csv')
+    aggregate_results.columns = ['PRO_Pad',
+                                 'Reccomended_Steam',
+                                 'Predicted_Total_Fluid',
+                                 'exchange_rate',
+                                 'RMSE',
+                                 'Accuracy',
+                                 'Algorithm',
+                                 'Date',
+                                 'Tolerable_RMSE',
+                                 'Relative_RMSE']
+    aggregate_results = pd.merge(aggregate_results, old_raw, on=['Date', 'PRO_Pad'])
 
     return aggregate_results
 
@@ -371,7 +383,7 @@ def _OPTIMIZATION(start_date='2015-04-01', end_date='2020-12-20', engineered=Tru
     #     'Date')['rel_rmse'].reset_index(drop=True).plot()
 
     _accessories.save_local_data_file(aggregate_results,
-                                      f'Data/S6 Files/Aggregates_{start_date}_{end_date}.csv')
+                                      f'Data/S6 Files/Right_Aggregates_{start_date}_{end_date}.csv')
 
     _accessories._print('Shutting down H2O server...')
     shutdown_confirm(h2o)
