@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 13-May-2021 11:05:35:357  GMT-0600
+# @Last modified time: 13-May-2021 13:05:62:621  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -437,7 +437,7 @@ def maximize_allocations(pwell_allocation, accounted_units, units_remaining, dec
     return suggestions.infer_objects()
 
 
-def constrain_allocations(constraints, suggestions, tolerable_delta_shift=0.1):
+def constrain_allocations(constraints, suggestions):
     for pro_well, group_df in suggestions.groupby('PRO_Well'):
         subset = group_df.drop('PRO_Well', axis=1).set_index('Candidate_Injector')['Candidate_Units'].to_dict()
         diff_store = {}
@@ -458,6 +458,7 @@ def constrain_allocations(constraints, suggestions, tolerable_delta_shift=0.1):
             diff_store[injector] = difference
             room_up_store[injector] = room_up
             room_down_store[injector] = room_down
+        # This value could be positive (too above constraints) or negative (too below constraints)
         delta_to_distribute = sum(list(diff_store.values()))
         suggestions.loc[suggestions.index[group_df.index], 'Room_Up'] = list(room_up_store.values())
         suggestions.loc[suggestions.index[group_df.index], 'Room_Down'] = list(room_down_store.values())
@@ -467,49 +468,99 @@ def constrain_allocations(constraints, suggestions, tolerable_delta_shift=0.1):
         # Determine producer-level injector adjustment (manipulate the ones within constraint)
         local_deltas = suggestions.loc[suggestions.index[group_df.index], ['Candidate_Injector', 'Constraint_Delta',
                                                                            'Room_Up', 'Room_Down',
-                                                                           'Candidate_Proportion']]
+                                                                           'Candidate_Proportion', 'Candidate_Units']]
+        # Injectors which originally fell out of bounds
         to_be_changed = local_deltas[~(local_deltas['Constraint_Delta'] == 0.0)
                                      ].dropna(axis=1).set_index('Candidate_Injector')['Constraint_Delta'].to_dict()
+        # Injects which originally fell out of bounds
         stars_to_manipulate = local_deltas[local_deltas['Constraint_Delta'] == 0.0].set_index('Candidate_Injector')
+        # Re-normalize the stars
+        injector_importances = stars_to_manipulate['Candidate_Proportion'].to_dict()
+        # The values here could be positive (too above constraints) or negative (too below constraints)
+        naive_distribution = {k: delta_to_distribute * v / sum(injector_importances.values())
+                              for k, v in injector_importances.items()}
+
+        if len(to_be_changed) == 0 or to_be_changed is None:
+            continue
+        if len(stars_to_manipulate) == 0 or stars_to_manipulate is None:
+            continue
+
         # For the injectors that are within contraints and MAXIMALLY a candidate, change them a lot, proportionally
+        print(f'WELL: {pro_well}: {delta_to_distribute}')
         if delta_to_distribute > 0:
             # This means that there is "extra" steam to be added to valid inejctors
-            stars_to_manipulate = stars_to_manipulate.sort_values('Candidate_Proportion', ascending=False)
-            # Re-normalize the stars
-            injector_importances = stars_to_manipulate['Candidate_Proportion'].to_dict()
-            renorms = {k: v / sum(injector_importances.values()) for k, v in injector_importances.items()}
-            new_values = {k: v * delta_to_distribute for k, v in renorms.items()}
-
             # Deduct reccomended steam values to available steam in contraints
             available_room = stars_to_manipulate['Room_Up'].to_dict()
-            delta_from_uprooms = {k: v - available_room.get(k) for k, v in new_values.items()}
+            delta_from_rooms = {k: v - available_room.get(k) for k, v in naive_distribution.items()}
             # Only for positive values (not enough steam available given contraints to push so high)
-            delta_filtered = {k: v for k, v in delta_from_uprooms.items() if v > 0}
+            delta_filtered = {k: v for k, v in delta_from_rooms.items() if v > 0}
             could_not_allocate = sum(delta_filtered.values())
 
             # Aggregate the allocations (for star wells and non-star wells)
-            stars_finalized_allocations = {k: new_values.get(k) - v for k, v in delta_filtered.items()}
-            stars_finalized_allocations = dict(new_values, **finalized_allocations)
-            to_be_changed = {k: could_not_allocate * v / sum(to_be_changed.values()) for k, v in to_be_changed.items()}
+            stars_finalized_allocations = {k: naive_distribution.get(k) - v for k, v in delta_filtered.items()}
+            stars_finalized_allocations = dict(naive_distribution, **stars_finalized_allocations)
+            original_base = local_deltas.set_index('Candidate_Injector')['Candidate_Units'].to_dict()
+            stars_finalized_allocations = {k: original_base.get(k) + v for k, v in stars_finalized_allocations.items()}
+            to_be_changed = {k: original_base.get(k) + (could_not_allocate * v /
+                                                        sum(to_be_changed.values())) for k, v in to_be_changed.items()}
+            finalized_allocations = dict(to_be_changed, **stars_finalized_allocations)
+
+            # Change the dataset
+            _just_for_order = list(local_deltas['Candidate_Injector'].values)
+            finalized_allocations = dict(sorted(finalized_allocations.items(),
+                                                key=lambda pair: _just_for_order.index(pair[0])))
+
+            suggestions.loc[suggestions.index[group_df.index],
+                            'Finalized_Allocations'] = list(finalized_allocations.values())
+            suggestions.loc[suggestions.index[group_df.index],
+                            'Unable_to_Allocate'] = could_not_allocate
+
+        elif delta_to_distribute < 0:
+            # This means that there is steam that must be taken away from valid injectors
+            naive_distribution = {k: -1 * v for k, v in naive_distribution.items()}
+            # Deduct reccomended steam values to available steam in contraints
+            available_room = stars_to_manipulate['Room_Down'].to_dict()
+            delta_from_rooms = {k: v + available_room.get(k) for k, v in naive_distribution.items()}
+            # Only for negative values (not enough steam available given contraints to push so low)
+            delta_filtered = {k: v for k, v in delta_from_rooms.items() if v < 0}
+            could_not_allocate = sum(delta_filtered.values())
+
+            # Aggregate the allocations (for star wells and non-star wells)
+            stars_finalized_allocations = {k: v - naive_distribution.get(k) for k, v in delta_filtered.items()}
+            stars_finalized_allocations = dict(naive_distribution, **stars_finalized_allocations)
+            original_base = local_deltas.set_index('Candidate_Injector')['Candidate_Units'].to_dict()
+            stars_finalized_allocations = {k: original_base.get(k) + v for k, v in stars_finalized_allocations.items()}
+            to_be_changed = {k: original_base.get(k) + (could_not_allocate * v / sum(to_be_changed.values()))
+                             for k, v in to_be_changed.items()}
             finalized_allocations = dict(to_be_changed, **stars_finalized_allocations)
 
             # Change the dataset
             suggestions.loc[suggestions.index[group_df.index],
                             'Finalized_Allocations'] = list(finalized_allocations.values())
-            suggestions.loc[suggestions.index[group_df.index], 'Unable_to_Allocate'] = could_not_allocate
-
-        elif delta_to_distribute < 0:
-            # This means that there is steam that must be taken away from valid injectors
-            ...
+            suggestions.loc[suggestions.index[group_df.index],
+                            'Unable_to_Allocate'] = could_not_allocate
+            1
         else:
             # This is very unlikely, but possible, and great! This means that valid injectors are not touched.
+            # Change the dataset
+            suggestions.loc[suggestions.index[group_df.index],
+                            'Finalized_Allocations'] = suggestions.loc[suggestions.index[group_df.index],
+                                                                       'Candidate_Units']
+            suggestions.loc[suggestions.index[group_df.index],
+                            'Unable_to_Allocate'] = 0
 
-            # Determine least-changed wells (after within-producer adjustment)
-    minimally_changed = suggestions[['PRO_Well', 'Well_Net_Delta']].drop_duplicates().set_index('PRO_Well').to_dict()
-    minimally_changed = minimally_changed['Well_Net_Delta']
-    minimally_changed = dict(sorted(minimally_changed.items(), key=lambda tup: abs(tup[1])))
+    # fig, ax = plt.subplots(figsize=(20, 20))
+    # suggestions['Candidate_Units'].plot(ax=ax)
+    # suggestions['Finalized_Allocations'].plot(ax=ax)
+    # suggestions['Constraint_Delta'].plot(ax=ax)
+    # suggestions.tail(10)
 
-    sum(minimally_changed.values())
+    # Determine least-changed wells (after within-producer adjustment)
+    # minimally_changed = suggestions[['PRO_Well', 'Well_Net_Delta']].drop_duplicates().set_index('PRO_Well').to_dict()
+    # minimally_changed = minimally_changed['Well_Net_Delta']
+    # minimally_changed = dict(sorted(minimally_changed.items(), key=lambda tup: abs(tup[1])))
+    #
+    # sum(suggestions['Finalized_Allocations'])
 
     return suggestions
 
@@ -557,7 +608,22 @@ def _INJECTOR_ALLOCATION(CLOSENESS_THRESH_PI=0.1, CLOSENESS_THRESH_II=0.1):
     # Fill the remaining steam allocation per injector based on pad level contraints
     suggestions = maximize_allocations(DATASETS['PRO_CONSTRAINTS'], accounted_units, units_remaining, decisions)
     _accessories._print('Tuning steam allocations to fit in constraints...')
-
+    suggestions = constrain_allocations(constraints, suggestions)
+    list(suggestions)
+    suggestions.columns = ['PRO_Well',
+                           'PRO_Well_Additional_Units',
+                           'PRO_Well_Initial_Allocation',
+                           'Delta',
+                           'PRO_Well_Final_Allocation',
+                           'Candidate_Injector',
+                           'Candidate_Proportion',
+                           'Candidate_Units',
+                           'Room_Up',
+                           'Room_Down',
+                           'Constraint_Delta',
+                           'Well_Net_Delta',
+                           'Finalized_Allocations',
+                           'Unable_to_Allocate']
     _accessories._print('Finalizing and saving injection suggestion data...')
     _accessories.finalize_all(DATASETS, coerce_date=False)
     _accessories.save_local_data_file(suggestions, 'Data/S8 Files/final_suggestions.csv')
