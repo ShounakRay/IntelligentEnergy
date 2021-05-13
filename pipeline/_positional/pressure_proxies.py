@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 12-May-2021 11:05:98:989  GMT-0600
+# @Last modified time: 13-May-2021 08:05:44:446  GMT-0600
 # @License: [Private IP]
 
 
@@ -112,34 +112,37 @@ DATA_INJECTION = DATA_INJECTION.pivot_table(['Meter_Steam', 'Pressure'],
                                             'Date', ['Well'], dropna=False)
 DATA_INJECTION.columns.names = (None, None)
 DATA_INJECTION_PRESS = DATA_INJECTION['Pressure']
-list(DATA_INJECTION_PRESS)
+
+DATA_INJECTION_PRESS.infer_objects().to_csv('Data/Injection_Pressure_Data.csv')
+
 _ = """
 #######################################################################################################################
 ##################################################   CANDIDATE CONSIDERATION   ########################################
 #######################################################################################################################
 """
-# {'FP1': ['I37', 'I72', 'I70'],
-#  'FP2': ['I64', 'I73', 'I69', 'I37', 'I72', 'I70'],
-#  'FP3': ['I64', 'I74', 'I73', 'I69', 'I71'],
-#  'FP4': ['I74', 'I71', 'I75', 'I76'],
-#  'FP5': ['I67', 'I75', 'I77', 'I76', 'I66'],
-#  'FP6': ['I67', 'I65', 'I78', 'I77', 'I79', 'I68'],
-#  'FP7': ['I65', 'I68', 'I79'],
-#  'CP1': ['I25', 'I24', 'I26', 'I08'],
-#  'CP2': ['I24', 'I49', 'I45', 'I46', 'I39', 'I47'],
-#  'CP3': ['I47', 'I39', 'I46', 'I45', 'I49'],
-#  'CP4': ['I44', 'I43', 'I45', 'I51', 'I48'],
-#  'CP5': ['I40', 'I43', 'I51', 'I50'],
-#  'CP6': ['I40', 'I41', 'I50', 'CI06'],
-#  'CP7': ['I42', 'I41', 'CI06'],
-#  'CP8': ['I41', 'I42', 'CI06'],
-#  'EP2': ['I61', 'I60', 'I53'],
-#  'EP3': ['I59', 'I52', 'I61', 'I60', 'I53'],
-#  'EP4': ['I59', 'I52', 'I57', 'I54'],
-#  'EP5': ['I62', 'I57', 'I56', 'I54'],
-#  'EP6': ['I62', 'I56', 'I58', 'I55'],
-#  'EP7': ['I63', 'I56', 'I55']}
+new = {'FP1': ['I37', 'I72', 'I70'],
+       'FP2': ['I64', 'I73', 'I69', 'I37', 'I72', 'I70'],
+       'FP3': ['I64', 'I74', 'I73', 'I69', 'I71'],
+       'FP4': ['I74', 'I71', 'I75', 'I76'],
+       'FP5': ['I67', 'I75', 'I77', 'I76', 'I66'],
+       'FP6': ['I67', 'I65', 'I78', 'I77', 'I79', 'I68'],
+       'FP7': ['I65', 'I68', 'I79'],
+       'CP1': ['I25', 'I24', 'I26', 'I08'],
+       'CP2': ['I24', 'I49', 'I45', 'I46', 'I39', 'I47'],
+       'CP3': ['I47', 'I39', 'I46', 'I45', 'I49'],
+       'CP4': ['I44', 'I43', 'I45', 'I51', 'I48'],
+       'CP5': ['I40', 'I43', 'I51', 'I50'],
+       'CP6': ['I40', 'I41', 'I50', 'CI06'],
+       'CP7': ['I42', 'I41', 'CI06'],
+       'CP8': ['I41', 'I42', 'CI06'],
+       'EP2': ['I61', 'I60', 'I53'],
+       'EP3': ['I59', 'I52', 'I61', 'I60', 'I53'],
+       'EP4': ['I59', 'I52', 'I57', 'I54'],
+       'EP5': ['I62', 'I57', 'I56', 'I54'],
+       'EP6': ['I62', 'I56', 'I58', 'I55'],
+       'EP7': ['I63', 'I56', 'I55']}
 CANDIDATES = _accessories.retrieve_local_data_file('Data/Pickles/WELL_Candidates.pkl', mode=2)
+CANDIDATES = dict(CANDIDATES, **new)
 # Manually add other injector data
 # EXTRA = ['FP1', 'FP2', 'FP3', 'FP4', 'FP5', 'FP6', 'FP7'] + \
 #         ['CP1', 'CP2', 'CP3', 'CP4', 'CP5', 'CP6', 'CP7', 'CP8'] + \
@@ -153,23 +156,23 @@ for pwell, cands in CANDIDATES.items():
     df['PRO_Well'] = pwell
     all_dfs.append(df)
 concatenated = pd.concat(all_dfs).reset_index()
-
+concatenated['PRO_Pad'] = concatenated['PRO_Well'].str[0]
 _accessories.save_local_data_file(concatenated, 'Data/candidate_selected_pressures_dTime.csv')
 
-available = list(concatenated['PRO_Well'].unique())
-fig, ax = plt.subplots(nrows=len(available), ncols=2, figsize=(10, 30), constrained_layout=True)
-for pwell in available:
-    # Get aggregated pressures
-    axis = ax[available.index(pwell)][0]
-    _temp = concatenated[concatenated['PRO_Well'] == pwell].sort_values('Date')
-    axis.plot(_temp['Date'], _temp['Pressure_Average'])
-    axis.set_title(f'Producer: {pwell}')
-
-    axis = ax[available.index(pwell)][1]
-    axis.text(0.5, 0.5, str(CANDIDATES.get(pwell)),
-              horizontalalignment='center',
-              verticalalignment='center')
-    axis.axis('off')
-fig.suptitle('Selective, Average Producer Pressures Over Time')
-fig.savefig('Manipulation Reference Files/Final Schematics/Selective, Average Producer Pressures Over Time.png')
-# plt.tight_layout()
+# available = list(concatenated['PRO_Well'].unique())
+# fig, ax = plt.subplots(nrows=len(available), ncols=2, figsize=(10, 30), constrained_layout=True)
+# for pwell in available:
+#     # Get aggregated pressures
+#     axis = ax[available.index(pwell)][0]
+#     _temp = concatenated[concatenated['PRO_Well'] == pwell].sort_values('Date')
+#     axis.plot(_temp['Date'], _temp['Pressure_Average'])
+#     axis.set_title(f'Producer: {pwell}')
+#
+#     axis = ax[available.index(pwell)][1]
+#     axis.text(0.5, 0.5, str(CANDIDATES.get(pwell)),
+#               horizontalalignment='center',
+#               verticalalignment='center')
+#     axis.axis('off')
+# fig.suptitle('Selective, Average Producer Pressures Over Time')
+# fig.savefig('Manipulation Reference Files/Final Schematics/Selective, Average Producer Pressures Over Time.png')
+# # plt.tight_layout()
