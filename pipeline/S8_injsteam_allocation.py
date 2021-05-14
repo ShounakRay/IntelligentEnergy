@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 13-May-2021 13:05:62:621  GMT-0600
+# @Last modified time: 13-May-2021 15:05:02:026  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -565,6 +565,26 @@ def constrain_allocations(constraints, suggestions):
     return suggestions
 
 
+def configure_minor(suggestions):
+    suggestions.columns = ['PRO_Well',
+                           'PRO_Well_Additional_Units',
+                           'PRO_Well_Initial_Allocation',
+                           'Delta',
+                           'PRO_Well_Final_Allocation',
+                           'Cand_Injector',
+                           'Cand_Proportion',
+                           'Cand_Units',
+                           'Room_Up',
+                           'Room_Down',
+                           'Constraint_Delta',
+                           'Well_Net_Delta',
+                           'Finalized_Allocations',
+                           'Unable_to_Allocate']
+    suggestions['PRO_Pad'] = suggestions['PRO_Well'].str[0]
+
+    return suggestions.infer_objects()
+
+
 _ = """
 #######################################################################################################################
 ##################################################   CORE EXECUTION   #################################################
@@ -609,22 +629,9 @@ def _INJECTOR_ALLOCATION(CLOSENESS_THRESH_PI=0.1, CLOSENESS_THRESH_II=0.1):
     suggestions = maximize_allocations(DATASETS['PRO_CONSTRAINTS'], accounted_units, units_remaining, decisions)
     _accessories._print('Tuning steam allocations to fit in constraints...')
     suggestions = constrain_allocations(constraints, suggestions)
-    list(suggestions)
-    suggestions.columns = ['PRO_Well',
-                           'PRO_Well_Additional_Units',
-                           'PRO_Well_Initial_Allocation',
-                           'Delta',
-                           'PRO_Well_Final_Allocation',
-                           'Candidate_Injector',
-                           'Candidate_Proportion',
-                           'Candidate_Units',
-                           'Room_Up',
-                           'Room_Down',
-                           'Constraint_Delta',
-                           'Well_Net_Delta',
-                           'Finalized_Allocations',
-                           'Unable_to_Allocate']
+
     _accessories._print('Finalizing and saving injection suggestion data...')
+    suggestions = configure_minor(suggestions)
     _accessories.finalize_all(DATASETS, coerce_date=False)
     _accessories.save_local_data_file(suggestions, 'Data/S8 Files/final_suggestions.csv')
 
