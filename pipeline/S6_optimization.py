@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 12-May-2021 15:05:09:090  GMT-0600
+# @Last modified time: 15-May-2021 12:05:12:127  GMT-0600
 # @License: [Private IP]
 
 
@@ -113,8 +113,8 @@ injector_wells = {
     "F": []
 }
 
-BEST_MODEL_PATHS = _accessories.retrieve_local_data_file(
-    'Data/S5 Files/Model Candidates/best_models_nomatheng.pkl', mode=2)
+BEST_MODEL_PATHS = _accessories.retrieve_local_data_file('Data/S5 Files/Model Candidates/best_models_nomatheng.pkl',
+                                                         mode=2)
 
 _ = """
 #######################################################################################################################

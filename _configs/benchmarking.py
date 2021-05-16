@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 29-Apr-2021 15:04:10:101  GMT-0600
+# @Last modified time: 15-May-2021 13:05:81:815  GMT-0600
 # @License: [Private IP]
 
 
@@ -87,12 +87,12 @@ _ = """
 """
 
 
-# def setup_and_server(SECURED=SECURED, IP_LINK=IP_LINK, PORT=PORT, SERVER_FORCE=SERVER_FORCE):
-#     # Initialize the cluster
-#     h2o.init(https=SECURED,
-#              ip=IP_LINK,
-#              port=PORT,
-#              start_h2o=SERVER_FORCE)
+def setup_and_server(SECURED=SECURED, IP_LINK=IP_LINK, PORT=PORT, SERVER_FORCE=SERVER_FORCE):
+    # Initialize the cluster
+    h2o.init(https=SECURED,
+             ip=IP_LINK,
+             port=PORT,
+             start_h2o=SERVER_FORCE)
 
 
 def get_benchmarks(time_path='_configs/modeling_benchmarks.txt', perf_path="Modeling Reference Files/*/*csv"):
@@ -165,13 +165,15 @@ def see_performance(benchmarks_combined, groupby_option,
 
 
 def get_best_models(benchmarks_combined, grouper='Group', sort_by=['Rel_Val_RMSE', 'Rel_RMSE'], top=3):
-    top_df = {}
+    top_file_paths = {}
+    top_dfs = {}
     for name, group_df in benchmarks_combined.groupby(grouper):
         best = group_df.sort_values(sort_by, ascending=True)[:top]
+        top_dfs[name] = best.reset_index(drop=True).drop(['Group', 'Run_Tag', 'Run_Time'], axis=1)
         best = list(best['path'].values)
-        top_df[name] = best
+        top_file_paths[name] = best
 
-    return top_df
+    return top_file_paths, top_dfs
 
 
 def macro_performance(benchmarks, consideration=10):
@@ -238,10 +240,10 @@ _ = """
 #########################################   TEMPORAL + CONFIG BENCHMARKING   ##########################################
 #######################################################################################################################
 """
-temporal, performance, benchmarks = get_benchmarks(time_path='_configs/modeling_benchmarks.txt',
+temporal, performance, benchmarks = get_benchmarks(time_path='Data/S5 Files/modeling_benchmarks.txt',
                                                    perf_path="Modeling Reference Files/*/*csv")
 
-macro_best = macro_performance(benchmarks, consideration=1)
+macro_best = macro_performance(benchmarks, consideration=5)
 # macro_best.at[0, 'Rel_Val_RMSE'] = 5.1251363
 # macro_best.at[0, 'Best RMSE Proportion'] = (macro_best.at[0, 'Tolerated RMSE'] + macro_best.at[0, 'Rel_Val_RMSE'])/(159.394495 * 0.1)
 #
@@ -255,37 +257,42 @@ sparse_df = benchmarks[benchmarks['Rel_Val_RMSE'] <= 80].groupby(['Group',
                                                                  )['Rel_Val_RMSE'].nsmallest(3).reset_index()
 see_performance(sparse_df, first_two=['Math_Eng', 'Weighted'],
                 x='Duration', y='Rel_Val_RMSE',
-                groupby_option='Group', kind='kde', FIGSIZE=(21, 11))
+                groupby_option='Group', kind='line', FIGSIZE=(21, 11))
 
-best = get_best_models(benchmarks[benchmarks['Math_Eng'] == False], sort_by=['Rel_Val_RMSE', 'Rel_RMSE'])
-_accessories.save_local_data_file(best, 'Data/Model Candidates/best_models_nomatheng.pkl')
+best, details = get_best_models(benchmarks, sort_by=['Rel_Val_RMSE', 'Rel_RMSE'])
 
+_accessories.save_local_data_file(best, 'Data/Model Candidates/best_models.pkl')
+_accessories.save_local_data_file(details, 'Data/Model Candidates/best_models_details.pkl')
 
 _ = """
 #######################################################################################################################
 ##########################################   GET RE-CALCULATED VALIDATION   ##########################################
 #######################################################################################################################
 """
-# source_data = _accessories.retrieve_local_data_file('Data/combined_ipc_aggregates_ALL.csv').infer_objects()
-# # original, validation, training = create_validation_splits('', source_data)
+source_data = _accessories.retrieve_local_data_file('Data/S3 Files/combined_ipc_aggregates_ALL.csv').infer_objects()
+# original, validation, training = create_validation_splits('', source_data)
 # source_data = source_data[source_data['PRO_Pad'] == 'A'].sort_values('Date').reset_index(drop=True)
-# source_data[source_data.index > 2005]
-# validation_set = source_data[(source_data['Date'] > '2020-10-07'
-#                              (source_data['Date'] < '2020-04-30') |
-#                              (source_data['Date'] > '2020-06-12')].reset_index(drop=True)
-#
-# validation['A'].tail(2)
-# setup_and_server()
-# for category, model_paths in best.items():
-#     local_data = source_data[source_data['PRO_Pad'] == category].select_dtypes(float)
-#     wanted_types = {k: 'real' if v == float or v == int else 'enum' for k, v in dict(local_data.dtypes).items()}
-#     with _accessories.suppress_stdout():
-#         local_data = h2o.H2OFrame(local_data, column_types=wanted_types)
-#     for model_path in model_paths:
-#         with _accessories.suppress_stdout():
-#             model = h2o.load_model(model_path)
-#             # model.predict(local_data)
-#         print(f'For category {category}, path {model_path}, RMSE: {model.rmse(local_data)}')
+
+validation_set = source_data[(source_data['Date'] > '2020-09-07') &
+                             (source_data['Date'] < '2021-01-20')].reset_index(drop=True)
+
+setup_and_server()
+for category, model_paths in best.items():
+    local_data = source_data[source_data['PRO_Pad'] == category].select_dtypes(float)
+    wanted_types = {k: 'real' if v == float or v == int else 'enum' for k, v in dict(local_data.dtypes).items()}
+    tolerable_rmse = details[category]['Tolerated RMSE'].drop_duplicates()[0]
+    with _accessories.suppress_stdout():
+        local_data = h2o.H2OFrame(local_data, column_types=wanted_types)
+    for model_path in model_paths:
+        with _accessories.suppress_stdout():
+            model = h2o.load_model(model_path)
+            predictions = model.predict(local_data).as_data_frame().infer_objects()
+        val_rmse = np.sqrt(np.mean((local_data.as_data_frame()['PRO_Total_Fluid'] - predictions['predict'])**2))
+        rel_val_rmse = val_rmse - tolerable_rmse
+
+        # TRAINING
+
+        print(f'For category {category}, path {model_path}, REL_RMSE: {model.rmse(rel_val_rmse)}')
 
 
 _ = """

@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 15-May-2021 00:05:89:891  GMT-0600
+# @Last modified time: 15-May-2021 12:05:45:455  GMT-0600
 # @License: [Private IP]
 
 
@@ -115,6 +115,8 @@ DATA_INJECTION_PRESS = DATA_INJECTION['Pressure']
 
 DATA_INJECTION_PRESS.infer_objects().to_csv('Data/Injection_Pressure_Data.csv')
 
+list(DATA_INJECTION_PRESS.dropna(axis=1, how='all'))
+
 # Merge Pressure Data with Steam Data
 FIELD_DATA = pd.read_csv('Data/field_data.csv').infer_objects()
 DATA_INJECTION_PRESS.reset_index(drop=False, inplace=True)
@@ -124,7 +126,7 @@ FIELD_DATA['date'] = pd.to_datetime(FIELD_DATA['date'])
 DATA_INJECTION_PRESS['date'] = pd.to_datetime(DATA_INJECTION_PRESS['date'])
 
 FINAL_FIELD_DATA = pd.merge(FIELD_DATA, DATA_INJECTION_PRESS, how='inner',
-                            on=['date'], suffixes=('_steam', '_pressure')).dropna(axis=1, how='all')
+                            on=['date'], suffixes=('_steam', '_pressure'))  # .dropna(axis=1, how='all')
 FINAL_FIELD_DATA.to_csv('Data/field_data_pressures.csv')
 
 _ = """
