@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: master_execution.py
 # @Last modified by:   Ray
-# @Last modified time: 17-May-2021 13:05:43:437  GMT-0600
+# @Last modified time: 17-May-2021 14:05:80:806  GMT-0600
 # @License: [Private IP]
 
 # from pipeline import S4_ft_eng_math as S4_MATH --> Ignored: Used directly in S5_MODL
@@ -379,7 +379,7 @@ if __name__ == '__main__':
     well_constraints = {'A': 2000, 'B': 2000, 'C': 1500, 'E': 2000, 'F': '1800'}
 
     # CONDUCT OPTIMIZATION
-    backtest = S6_OPTM._OPTIMIZATION(data=well_constraints, engineered=False, today=True)
+    backtest = S6_OPTM._OPTIMIZATION(data=all_data, engineered=False, today=True)
 
     # CONDUCT WELL-ALLOCATION
     # TODO: This needs to be formatted as a dict

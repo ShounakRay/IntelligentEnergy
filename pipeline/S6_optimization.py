@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 17-May-2021 13:05:00:005  GMT-0600
+# @Last modified time: 17-May-2021 14:05:95:951  GMT-0600
 # @License: [Private IP]
 
 
@@ -215,7 +215,7 @@ MAPPING = {'date': 'Date',
            'prod_casing_pressure': 'PRO_Casing_Pressure',
            'prod_bhp_heel': 'PRO_Heel_Pressure',
            'prod_bhp_toe': 'PRO_Toe_Pressure',
-           'oil': 'PRO_Alloc_Oil',
+           'oil': 'PRO_Adj_Alloc_Oil',
            'water': 'PRO_Alloc_Water',
            'bin_1': 'Bin_1',
            'bin_2': 'Bin_2',
@@ -315,13 +315,13 @@ MAPPING = {'date': 'Date',
            'eng_approved': 'PRO_Engineering_Approved',
            'eng_comment': 'eng_comment',
            'test_total_fluid': 'test_total_fluid',
-           'total_fluid': 'total_fluid',
+           'total_fluid': 'PRO_Total_Fluid',
            'volume_per_stroke': 'volume_per_stroke',
            'theoretical_fluid': 'theoretical_fluid',
            'test_water_cut': 'test_water_cut',
            'theoretical_water': 'theoretical_water',
            'theoretical_oil': 'theoretical_water',
-           'alloc_steam': 'alloc_steam',
+           'alloc_steam': 'Steam',
            'sor': 'sor',
            'chlorides': 'chlorides',
            'meas_water_cut': 'meas_water_cut',
@@ -457,27 +457,32 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
 
         return subset_df.reset_index(drop=True), features
 
+    # df = field_df
     def get_testdfs(model, df, group, features, grouper_name=grouper, time_col=time_col, forward_days=forward_days):
+        # group = 'A'
         test_df = df[(df[grouper] == group) & (df[time_col] > date)].head(forward_days).dropna(axis=1, how='all')
         # grouper='PRO_Pad'
         # time_col='Date'
         test_df.columns = [MAPPING.get(c) if MAPPING.get(c) != '' else MAPPING.get(c) for c in test_df.columns]
         orig_features = [c for c in model._model_json['output']['names'] if c in list(test_df)]
+        compatible_df = test_df[orig_features].infer_objects()
         # alt_features = [INV_MAPPING.get(i) for i in orig_features if INV_MAPPING.get(i) != None]
         wanted_types = {k: 'real' if v == float or v == int else 'enum'
-                        for k, v in dict(test_df[orig_features].infer_objects().dtypes).items()}
-        test_pred = model.predict(h2o.H2OFrame(test_df[orig_features],
+                        for k, v in dict(compatible_df.dtypes).items()}
+        test_pred = model.predict(h2o.H2OFrame(compatible_df,
                                                column_types=wanted_types)).as_data_frame()['predict']
-        test_actual = test_df[target]
+        test_actual = test_df[MAPPING.get(target)]
 
         return test_pred.reset_index(drop=True), test_actual.reset_index(drop=True)
 
     def configure_scenario_locally(subset_df, date, model, g, features, steam_range=steam_range):
         scenario_df = create_scenarios(subset_df, date, features, steam_range[g])
+        scenario_df.columns = [MAPPING.get(c) if MAPPING.get(c) != '' else MAPPING.get(c) for c in scenario_df.columns]
+        orig_features = [c for c in model._model_json['output']['names'] if c in list(scenario_df)]
+        compatible_df = scenario_df[orig_features].infer_objects()
         wanted_types = {k: 'real' if v == float or v == int else 'enum'
-                        for k, v in dict(scenario_df[features].infer_objects().dtypes).items()}
-        scenario_df['total_fluid'] = list(model.predict(h2o.H2OFrame(scenario_df[features],
-                                                                     column_types=wanted_types)
+                        for k, v in dict(compatible_df.dtypes).items()}
+        scenario_df['total_fluid'] = list(model.predict(h2o.H2OFrame(compatible_df, column_types=wanted_types)
                                                         ).as_data_frame()['predict'])
         scenario_df[grouper] = g
 
@@ -509,9 +514,9 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
 
     _accessories._print(f"Finished optimization table for all groups on {date}")
     optimization_table = pd.concat(optimization_table).infer_objects()
-    optimization_table = optimization_table.sort_values([grouper, 'alloc_steam'], ascending=[True, False])
-    optimization_table['exchange_rate'] = optimization_table['alloc_steam'] / optimization_table['total_fluid']
-    optimization_table = optimization_table[[grouper, 'alloc_steam', 'total_fluid',
+    optimization_table = optimization_table.sort_values([grouper, 'Steam'], ascending=[True, False])
+    optimization_table['exchange_rate'] = optimization_table['Steam'] / optimization_table['PRO_Total_Fluid']
+    optimization_table = optimization_table[[grouper, 'Steam', 'PRO_Total_Fluid',
                                              'exchange_rate', 'rmse', 'accuracy', 'algorithm']].reset_index(drop=True)
 
     return optimization_table
@@ -522,7 +527,7 @@ def optimize(optimization_table, group, steam_avail):
     # OPTIMIZE BASED ON CONSTRAINTS
     solution = optimization_table.groupby([group]).first().reset_index()
     steam_usage = solution['Steam'].sum()
-    total_output = solution['Total_Fluid'].sum()
+    total_output = solution['PRO_Total_Fluid'].sum()
 
     print("Initiating optimization... seed:", steam_usage, "target:", steam_avail, "total output:", total_output)
 
@@ -567,14 +572,15 @@ def chloride_control(date, field_df, steam_avail):
                    'chlorides', 'cumulative_chl_contrib']].fillna(0)
 
 
-def create_group_data(field_df, group):
+def create_group_data(field_df, group='pad'):
     # field_df = pd.read_csv('Data/S3 Files/combined_ipc_aggregates.csv')
-    field_df = pd.read_csv('Data/field_data_pressures.csv').drop('Unnamed: 0', axis=1)
+    # field_df = pd.read_csv('Data/field_data_pressures.csv').drop('Unnamed: 0', axis=1)
+    field_df.columns = [INV_MAPPING.get(c) for c in list(field_df) if INV_MAPPING.get(c) != '']
     field_df = field_df.groupby(['date', group]).agg({'prod_casing_pressure': 'mean',
                                                       'prod_bhp_heel': 'mean',
                                                       'prod_bhp_toe': 'mean',
                                                       'oil': 'sum',
-                                                      'water': 'sum',
+                                                      # 'water': 'sum',
                                                       'total_fluid': 'sum',
                                                       'alloc_steam': 'sum',
                                                       'spm': 'sum',
@@ -583,11 +589,11 @@ def create_group_data(field_df, group):
     field_df['sor'] = field_df['alloc_steam'] / field_df['oil']
     return field_df
 
-# date = '2020-12-01'
+# date = '2019-12-01'
 
 
 def parallel_optimize(field_df, date, grouper='pad', target='total_fluid', steam_col='alloc_steam', time_col='date'):
-    pad_df = create_group_data(field_df, 'pad')
+    pad_df = create_group_data(field_df, grouper)
     chloride_solution = chloride_control(date, field_df, Op_Params['steam_available'])
     chloride_solution['chl_steam'] = 0.1 * \
         chloride_solution['chl_steam'] * 6000
@@ -598,7 +604,7 @@ def parallel_optimize(field_df, date, grouper='pad', target='total_fluid', steam
     day_df = field_df[field_df[time_col] == str(date)]
     steam_avail = int(day_df[steam_col].sum())
     try:
-        list(field_df)
+        print('HERE')
         optimization_table = generate_optimization_table(field_df, date, steam_range)
         solution = optimize(optimization_table, grouper, steam_avail)
         solution[time_col] = date
