@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: ft_eng_math.py
 # @Last modified by:   Ray
-# @Last modified time: 10-May-2021 09:05:73:731  GMT-0600
+# @Last modified time: 17-May-2021 11:05:23:234  GMT-0600
 # @License: [Private IP]
 
 import itertools
@@ -35,7 +35,7 @@ def ensure_cwd(expected_parent):
         os.chdir(new_cwd)
 
 
-if bool(__name__):
+if True:
     try:
         _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
     except Exception:

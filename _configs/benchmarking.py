@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 15-May-2021 13:05:81:815  GMT-0600
+# @Last modified time: 17-May-2021 10:05:68:689  GMT-0600
 # @License: [Private IP]
 
 
@@ -187,6 +187,37 @@ def macro_performance(benchmarks, consideration=10):
     return best_possibles
 
 
+def h2o_model_prediction(model_path, new_data, tolerable_rmse, responder='PRO_Total_Fluid'):
+    dates = new_data['Date'].copy()
+    new_data = new_data.select_dtypes(float)
+    # TODO: Check if feature engineering is required (in which case, engineer new features!)
+    wanted_types = {k: 'real' if v == float or v == int else 'enum' for k, v in dict(new_data.dtypes).items()}
+    with _accessories.suppress_stdout():
+        new_data = h2o.H2OFrame(new_data, column_types=wanted_types)
+        model = h2o.load_model(model_path)
+
+    input_features = model._model_json['output']['names']
+    if len(input_features) > 20:
+        # Features must be engineered for this model
+        # TODO: Generate new features
+        None
+
+    with _accessories.suppress_stdout():
+        predictions = model.predict(new_data).as_data_frame().infer_objects()
+
+    predictions['Date'] = pd.to_datetime(dates)
+    predictions = predictions.set_index('Date')
+
+    new_data = new_data.as_data_frame().infer_objects()
+    new_data['Date'] = pd.to_datetime(dates)
+    new_data = new_data.set_index('Date')
+
+    val_rmse = np.sqrt(np.mean((new_data[responder] - predictions['predict'])**2))
+    rel_val_rmse = val_rmse - tolerable_rmse
+
+    return predictions, (val_rmse, rel_val_rmse), model
+
+
 # def create_validation_splits(DATA_PATH_PAD, pd_data_pad, group_colname='PRO_Pad', TRAIN_VAL_SPLIT=0.95):
 #     # NOTE: Global Dependencies:
 #
@@ -244,11 +275,6 @@ temporal, performance, benchmarks = get_benchmarks(time_path='Data/S5 Files/mode
                                                    perf_path="Modeling Reference Files/*/*csv")
 
 macro_best = macro_performance(benchmarks, consideration=5)
-# macro_best.at[0, 'Rel_Val_RMSE'] = 5.1251363
-# macro_best.at[0, 'Best RMSE Proportion'] = (macro_best.at[0, 'Tolerated RMSE'] + macro_best.at[0, 'Rel_Val_RMSE'])/(159.394495 * 0.1)
-#
-# macro_best.at[3, 'Rel_Val_RMSE'] = -10.692769
-# macro_best.at[3, 'Best RMSE Proportion'] = (macro_best.at[3, 'Tolerated RMSE'] + macro_best.at[3, 'Rel_Val_RMSE'])/(151.573186 * 0.1)
 
 sparse_df = benchmarks[benchmarks['Rel_Val_RMSE'] <= 80].groupby(['Group',
                                                                   'Math_Eng',
@@ -259,7 +285,8 @@ see_performance(sparse_df, first_two=['Math_Eng', 'Weighted'],
                 x='Duration', y='Rel_Val_RMSE',
                 groupby_option='Group', kind='line', FIGSIZE=(21, 11))
 
-best, details = get_best_models(benchmarks, sort_by=['Rel_Val_RMSE', 'Rel_RMSE'])
+best, details = get_best_models(benchmarks[benchmarks['Math_Eng'] == False],
+                                sort_by=['Rel_Val_RMSE'], top=10)
 
 _accessories.save_local_data_file(best, 'Data/Model Candidates/best_models.pkl')
 _accessories.save_local_data_file(details, 'Data/Model Candidates/best_models_details.pkl')
@@ -272,28 +299,19 @@ _ = """
 source_data = _accessories.retrieve_local_data_file('Data/S3 Files/combined_ipc_aggregates_ALL.csv').infer_objects()
 # original, validation, training = create_validation_splits('', source_data)
 # source_data = source_data[source_data['PRO_Pad'] == 'A'].sort_values('Date').reset_index(drop=True)
-
-validation_set = source_data[(source_data['Date'] > '2020-09-07') &
-                             (source_data['Date'] < '2021-01-20')].reset_index(drop=True)
+# validation_set = source_data[(source_data['Date'] > '2020-09-07') &
+#                              (source_data['Date'] < '2021-01-20')].reset_index(drop=True)
 
 setup_and_server()
 for category, model_paths in best.items():
-    local_data = source_data[source_data['PRO_Pad'] == category].select_dtypes(float)
-    wanted_types = {k: 'real' if v == float or v == int else 'enum' for k, v in dict(local_data.dtypes).items()}
+    local_data = source_data[source_data['PRO_Pad'] == category]
     tolerable_rmse = details[category]['Tolerated RMSE'].drop_duplicates()[0]
-    with _accessories.suppress_stdout():
-        local_data = h2o.H2OFrame(local_data, column_types=wanted_types)
     for model_path in model_paths:
-        with _accessories.suppress_stdout():
-            model = h2o.load_model(model_path)
-            predictions = model.predict(local_data).as_data_frame().infer_objects()
-        val_rmse = np.sqrt(np.mean((local_data.as_data_frame()['PRO_Total_Fluid'] - predictions['predict'])**2))
-        rel_val_rmse = val_rmse - tolerable_rmse
-
-        # TRAINING
-
-        print(f'For category {category}, path {model_path}, REL_RMSE: {model.rmse(rel_val_rmse)}')
-
+        predictions, (val_rmse, rel_val_rmse), model = h2o_model_prediction(model_path, local_data, tolerable_rmse)
+        print(f'For category {category}, path [skipped], T: {model.rmse()}, V: {rel_val_rmse}')
+    print('––')
+h2o.remove_all()
+h2o.shutdown()
 
 _ = """
 #######################################################################################################################

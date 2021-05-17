@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 12-May-2021 11:05:77:771  GMT-0600
+# @Last modified time: 17-May-2021 10:05:47:471  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -34,7 +34,7 @@ def ensure_cwd(expected_parent):
         os.chdir(new_cwd)
 
 
-if __name__ == '__main__':
+if True:
     try:
         _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
     except Exception:
@@ -599,17 +599,25 @@ _ = """
 """
 
 
-def _INTELLIGENT_AGGREGATION():
-    _accessories._print('Ingesting PHYSICS ENGINEERED and pad-well relationship data...', color='LIGHTYELLOW_EX')
-    DATASETS = {'FINALE': _accessories.retrieve_local_data_file('Data/S2 Files/combined_ipc_engineered_phys_ALL.csv')}
+def _INTELLIGENT_AGGREGATION(data=None, _return=True, flow_ingest=True, weights=True):
+    if flow_ingest:
+        _accessories._print('Ingesting PHYSICS ENGINEERED data from LAST STEP...',
+                            color='LIGHTYELLOW_EX')
+        DATASETS = {'FINALE': data}
+    else:
+        _accessories._print('Ingesting PHYSICS ENGINEERED data from SAVED DATA...', color='LIGHTYELLOW_EX')
+        DATASETS = {'FINALE': _accessories.retrieve_local_data_file(
+            'Data/S2 Files/combined_ipc_engineered_phys_ALL.csv')}
+    _accessories._print('Ingesting well relationship data from saved data...', color='LIGHTYELLOW_EX')
     INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/Pickles/INJECTION_[Well, Pad].pkl', mode=2)
     PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/Pickles/PRODUCTION_[Well, Pad].pkl', mode=2)
 
     _accessories._print('Minor processing...', color='LIGHTYELLOW_EX')
     DATASETS['FINALE'] = minor_processing(DATASETS['FINALE'], PRO_PAD_KEYS)
 
-    _accessories._print('Performing anomaly detection...', color='LIGHTYELLOW_EX')
-    DATASETS['FINALE'] = specialized_anomaly_detection(DATASETS['FINALE'])
+    if weights:
+        _accessories._print('Performing anomaly detection for weight calculation...', color='LIGHTYELLOW_EX')
+        DATASETS['FINALE'] = specialized_anomaly_detection(DATASETS['FINALE'])
 
     _accessories._print('Getting producer and injector coordinates...', color='LIGHTYELLOW_EX')
     injector_coords = get_coordinates('INJECTION')
@@ -645,8 +653,12 @@ def _INTELLIGENT_AGGREGATION():
 
     _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
     _accessories.finalize_all(DATASETS, skip=[])
-    merged_df = merge(DATASETS, ['A', 'B', 'C', 'D', 'E', 'F'])
-    _accessories.save_local_data_file(merged_df, 'Data/S3 Files/combined_ipc_aggregates_ALL.csv')
+    merged_df = merge(DATASETS, ['A', 'B', 'C', 'E', 'F'])
+
+    if _return:
+        return merged_df
+    else:
+        _accessories.save_local_data_file(merged_df, 'Data/S3 Files/combined_ipc_aggregates_ALL.csv')
 
 
 if __name__ == '__main__':

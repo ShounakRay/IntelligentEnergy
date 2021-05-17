@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 15-May-2021 01:05:82:826  GMT-0600
+# @Last modified time: 17-May-2021 11:05:10:104  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -42,7 +42,7 @@ def ensure_cwd(expected_parent):
         os.chdir(new_cwd)
 
 
-if __name__ == '__main__':
+if True:
     try:
         _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
     except Exception:
@@ -592,18 +592,26 @@ _ = """
 """
 
 
-def _INJECTOR_ALLOCATION(CLOSENESS_THRESH_PI=0.1, CLOSENESS_THRESH_II=0.1):
+def _INJECTOR_ALLOCATION(data=None, _return=True, flow_ingest=True,
+                         CLOSENESS_THRESH_PI=0.1, CLOSENESS_THRESH_II=0.1):
     _accessories._print('Ingesting the positional data matrixes and candidate relationships...')
     DATA_PATH_DMATRIX: Final = 'Data/Pickles/DISTANCE_MATRIX.csv'
     DATA_PATH_CANDIDATES: Final = 'Data/Pickles/WELL_Candidates.pkl'
     DATA_PATH_ALLOCATIONS: Final = 'Data/Pickles/pwell_allocations.pkl'
 
     DATASETS = {}
-    DATASETS['CANDIDATES'] = _accessories.retrieve_local_data_file(DATA_PATH_CANDIDATES, mode=2)
-    DATASETS['PI_DIST_MATRIX'] = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
-    DATASETS['II_DIST_MATRIX'] = distance_matrix('II', S3.get_coordinates(data_group='INJECTION'), scaled=False)
-    DATASETS['PP_DIST_MATRIX'] = distance_matrix('PP', S3.get_coordinates(data_group='PRODUCTION'), scaled=False)
-    DATASETS['PRO_CONSTRAINTS'] = _accessories.retrieve_local_data_file(DATA_PATH_ALLOCATIONS, mode=2)
+    if flow_ingest:
+        DATASETS['CANDIDATES'] = _accessories.retrieve_local_data_file(DATA_PATH_CANDIDATES, mode=2)
+        DATASETS['PI_DIST_MATRIX'] = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
+        DATASETS['II_DIST_MATRIX'] = distance_matrix('II', S3.get_coordinates(data_group='INJECTION'), scaled=False)
+        DATASETS['PP_DIST_MATRIX'] = distance_matrix('PP', S3.get_coordinates(data_group='PRODUCTION'), scaled=False)
+        DATASETS['PRO_CONSTRAINTS'] = data
+    else:
+        DATASETS['CANDIDATES'] = _accessories.retrieve_local_data_file(DATA_PATH_CANDIDATES, mode=2)
+        DATASETS['PI_DIST_MATRIX'] = _accessories.retrieve_local_data_file(DATA_PATH_DMATRIX)
+        DATASETS['II_DIST_MATRIX'] = distance_matrix('II', S3.get_coordinates(data_group='INJECTION'), scaled=False)
+        DATASETS['PP_DIST_MATRIX'] = distance_matrix('PP', S3.get_coordinates(data_group='PRODUCTION'), scaled=False)
+        DATASETS['PRO_CONSTRAINTS'] = _accessories.retrieve_local_data_file(DATA_PATH_ALLOCATIONS, mode=2)
 
     # Arbitrary contraints generation
     constraints = {inj: (random.randint(5, 29), random.randint(30, 60)) for inj in list(DATASETS['II_DIST_MATRIX'])}
@@ -633,7 +641,11 @@ def _INJECTOR_ALLOCATION(CLOSENESS_THRESH_PI=0.1, CLOSENESS_THRESH_II=0.1):
     _accessories._print('Finalizing and saving injection suggestion data...')
     suggestions = configure_minor(suggestions)
     _accessories.finalize_all(DATASETS, coerce_date=False)
-    _accessories.save_local_data_file(suggestions, 'Data/S8 Files/final_suggestions.csv')
+
+    if _return:
+        return suggestions
+    else:
+        _accessories.save_local_data_file(suggestions, 'Data/S8 Files/final_suggestions.csv')
 
 
 if __name__ == '__main__':

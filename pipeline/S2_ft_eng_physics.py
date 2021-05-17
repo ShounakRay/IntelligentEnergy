@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: feature_engineering.py
 # @Last modified by:   Ray
-# @Last modified time: 10-May-2021 09:05:09:091  GMT-0600
+# @Last modified time: 17-May-2021 10:05:61:611  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -28,7 +28,7 @@ def ensure_cwd(expected_parent):
         os.chdir(new_cwd)
 
 
-if __name__ == '__main__':
+if True:
     try:
         _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
     except Exception:
@@ -112,9 +112,13 @@ _ = """
 """
 
 
-def _FEATENG_PHYS():
-    _accessories._print('Ingesting JOINED DATA data...', color='LIGHTYELLOW_EX')
-    DATASETS = {'JOINED_SOURCE': _accessories.retrieve_local_data_file('Data/S1 Files/combined_ipc_ALL.csv')}
+def _FEATENG_PHYS(data=None, _return=True, flow_ingest=True):
+    if flow_ingest:
+        _accessories._print('Ingesting JOINED DATA data from LAST STEP...', color='LIGHTYELLOW_EX')
+        DATASETS = {'JOINED_SOURCE': data.infer_objects()}
+    else:
+        _accessories._print('Ingesting JOINED DATA data from SAVED DATA...', color='LIGHTYELLOW_EX')
+        DATASETS = {'JOINED_SOURCE': _accessories.retrieve_local_data_file('Data/S1 Files/combined_ipc_ALL.csv')}
 
     _accessories._print('Engineering initial physics features...', color='LIGHTYELLOW_EX')
     engineer_initial_features(DATASETS['JOINED_SOURCE'])
@@ -132,10 +136,14 @@ def _FEATENG_PHYS():
     DATASETS['THEORETICAL'].drop(NOT_REQUIRED, axis=1, inplace=True)
     _accessories.finalize_all(DATASETS, skip=[])
 
-    _accessories.save_local_data_file(DATASETS['THEORETICAL'], 'Data/S2 Files/combined_ipc_engineered_phys_ALL.csv')
+    if _return:
+        return DATASETS['THEORETICAL']
+    else:
+        _accessories.save_local_data_file(DATASETS['THEORETICAL'],
+                                          'Data/S2 Files/combined_ipc_engineered_phys_ALL.csv')
 
 
 if __name__ == '__main__':
-    _FEATENG_PHYS()
+    _FEATENG_PHYS(_return=False, flow_ingest=False)
 
 # EOF

@@ -24,7 +24,6 @@ IntelligentEnergy/
 │   ├── _accessories.py
 │   ├── _context_managers.py
 │   └── _traversal.py
-├── alloc_sandbox.py
 ├── Data/
 │   ├── .DS_Store
 │   ├── candidate_selected_pressures_dTime.csv
@@ -179,6 +178,9 @@ IntelligentEnergy/
 │   │       ├── BP66DTS.csv
 │   │       ├── BP67DTS.csv
 │   │       └── BP6DTS.csv
+│   ├── field_data.csv
+│   ├── field_data_pressures (1).csv
+│   ├── field_data_pressures.csv
 │   ├── Injection_Pressure_Data.csv
 │   ├── Isolated/
 │   │   ├── OLT injection data.xlsx
@@ -190,6 +192,9 @@ IntelligentEnergy/
 │   │   ├── candidate_selected_pressures_dTime.csv
 │   │   ├── combined_ipc_aggregates_PWELL.csv
 │   │   └── res_2020-01-01.csv
+│   ├── Model Candidates/
+│   │   ├── best_models.pkl
+│   │   └── best_models_details.pkl
 │   ├── Pickles/
 │   │   ├── .DS_Store
 │   │   ├── DISTANCE_MATRIX.csv
@@ -610,7 +615,7 @@ IntelligentEnergy/
 │       ├── Weight TS PRO_Well = BP4.png
 │       ├── Weight TS PRO_Well = BP5.png
 │       └── Weight TS PRO_Well = BP6.png
-├── minor_fix.py
+├── master_execution.py
 ├── Modeling Reference Files/
 │   ├── .DS_Store
 │   ├── 1 – Benchmarks/
@@ -26111,9 +26116,14 @@ IntelligentEnergy/
 │   ├── __pycache__/
 │   │   ├── __init__.cpython-38.pyc
 │   │   ├── __init__.cpython-39.pyc
+│   │   ├── S1_base_generation.cpython-38.pyc
+│   │   ├── S2_ft_eng_physics.cpython-38.pyc
 │   │   ├── S3_weighting.cpython-38.pyc
 │   │   ├── S3_weighting.cpython-39.pyc
-│   │   └── S4_ft_eng_math.cpython-38.pyc
+│   │   ├── S4_ft_eng_math.cpython-38.pyc
+│   │   ├── S6_optimization.cpython-38.pyc
+│   │   ├── S7_prosteam_allocation.cpython-38.pyc
+│   │   └── S8_injsteam_allocation.cpython-38.pyc
 │   ├── _class/
 │   │   └── S1F_base_generation.py
 │   ├── _multiprocessed/

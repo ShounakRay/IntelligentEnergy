@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 10-May-2021 09:05:00:009  GMT-0600
+# @Last modified time: 17-May-2021 11:05:02:025  GMT-0600
 # @License: [Private IP]
 
 
@@ -29,7 +29,7 @@ def ensure_cwd(expected_parent):
         os.chdir(new_cwd)
 
 
-if __name__ == '__main__':
+if True:
     try:
         _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
     except Exception:
@@ -202,7 +202,7 @@ _ = """
 """
 
 
-def _INGESTION():
+def _INGESTION(_return=True, filter_by_fiber=False):
     _accessories._print('Ingesting INJECTION, PRODUCTION, and PRODUCTION_TEST data...', color='LIGHTYELLOW_EX')
     DATASETS = ingest_sources(filepaths)
     save_well_pad_relations(DATASETS)
@@ -213,15 +213,20 @@ def _INGESTION():
     DATASETS['FIBER'] = ingest_fiber([i for i in producer_wells if i != 'AP2'], ap2_path=ap2_path)
 
     _accessories._print('Transforming and filtering...', color='LIGHTYELLOW_EX')
-    _temp = DATASETS['PRODUCTION']
-    DATASETS['PRODUCTION'] = _temp[_temp['PRO_Well'].isin(producer_wells)]
+    if filter_by_fiber:
+        _temp = DATASETS['PRODUCTION']
+        DATASETS['PRODUCTION'] = _temp[_temp['PRO_Well'].isin(producer_wells)]
     DATASETS['INJECTION_TABLE'] = pd.pivot_table(DATASETS['INJECTION'], values='INJ_Meter_Steam',
                                                  index='Date', columns='INJ_Well').reset_index()
 
     _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
     _accessories.finalize_all(DATASETS, skip=[])
     merged_df = merge(DATASETS)
-    _accessories.save_local_data_file(merged_df, 'Data/S1 Files/combined_ipc_ALL.csv')
+
+    if _return:
+        return merged_df
+    else:
+        _accessories.save_local_data_file(merged_df, 'Data/S1 Files/combined_ipc_ALL.csv')
 
 
 if __name__ == '__main__':
