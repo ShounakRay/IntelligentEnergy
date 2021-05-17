@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 17-May-2021 14:05:95:951  GMT-0600
+# @Last modified time: 17-May-2021 15:05:82:823  GMT-0600
 # @License: [Private IP]
 
 
@@ -222,6 +222,9 @@ MAPPING = {'date': 'Date',
            'bin_3': 'Bin_3',
            'bin_4': 'Bin_4',
            'bin_5': 'Bin_5',
+           'bin_6': 'Bin_6',
+           'bin_7': 'Bin_7',
+           'bin_8': 'Bin_8',
            'ci06_steam': '',
            'ci07_steam': '',
            'ci08_steam': '',
@@ -450,7 +453,7 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
                                 forward_days=30):
     optimization_table = []
 
-    def get_subset(df, date, group, grouper_name=grouper, tail_days=365):
+    def get_subset(df, date, group, grouper_name=grouper, time_col=time_col, tail_days=365):
         subset_df = df[df[grouper_name] == group].reset_index(drop=True)
         subset_df = subset_df[subset_df[time_col] <= date].tail(tail_days)
         features = list(subset_df.select_dtypes(float).columns)
@@ -466,7 +469,6 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
         test_df.columns = [MAPPING.get(c) if MAPPING.get(c) != '' else MAPPING.get(c) for c in test_df.columns]
         orig_features = [c for c in model._model_json['output']['names'] if c in list(test_df)]
         compatible_df = test_df[orig_features].infer_objects()
-        # alt_features = [INV_MAPPING.get(i) for i in orig_features if INV_MAPPING.get(i) != None]
         wanted_types = {k: 'real' if v == float or v == int else 'enum'
                         for k, v in dict(compatible_df.dtypes).items()}
         test_pred = model.predict(h2o.H2OFrame(compatible_df,
@@ -497,7 +499,7 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
             field_df.drop(d_col, axis=1, inplace=True)
 
     for g in field_df[grouper].dropna(axis=0).unique():
-        _accessories._print(f"CREATING SCENARIO TABLE FOR: {grouper} and {g}.")
+        _accessories._print(f"CREATING SCENARIO TABLE FOR: {grouper} {g}.")
 
         subset_df, features = get_subset(field_df, date, g)
 
@@ -575,7 +577,6 @@ def chloride_control(date, field_df, steam_avail):
 def create_group_data(field_df, group='pad'):
     # field_df = pd.read_csv('Data/S3 Files/combined_ipc_aggregates.csv')
     # field_df = pd.read_csv('Data/field_data_pressures.csv').drop('Unnamed: 0', axis=1)
-    field_df.columns = [INV_MAPPING.get(c) for c in list(field_df) if INV_MAPPING.get(c) != '']
     field_df = field_df.groupby(['date', group]).agg({'prod_casing_pressure': 'mean',
                                                       'prod_bhp_heel': 'mean',
                                                       'prod_bhp_toe': 'mean',
@@ -589,11 +590,14 @@ def create_group_data(field_df, group='pad'):
     field_df['sor'] = field_df['alloc_steam'] / field_df['oil']
     return field_df
 
-# date = '2019-12-01'
+# date = '2020-05-17'
 
 
 def parallel_optimize(field_df, date, grouper='pad', target='total_fluid', steam_col='alloc_steam', time_col='date'):
-    pad_df = create_group_data(field_df, grouper)
+    field_df.columns = [INV_MAPPING.get(c) for c in list(field_df) if INV_MAPPING.get(c) != '']
+    field_df = field_df[[c for c in list(field_df) if c != None]]
+
+    pad_df = create_group_data(field_df.copy(), grouper)
     chloride_solution = chloride_control(date, field_df, Op_Params['steam_available'])
     chloride_solution['chl_steam'] = 0.1 * \
         chloride_solution['chl_steam'] * 6000
@@ -631,6 +635,7 @@ def run(data, dates):
     return agg_final
 
 
+field_df = pd.read_csv('Data/S3 Files/combined_ipc_aggregates_ALL.csv')
 # def well_setpoints(solution, well_constraints):
 #     # WELL LEVEL SOLUTION
 #     # 1. NAIVE SOLUTION (divide by number of wells)
