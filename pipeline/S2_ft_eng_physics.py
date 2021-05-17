@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: feature_engineering.py
 # @Last modified by:   Ray
-# @Last modified time: 17-May-2021 13:05:19:191  GMT-0600
+# @Last modified time: 17-May-2021 16:05:56:569  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -55,7 +55,7 @@ _ = """
 NOT_REQUIRED: Final = ['PRO_Pump_Efficiency', 'PRO_Engineering_Approved', 'PRO_Alloc_Water_Cut',
                        'PRO_Theo_Fluid', 'PRO_Alloc_Factor', 'adj_PRO_Theo_Fluid',
                        'PRO_Alloc_Water', 'Field_Steam', 'PRO_Pump_Speed',
-                       'PRO_Chlorides', 'PRO_Gas', 'PRO_Oil', 'PRO_Fluid', 'PRO_Duration',
+                       'PRO_Gas', 'PRO_Oil', 'PRO_Fluid', 'PRO_Duration',
                        'PRO_Pad']
 
 _ = """

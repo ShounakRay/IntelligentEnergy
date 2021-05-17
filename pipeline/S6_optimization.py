@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 17-May-2021 15:05:82:823  GMT-0600
+# @Last modified time: 17-May-2021 16:05:22:221  GMT-0600
 # @License: [Private IP]
 
 
@@ -215,6 +215,8 @@ MAPPING = {'date': 'Date',
            'prod_casing_pressure': 'PRO_Casing_Pressure',
            'prod_bhp_heel': 'PRO_Heel_Pressure',
            'prod_bhp_toe': 'PRO_Toe_Pressure',
+           'prod_bht_heel': 'PRO_Heel_Temp',
+           'prod_bht_toe': 'PRO_Toe_Temp',
            'oil': 'PRO_Adj_Alloc_Oil',
            'water': 'PRO_Alloc_Water',
            'bin_1': 'Bin_1',
@@ -324,9 +326,9 @@ MAPPING = {'date': 'Date',
            'test_water_cut': 'test_water_cut',
            'theoretical_water': 'theoretical_water',
            'theoretical_oil': 'theoretical_water',
-           'alloc_steam': 'Steam',
+           'alloc_steam': 'PRO_Alloc_Steam',
            'sor': 'sor',
-           'chlorides': 'chlorides',
+           'chlorides': 'PRO_Chlorides',
            'meas_water_cut': 'meas_water_cut',
            'field_chloride': 'field_chloride',
            'chloride_contrib': 'chloride_contrib',
@@ -502,12 +504,15 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
         _accessories._print(f"CREATING SCENARIO TABLE FOR: {grouper} {g}.")
 
         subset_df, features = get_subset(field_df, date, g)
+        print('GOT SUBSET')
 
         # file = open('Modeling Reference Files/6086 – ENG: True, WEIGHT: False, TIME: 20/MODELS_6086.pkl', 'rb')
 
         # Running on INDEX 1
         model = h2o.load_model(BEST_MODEL_PATHS.get(g)[0])
+        print('LOADED MODEL')
 
+        print('GOT TEST DATAFRAMES AND CONFIGURING LOCALLY')
         with _accessories.suppress_stdout():
             test_pred, test_actual = get_testdfs(model, field_df, g, features)
             scenario_df = configure_scenario_locally(subset_df, date, model, g, features)
@@ -516,9 +521,9 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
 
     _accessories._print(f"Finished optimization table for all groups on {date}")
     optimization_table = pd.concat(optimization_table).infer_objects()
-    optimization_table = optimization_table.sort_values([grouper, 'Steam'], ascending=[True, False])
-    optimization_table['exchange_rate'] = optimization_table['Steam'] / optimization_table['PRO_Total_Fluid']
-    optimization_table = optimization_table[[grouper, 'Steam', 'PRO_Total_Fluid',
+    optimization_table = optimization_table.sort_values([grouper, 'PRO_Alloc_Steam'], ascending=[True, False])
+    optimization_table['exchange_rate'] = optimization_table['PRO_Alloc_Steam'] / optimization_table['PRO_Total_Fluid']
+    optimization_table = optimization_table[[grouper, 'PRO_Alloc_Steam', 'PRO_Total_Fluid',
                                              'exchange_rate', 'rmse', 'accuracy', 'algorithm']].reset_index(drop=True)
 
     return optimization_table
@@ -528,7 +533,7 @@ def optimize(optimization_table, group, steam_avail):
 
     # OPTIMIZE BASED ON CONSTRAINTS
     solution = optimization_table.groupby([group]).first().reset_index()
-    steam_usage = solution['Steam'].sum()
+    steam_usage = solution['PRO_Alloc_Steam'].sum()
     total_output = solution['PRO_Total_Fluid'].sum()
 
     print("Initiating optimization... seed:", steam_usage, "target:", steam_avail, "total output:", total_output)
@@ -537,14 +542,14 @@ def optimize(optimization_table, group, steam_avail):
 
         lowest_delta = solution['exchange_rate'].astype(float).idxmax()
 
-        steam_cutoff = solution.loc[lowest_delta]['Steam']
+        steam_cutoff = solution.loc[lowest_delta]['PRO_Alloc_Steam']
         asset_cut = [solution.loc[lowest_delta][group]]
         to_drop = optimization_table[(optimization_table[group].isin(asset_cut)) &
-                                     (optimization_table['Steam'] >= steam_cutoff)].index
+                                     (optimization_table['PRO_Alloc_Steam'] >= steam_cutoff)].index
 
         optimization_table = optimization_table.drop(to_drop)
         solution = optimization_table.groupby([group]).first().reset_index()  # OPTIMAL SOLUTION
-        steam_usage = solution['Steam'].sum()
+        steam_usage = solution['PRO_Alloc_Steam'].sum()
 
     return solution
 
@@ -590,7 +595,7 @@ def create_group_data(field_df, group='pad'):
     field_df['sor'] = field_df['alloc_steam'] / field_df['oil']
     return field_df
 
-# date = '2020-05-17'
+# dates = ['2020-05-17']
 
 
 def parallel_optimize(field_df, date, grouper='pad', target='total_fluid', steam_col='alloc_steam', time_col='date'):
@@ -606,36 +611,39 @@ def parallel_optimize(field_df, date, grouper='pad', target='total_fluid', steam
 
     _accessories._print('DATE: ' + date)
     day_df = field_df[field_df[time_col] == str(date)]
+    if day_df.empty:
+        raise ValueError('There\'s no data for this particular day.')
     steam_avail = int(day_df[steam_col].sum())
     try:
-        print('HERE')
+        print('HEdRE')
         optimization_table = generate_optimization_table(field_df, date, steam_range)
         solution = optimize(optimization_table, grouper, steam_avail)
         solution[time_col] = date
-        return solution
+        return solution, chloride_solution
     except Exception as e:
-        _accessories._print(str(e))
+        _accessories._print('HIT AN EXCEPTION: ' + str(e))
         return
 
 
-def run(data, dates):
-    # data = DATASETS['AGGREGATED_NOENG'].copy()
-    print("ACTIVE CPU COUNT:", mp.cpu_count() - 1)
+# def run(data, dates):
+#     # data = DATASETS['AGGREGATED_NOENG'].copy()
+#     print("ACTIVE CPU COUNT:", mp.cpu_count() - 1)
+#
+#     with mp.Pool(processes=mp.cpu_count() - 1) as pool:
+#         # try:
+#         args = list(zip([data.copy()] * len(dates), dates))
+#         agg = pool.starmap(parallel_optimize, args)
+#         # except Exception as e:
+#         #     raise Exception(e)
+#         pool.close()
+#         pool.terminate()
+#
+#     agg_final = pd.concat(agg)
+#     return agg_final
 
-    with mp.Pool(processes=mp.cpu_count() - 1) as pool:
-        # try:
-        args = list(zip([data.copy()] * len(dates), dates))
-        agg = pool.starmap(parallel_optimize, args)
-        # except Exception as e:
-        #     raise Exception(e)
-        pool.close()
-        pool.terminate()
 
-    agg_final = pd.concat(agg)
-    return agg_final
-
-
-field_df = pd.read_csv('Data/S3 Files/combined_ipc_aggregates_ALL.csv')
+# field_df = pd.read_csv('Data/S2 Files/combined_ipc_engineered_phys_ALL.csv')
+# field_df['chloride_contrib'] = 0.5
 # def well_setpoints(solution, well_constraints):
 #     # WELL LEVEL SOLUTION
 #     # 1. NAIVE SOLUTION (divide by number of wells)
@@ -692,8 +700,8 @@ def shutdown_confirm(h2o_instance: type(h2o)) -> None:
     h2o_instance.cluster().shutdown()
 
 
-def configure_aggregates(aggregate_results, rell):
-    aggregate_results['allowable_rmse'] = aggregate_results['PRO_Pad'].apply(lambda x: rell.get(x))
+def configure_aggregates(aggregate_results, rell, grouper='pad'):
+    aggregate_results['allowable_rmse'] = aggregate_results[grouper].apply(lambda x: rell.get(x))
     aggregate_results['rel_rmse'] = (aggregate_results['rmse']) - aggregate_results['allowable_rmse']
     old_raw = _accessories.retrieve_local_data_file('Data/S3 Files/combined_ipc_aggregates_ALL.csv')
     aggregate_results.columns = ['PRO_Pad',
@@ -719,9 +727,13 @@ _ = """
 
 
 def _OPTIMIZATION(data=None, _return=True, flow_ingest=True,
-                  start_date='2015-04-01', end_date='2020-12-20', engineered=True, today=False):
+                  start_date='2015-04-01', end_date='2020-12-20', engineered=True,
+                  today=False, singular_date=''):
     rell = {'A': 159.394495, 'B': 132.758275, 'C': 154.587740, 'E': 151.573186, 'F': 103.389248}
-    if today:
+    if singular_date != '':
+        start_date = singular_date
+        end_date = singular_date
+    elif today:
         start_date = str(datetime.datetime.now()).split(' ')[0]
         end_date = str(datetime.datetime.now()).split(' ')[0]
 
@@ -757,16 +769,23 @@ def _OPTIMIZATION(data=None, _return=True, flow_ingest=True,
     _accessories._print('Performing backtesting...')
     dates = pd.date_range(*(start_date, end_date)).strftime('%Y-%m-%d')
     if engineered:
-        aggregate_results = run(DATASETS['AGGREGATED_ENG'].copy(), dates)
+        field_df = DATASETS['AGGREGATED_ENG'].copy()
     else:
-        aggregate_results = run(DATASETS['AGGREGATED_NOENG'].copy(), dates)
-    aggregate_results = configure_aggregates(aggregate_results, rell)
+        # field_df['chloride_contrib'] = 0.5
+        field_df = DATASETS['AGGREGATED_NOENG'].copy()
+
+    if 'PRO_Pad' not in list(field_df):
+        relations = _accessories.retrieve_local_data_file('Data/Pickles/PRODUCTION_[Well, Pad].pkl', mode=2)
+        field_df['PRO_Pad'] = field_df['PRO_Well'].apply(lambda x: relations.get(x))
+
+    macro_solution, chloride_solution = parallel_optimize(field_df.copy(), dates[0])
+    aggregate_results = configure_aggregates(macro_solution, rell)
 
     _accessories._print('Shutting down H2O server...')
     shutdown_confirm(h2o)
 
     if _return:
-        return aggregate_results
+        return aggregate_results, chloride_solution
     else:
         _accessories.save_local_data_file(aggregate_results,
                                           f'Data/S6 Files/Right_Aggregates_{start_date}_{end_date}.csv')
