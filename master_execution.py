@@ -3,9 +3,10 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: master_execution.py
 # @Last modified by:   Ray
-# @Last modified time: 17-May-2021 16:05:57:571  GMT-0600
+# @Last modified time: 17-May-2021 17:05:70:701  GMT-0600
 # @License: [Private IP]
 
+import pandas as pd
 # from pipeline import S4_ft_eng_math as S4_MATH --> Ignored: Used directly in S5_MODL
 # from pipeline import S5_modeling as S5_MODL --> Ignored: This is for model generation, not creation
 from pipeline import S1_base_generation as S1_BASE
@@ -367,7 +368,9 @@ _ = """
 
 if __name__ == '__main__':
     # GET DATA
-    all_data = S1_BASE._INGESTION()
+    # all_data = S1_BASE._INGESTION()
+    # all_data.to_csv('S1_works.csv')
+    all_data = pd.read_csv('S1_works.csv').drop('Unnamed: 0', axis=1)
 
     # CONDUCT PHYSICS FEATURE ENGINEERING
     phys_engineered = S2_PHYS._FEATENG_PHYS(data=all_data)
@@ -383,8 +386,8 @@ if __name__ == '__main__':
     phys_engineered['chloride_contrib'] = 0.5
     all_data['chloride_contrib'] = 0.5
     # list(phys_engineered)
-    backtest = S6_OPTM._OPTIMIZATION(data=phys_engineered, engineered=False,
-                                     today=False, singular_date='2020-12-01')
+    macro_results, chloride_output = S6_OPTM._OPTIMIZATION(data=phys_engineered, engineered=False,
+                                                           today=False, singular_date='2020-12-01')
 
     # CONDUCT WELL-ALLOCATION
     # TODO: This needs to be formatted as a dict

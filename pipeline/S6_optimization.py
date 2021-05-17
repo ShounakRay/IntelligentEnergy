@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 17-May-2021 16:05:22:221  GMT-0600
+# @Last modified time: 17-May-2021 17:05:61:612  GMT-0600
 # @License: [Private IP]
 
 
@@ -470,6 +470,13 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
         # time_col='Date'
         test_df.columns = [MAPPING.get(c) if MAPPING.get(c) != '' else MAPPING.get(c) for c in test_df.columns]
         orig_features = [c for c in model._model_json['output']['names'] if c in list(test_df)]
+        print('TEST_DF: ' + str(test_df.columns))
+        if 'PRO_Alloc_Steam' in list(test_df):
+            orig_features.append('PRO_Alloc_Steam')
+            # test_df.rename(columns={'PRO_Alloc_Steam': 'Steam'}, inplace=True)
+        elif 'alloc_steam' in list(test_df):
+            orig_features.append('alloc_steam')
+            test_df.rename(columns={'alloc_steam': 'Steam'}, inplace=True)
         compatible_df = test_df[orig_features].infer_objects()
         wanted_types = {k: 'real' if v == float or v == int else 'enum'
                         for k, v in dict(compatible_df.dtypes).items()}
@@ -483,6 +490,13 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
         scenario_df = create_scenarios(subset_df, date, features, steam_range[g])
         scenario_df.columns = [MAPPING.get(c) if MAPPING.get(c) != '' else MAPPING.get(c) for c in scenario_df.columns]
         orig_features = [c for c in model._model_json['output']['names'] if c in list(scenario_df)]
+        print('SCENARIO_DF: ' + scenario_df.columns)
+        if 'PRO_Alloc_Steam' in list(scenario_df):
+            orig_features.append('PRO_Alloc_Steam')
+            scenario_df.rename(columns={'PRO_Alloc_Steam': 'Steam'}, inplace=True)
+        elif 'alloc_steam' in list(scenario_df):
+            orig_features.append('alloc_steam')
+            scenario_df.rename(columns={'alloc_steam': 'Steam'}, inplace=True)
         compatible_df = scenario_df[orig_features].infer_objects()
         wanted_types = {k: 'real' if v == float or v == int else 'enum'
                         for k, v in dict(compatible_df.dtypes).items()}
@@ -504,18 +518,15 @@ def generate_optimization_table(field_df, date, steam_range=steam_range,
         _accessories._print(f"CREATING SCENARIO TABLE FOR: {grouper} {g}.")
 
         subset_df, features = get_subset(field_df, date, g)
-        print('GOT SUBSET')
 
         # file = open('Modeling Reference Files/6086 – ENG: True, WEIGHT: False, TIME: 20/MODELS_6086.pkl', 'rb')
 
         # Running on INDEX 1
         model = h2o.load_model(BEST_MODEL_PATHS.get(g)[0])
-        print('LOADED MODEL')
 
-        print('GOT TEST DATAFRAMES AND CONFIGURING LOCALLY')
-        with _accessories.suppress_stdout():
-            test_pred, test_actual = get_testdfs(model, field_df, g, features)
-            scenario_df = configure_scenario_locally(subset_df, date, model, g, features)
+        # with _accessories.suppress_stdout():
+        test_pred, test_actual = get_testdfs(model, field_df, g, features)
+        scenario_df = configure_scenario_locally(subset_df, date, model, g, features)
 
         optimization_table.append(scenario_df)
 
@@ -615,7 +626,6 @@ def parallel_optimize(field_df, date, grouper='pad', target='total_fluid', steam
         raise ValueError('There\'s no data for this particular day.')
     steam_avail = int(day_df[steam_col].sum())
     try:
-        print('HEdRE')
         optimization_table = generate_optimization_table(field_df, date, steam_range)
         solution = optimize(optimization_table, grouper, steam_avail)
         solution[time_col] = date
