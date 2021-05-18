@@ -190,7 +190,6 @@ IntelligentEnergy/
 │   ├── Misc/
 │   │   ├── aggregate_fiber.csv
 │   │   ├── candidate_selected_pressures_dTime.csv
-│   │   ├── combined_ipc_aggregates_PWELL.csv
 │   │   └── res_2020-01-01.csv
 │   ├── Model Candidates/
 │   │   ├── best_models.pkl
@@ -215,7 +214,8 @@ IntelligentEnergy/
 │   │   └── combined_ipc_engineered_phys_ALL.csv
 │   ├── S3 Files/
 │   │   ├── combined_ipc_aggregates.csv
-│   │   └── combined_ipc_aggregates_ALL.csv
+│   │   ├── combined_ipc_aggregates_ALL.csv
+│   │   └── combined_ipc_aggregates_PWELL.csv
 │   ├── S4 Files/
 │   │   └── combined_ipc_engineered_math.csv
 │   ├── S5 Files/
@@ -26159,6 +26159,8 @@ IntelligentEnergy/
 │   └── TS Phase Space.pdf
 ├── README.md
 ├── S1_works.csv
+├── S2_works.csv
+├── S3_works.csv
 └── Statis Code/
     ├── Approach 1/
     │   ├── .DS_Store
