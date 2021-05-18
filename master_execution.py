@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: master_execution.py
 # @Last modified by:   Ray
-# @Last modified time: 17-May-2021 18:05:50:509  GMT-0600
+# @Last modified time: 17-May-2021 23:05:25:250  GMT-0600
 # @License: [Private IP]
 
 import pandas as pd
@@ -384,9 +384,6 @@ if __name__ == '__main__':
     aggregated = pd.read_csv('Data/S3 Files/combined_ipc_aggregates_PWELL.csv').drop('Unnamed: 0', axis=1)
     aggregated.rename(columns={'Steam': 'PRO_Alloc_Steam'}, inplace=True)
 
-    # TODO: Get well-level constraints
-    well_constraints = {'A': 2000, 'B': 2000, 'C': 2000, 'E': 2000, 'F': '2000'}
-
     # CONDUCT OPTIMIZATION
     aggregated['chloride_contrib'] = 0.5
     aggregated['PRO_Chlorides'] = 2000
@@ -397,7 +394,45 @@ if __name__ == '__main__':
 
     # CONDUCT WELL-ALLOCATION
     # TODO: This needs to be formatted as a dict
+    well_allocation = {'AP2': 168.50638133970068,
+                       'AP3': 158.77670562530514,
+                       'AP4': 218.1557318198097,
+                       'AP5': 184.56816243995024,
+                       'AP6': 193.2713740126074,
+                       'AP7': 169.2051413545468,
+                       'AP8': 172.03388085040683,
+                       'BP1': 275.1545015663883,
+                       'BP2': 199.0340338530178,
+                       'BP3': 181.0507502880953,
+                       'BP4': 108.6806995783778,
+                       'BP5': 265.3717097531363,
+                       'BP6': 214.94264461323525,
+                       'CP1': 299.8409604774457,
+                       'CP2': 101.34910855792296,
+                       'CP3': 228.57072034063148,
+                       'CP4': 151.64662099501112,
+                       'CP5': 239.7184561911505,
+                       'CP6': 184.13507125912707,
+                       'CP7': 133.30833235009698,
+                       'CP8': 42.308273124784144,
+                       'EP2': 176.40490759899953,
+                       'EP3': 244.58464252535686,
+                       'EP4': 54.901433696492944,
+                       'EP5': 78.25684769901943,
+                       'EP6': 106.2963343631096,
+                       'EP7': 250.1620315560527,
+                       'FP1': 197.11805473487084,
+                       'FP2': 219.36129581897654,
+                       'FP3': 192.32563480401095,
+                       'FP4': 117.3281237235291,
+                       'FP5': 207.15013466550303,
+                       'FP6': 120.53492563970951,
+                       'FP7': 145.94637278362194}
     well_allocation = None  # S7_SALL._PRODUCER_ALLOCATION()
 
     # CONDUCT INJECTOR-ALLOCATION
+
     injector_allocation = S8_SALL._INJECTOR_ALLOCATION(data=well_allocation)
+    store = {}
+    for group, df in injector_allocation.groupby('PRO_Well'):
+        store[group] = df.set_index('Cand_Injector')['Cand_Proportion'].to_dict()
