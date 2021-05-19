@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 19-May-2021 12:05:81:811  GMT-0600
+# @Last modified time: 19-May-2021 16:05:46:464  GMT-0600
 # @License: [Private IP]
 
 
@@ -15,8 +15,8 @@ import sys
 from typing import Final
 
 import h2o
+import numpy as np
 import pandas as pd
-from h2o_prediction import h2o_model_prediction
 
 
 def ensure_cwd(expected_parent):
@@ -60,8 +60,8 @@ if True:
     sys.path.insert(1, os.getcwd() + '/_references')
     sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
     import _accessories
-    import _context_managers
-    import S8_injsteam_allocation as S8_SALL
+    from pipeline.h2o_prediction import h2o_model_prediction
+    from pipeline.sagd_ensemble import genetic_ensemble as sagd_ensemble
 
     # Check java dependency
     check_java_dependency()
@@ -107,9 +107,9 @@ steam_range = {
 }
 
 # TODO: EXTERNAL: Model generation should happen in a specific file
-BEST_MODEL_PATHS = _accessories.retrieve_local_data_file("Data/Model Candidates/best_models.pkl",  mode=2)
+BEST_MODEL_PATHS = _accessories.retrieve_local_data_file("Data/Model Candidates/best_models.pkl", mode=2)
 
-MAPPING = ast.literal_eval(open('mapping.txt', 'r').read().split('[Private IP]\n\n')[1])
+MAPPING = ast.literal_eval(open('pipeline/mapping.txt', 'r').read().split('[Private IP]\n\n')[1])
 INV_MAPPING = {v: k for k, v in MAPPING.items()}
 
 _ = """
@@ -616,7 +616,7 @@ def create_scenarios(pad_df, date, features, pad_steam_range, pad_chl_delta, ste
 
 
 def generate_optimization_table(field_df, pad_df, date, features, target,
-                                group, steam_range, chl_delta, steam_variance):
+                                group, steam_range, chl_delta, steam_variance, model_plan):
     rell = {'A': 159.394495, 'B': 132.758275, 'C': 154.587740, 'E': 151.573186, 'F': 103.389248}
     optimization_table = []
 
@@ -643,9 +643,18 @@ def generate_optimization_table(field_df, pad_df, date, features, target,
 
         model_path = BEST_MODEL_PATHS.get(g)[0]
 
-        models_outputs, metric_outputs, model = h2o_model_prediction(model_path,
-                                                                     test_df[['date', target] + features].copy(),
-                                                                     tolerable_rmse=rell.get(g))
+        if model_plan == 'H2O':
+            __test_df = test_df.copy()
+            __test_df.columns = [MAPPING.get(c) if MAPPING.get(c) != '' else c for c in __test_df.columns]
+            __test_df = __test_df[[c for c in __test_df.columns if c is not None]]
+            models_outputs, metric_outputs, model = h2o_model_prediction(model_path,
+                                                                         __test_df[['date', target] + features].copy(),
+                                                                         tolerable_rmse=rell.get(g))
+        elif model_plan == 'SKLEARN':
+            models_outputs, metric_outputs, model = sagd_ensemble(subset_df[features],
+                                                                  subset_df[target],
+                                                                  test_df[features],
+                                                                  test_df[target])
 
         ######################################################
 
@@ -653,10 +662,17 @@ def generate_optimization_table(field_df, pad_df, date, features, target,
                                        [target], steam_range[g], chl_delta[g], steam_variance)
         scenario_df['date'] = pd.to_datetime(date)
 
-        scenario_df['pred'] = sorted(h2o_model_prediction(model_path,
-                                                          scenario_df[['date', target] + features],
-                                                          tolerable_rmse=rell.get(g),
-                                                          just_predictions=True)['predicted'])
+        if model_plan == 'H2O':
+            __scenario_df = scenario_df.copy()
+            __scenario_df.columns = [MAPPING.get(c) if MAPPING.get(c) != '' else c for c in __scenario_df.columns]
+            __scenario_df = __scenario_df[[c for c in __scenario_df.columns if c is not None]]
+            scenario_df['pred'] = sorted(h2o_model_prediction(model_path,
+                                                              __scenario_df[['date', target] + features],
+                                                              tolerable_rmse=rell.get(g),
+                                                              just_predictions=True)['predicted'])
+        elif model_plan == 'SKLEARN':
+            scenario_df['pred'] = sorted(model.predict(scenario_df[features]))
+
         scenario_df[group] = g
 
         scenario_df['rmse'] = metric_outputs.iloc[0].to_dict()['RMSE']
@@ -715,7 +731,7 @@ def create_group_data(field_df, group):
     return field_df
 
 
-def parallel_optimize(field_df, date, Op_Params):
+def parallel_optimize(field_df, date, Op_Params, model_plan):
     pad_df = create_group_data(field_df, Op_Params.group)
     # day_df = pad_df[pad_df['date'] == str(date)]
 
@@ -728,7 +744,8 @@ def parallel_optimize(field_df, date, Op_Params):
     optimization_table = generate_optimization_table(field_df, pad_df, date,
                                                      Op_Params.features, Op_Params.target, Op_Params.group,
                                                      steam_range=Op_Params.pad_steam_constraint, chl_delta=chl_delta,
-                                                     steam_variance=Op_Params.steam_variance)
+                                                     steam_variance=Op_Params.steam_variance,
+                                                     model_plan=model_plan)
     solution = optimize(optimization_table, Op_Params.group, Op_Params.steam_available)
     solution['date'] = date
 
@@ -836,22 +853,52 @@ _ = """
 #######################################################################################################################
 """
 
+date = '2020-12-01'
+steam_available = 6000
+steam_variance = 0.25
+pad_steam_constraint = {}
+well_steam_constraint = {}
+well_pump_constraint = {}
+watercut_source = 'recent_water_cut'
+chl_steam_percent = 0.1
+pres_steam_percent = 0.15
+recent_days = 45
+hist_days = 365
+target = 'total_fluid'
+group = 'pad'
 
-def _OPTIMIZATION(field_df, date, well_interactions,
+# field_df = pd.read_csv('Data/field_data_pressures.csv').drop('Unnamed: 0', axis=1)
+
+
+def _OPTIMIZATION(data, date, well_interactions,
                   steam_available=6000, steam_variance=0.25, pad_steam_constraint={},
                   well_steam_constraint={}, well_pump_constraint={}, watercut_source='recent_water_cut',
                   chl_steam_percent=0.1, pres_steam_percent=0.15, recent_days=45, hist_days=365,
-                  target='total_fluid', group='pad'):
-    """This seems to be the "master" function"""
+                  target='total_fluid', group='pad', model_plan='H2O'):
+    """PURPOSE: TO GENERATE AN OPTIMIZED *PAD* RECCOMMENDATION FOR A PARTICULAR DATE ~OR~ RANGE OF DATES
+       INPUTS:
+       1 – ONE MERGED DATASET, IDEALLY AGGREGATED ON THE PAD LEVEL
+       PROCESSING:
+       OUTPUT: 1 – A DATASET W/ STEAM ALLOCATIONS FOR EACH PAD W/ PERFORMANCE METRICS AND ORIGINAL DATA
+                   RESOLUTION: For a particular date (or range of dates), per pad
+               2 – A DICTIONARY W/ STEAM ALLOCATIONS FOR EACH PAD
+                   *Note: This is same as the above dataset, but trimmed and restructured for accessibility*
+    """
+
+    field_df = data.copy()
 
     # NOTE: Map everything to Pete's output standard (based on `MAPPING` and `INV_MAPPING`)
     field_df.columns = [INV_MAPPING.get(c) if INV_MAPPING.get(c) != '' else c for c in field_df.columns]
+    field_df = field_df[[c for c in field_df.columns if c is not None]]
+    print('Input columns: ' + str(list(field_df)))
 
     features = [  # 'pressure_average',
         'prod_casing_pressure',
         'prod_bhp_heel',
         'prod_bhp_toe',
         'alloc_steam',
+        'prod_bht_heel',
+        'prod_bht_toe',
         # 'spm'
     ]
 
@@ -866,10 +913,8 @@ def _OPTIMIZATION(field_df, date, well_interactions,
                                     well_pump_constraint, watercut_source, chl_steam_percent, pres_steam_percent,
                                     recent_days, hist_days, target, features, group)
 
-    field_df.columns = [f.lower() for f in list(field_df)]
-
     # NOTE: Pad-level Allocation – Optimization
-    macro_solution, chloride_solution = parallel_optimize(field_df, date, Op_Params)
+    macro_solution, chloride_solution = parallel_optimize(field_df, date, Op_Params, model_plan=model_plan)
 
     # NOTE: Pad-level Allocation – Solution, Well-Level Solution
     well_sol, pad_sol, field_kpi = get_field_solution(field_df, date, macro_solution, chloride_solution, Op_Params)
@@ -880,73 +925,73 @@ def _OPTIMIZATION(field_df, date, well_interactions,
     return well_allocations, well_sol, pad_sol, field_kpi
 
 
-def _OPTIMIZATION(data=None, aggregate_reference=None, producer_taxonomy=None, _return=True, flow_ingest=True,
-                  start_date='2015-04-01', end_date='2020-12-20', engineered=True,
-                  today=False, singular_date=''):
-    """PURPOSE: TO GENERATE AN OPTIMIZED *PAD* RECCOMMENDATION FOR A PARTICULAR DATE ~OR~ RANGE OF DATES
-       INPUTS:
-       1 – ONE MERGED DATASET, IDEALLY AGGREGATED ON THE PAD LEVEL
-       PROCESSING:
-       OUTPUT: 1 – A DATASET W/ STEAM ALLOCATIONS FOR EACH PAD W/ PERFORMANCE METRICS AND ORIGINAL DATA
-                   RESOLUTION: For a particular date (or range of dates), per pad
-               2 – A DICTIONARY W/ STEAM ALLOCATIONS FOR EACH PAD
-                   *Note: This is same as the above dataset, but trimmed and restructured for accessibility*
-    """
-    """The `engineered` parameter is a high-level preference, meaning that this setting coerces which type of model
-       to use for optimization – even if that type is not the best model."""
-
-    rell = {'A': 159.394495, 'B': 132.758275, 'C': 154.587740, 'E': 151.573186, 'F': 103.389248}
-    if singular_date != '':
-        start_date, end_date = singular_date
-    elif today:
-        # WARNING: This may result in a crash if there is no data available for this day
-        # TODO: To fix this issue, always get the most recent day from the inputted dataset
-        start_date, end_date = str(datetime.datetime.now()).split(' ')[0]
-
-    _accessories._print('Initializing H2O server to access model files...')
-    setup_and_server()
-
-    if flow_ingest:
-        _accessories._print('Loading the most basic, aggregated + mathematically engineered datasets from LAST...')
-        DATASETS = {'AGGREGATED': data}
-    else:
-        _accessories._print('Loading the most basic, aggregated + mathematically engineered datasets from SAVED...')
-        DATASETS = {'AGGREGATED':
-                    _accessories.retrieve_local_data_file('Data/S3 Files/combined_ipc_aggregates_ALL.csv')}
-
-    # results = []
-    # for date in dates:
-    #     try:
-    #         solution = parallel_optimize(date)
-    #     except Exception:
-    #         continue
-    #     results.append(solution)
-    # aggregate_results = pd.concat(results)
-
-    # TODO: Model selection
-    # TODO: Load acceptable ranges from S5_Modeling
-
-    _accessories._print('Performing backtesting...')
-    dates = pd.date_range(*(start_date, end_date)).strftime('%Y-%m-%d')
-
-    field_df = DATASETS['AGGREGATED_ENG'].copy()
-
-    # TEMP: Assigns pad relationships to data if it's not already av
-    if 'PRO_Pad' not in list(field_df):
-        # producer_taxonomy = _accessories.retrieve_local_data_file('Data/Pickles/PRODUCTION_[Well, Pad].pkl', mode=2)
-        field_df['PRO_Pad'] = field_df['PRO_Well'].apply(lambda x: producer_taxonomy.get(x))
-
-    macro_solution, chloride_solution = parallel_optimize(field_df.copy(), dates[0])
-    aggregate_results = configure_aggregates(macro_solution, aggregate_reference, rell)
-
-    _accessories._print('Shutting down H2O server...')
-    shutdown_confirm(h2o)
-
-    if _return:
-        return aggregate_results, chloride_solution
-    else:
-        _accessories.save_local_data_file(aggregate_results,
-                                          f'Data/S6 Files/Right_Aggregates_{start_date}_{end_date}.csv')
+# def _OPTIMIZATION(data=None, aggregate_reference=None, producer_taxonomy=None, _return=True, flow_ingest=True,
+#                   start_date='2015-04-01', end_date='2020-12-20', engineered=True,
+#                   today=False, singular_date=''):
+#     """PURPOSE: TO GENERATE AN OPTIMIZED *PAD* RECCOMMENDATION FOR A PARTICULAR DATE ~OR~ RANGE OF DATES
+#        INPUTS:
+#        1 – ONE MERGED DATASET, IDEALLY AGGREGATED ON THE PAD LEVEL
+#        PROCESSING:
+#        OUTPUT: 1 – A DATASET W/ STEAM ALLOCATIONS FOR EACH PAD W/ PERFORMANCE METRICS AND ORIGINAL DATA
+#                    RESOLUTION: For a particular date (or range of dates), per pad
+#                2 – A DICTIONARY W/ STEAM ALLOCATIONS FOR EACH PAD
+#                    *Note: This is same as the above dataset, but trimmed and restructured for accessibility*
+#     """
+#     """The `engineered` parameter is a high-level preference, meaning that this setting coerces which type of model
+#        to use for optimization – even if that type is not the best model."""
+#
+#     rell = {'A': 159.394495, 'B': 132.758275, 'C': 154.587740, 'E': 151.573186, 'F': 103.389248}
+#     if singular_date != '':
+#         start_date, end_date = singular_date
+#     elif today:
+#         # WARNING: This may result in a crash if there is no data available for this day
+#         # TODO: To fix this issue, always get the most recent day from the inputted dataset
+#         start_date, end_date = str(datetime.datetime.now()).split(' ')[0]
+#
+#     _accessories._print('Initializing H2O server to access model files...')
+#     setup_and_server()
+#
+#     if flow_ingest:
+#         _accessories._print('Loading the most basic, aggregated + mathematically engineered datasets from LAST...')
+#         DATASETS = {'AGGREGATED': data}
+#     else:
+#         _accessories._print('Loading the most basic, aggregated + mathematically engineered datasets from SAVED...')
+#         DATASETS = {'AGGREGATED':
+#                     _accessories.retrieve_local_data_file('Data/S3 Files/combined_ipc_aggregates_ALL.csv')}
+#
+#     # results = []
+#     # for date in dates:
+#     #     try:
+#     #         solution = parallel_optimize(date)
+#     #     except Exception:
+#     #         continue
+#     #     results.append(solution)
+#     # aggregate_results = pd.concat(results)
+#
+#     # TODO: Model selection
+#     # TODO: Load acceptable ranges from S5_Modeling
+#
+#     _accessories._print('Performing backtesting...')
+#     dates = pd.date_range(*(start_date, end_date)).strftime('%Y-%m-%d')
+#
+#     field_df = DATASETS['AGGREGATED_ENG'].copy()
+#
+#     # TEMP: Assigns pad relationships to data if it's not already av
+#     if 'PRO_Pad' not in list(field_df):
+#         # producer_taxonomy = _accessories.retrieve_local_data_file('Data/Pickles/PRODUCTION_[Well, Pad].pkl', mode=2)
+#         field_df['PRO_Pad'] = field_df['PRO_Well'].apply(lambda x: producer_taxonomy.get(x))
+#
+#     macro_solution, chloride_solution = parallel_optimize(field_df.copy(), dates[0])
+#     aggregate_results = configure_aggregates(macro_solution, aggregate_reference, rell)
+#
+#     _accessories._print('Shutting down H2O server...')
+#     shutdown_confirm(h2o)
+#
+#     if _return:
+#         return aggregate_results, chloride_solution
+#     else:
+#         _accessories.save_local_data_file(aggregate_results,
+#                                           f'Data/S6 Files/Right_Aggregates_{start_date}_{end_date}.csv')
 
 
 if __name__ == '__main__':

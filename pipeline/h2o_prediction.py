@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: h2o_prediction.py
 # @Last modified by:   Ray
-# @Last modified time: 18-May-2021 00:05:25:256  GMT-0600
+# @Last modified time: 19-May-2021 13:05:78:788  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from _references import _accessories
 
-MAPPING = ast.literal_eval(open('mapping.txt', 'r').read().split('[Private IP]\n\n')[1])
+MAPPING = ast.literal_eval(open('pipeline/mapping.txt', 'r').read().split('[Private IP]\n\n')[1])
 INV_MAPPING = {v: k for k, v in MAPPING.items()}
 
 # H2O Server Constants

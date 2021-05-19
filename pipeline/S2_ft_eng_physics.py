@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: feature_engineering.py
 # @Last modified by:   Ray
-# @Last modified time: 19-May-2021 10:05:39:398  GMT-0600
+# @Last modified time: 19-May-2021 15:05:28:283  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -52,11 +52,9 @@ _ = """
 #############################################   HYPERPARAMETER SETTINGS   #############################################
 #######################################################################################################################
 """
-NOT_REQUIRED: Final = ['PRO_Pump_Efficiency', 'PRO_Engineering_Approved', 'PRO_Alloc_Water_Cut',
+NOT_REQUIRED: Final = ['PRO_Engineering_Approved',
                        'PRO_Theo_Fluid', 'PRO_Alloc_Factor', 'adj_PRO_Theo_Fluid',
-                       'PRO_Alloc_Water', 'Field_Steam', 'PRO_Pump_Speed',
-                       'PRO_Gas', 'PRO_Oil', 'PRO_Fluid', 'PRO_Duration',
-                       'PRO_Pad']
+                       'Field_Steam', 'PRO_Pump_Speed', 'PRO_Gas', 'PRO_Oil', 'PRO_Fluid', 'PRO_Duration']
 
 _ = """
 #######################################################################################################################
@@ -80,6 +78,8 @@ def engineer_adjusted_features(df, injectors):
     df['PRO_Adj_Pump_Efficiency'] = df['adj_PRO_Theo_Fluid'] / \
         df['PRO_Adj_Pump_Speed'] * 10
     df['Field_Steam'] = df[injectors].sum(axis=1)
+    df['PRO_Volume_Per_Stroke'] = df['adj_PRO_Theo_Fluid'] / df['PRO_Adj_Pump_Speed'] * \
+        (df['PRO_Adj_Pump_Efficiency'] / 100)
 
 
 def get_injector_wells(df_joined, forbidden=['PRO_UWI']):

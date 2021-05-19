@@ -206,6 +206,8 @@ IntelligentEnergy/
 │   │   ├── PRODUCTION_[Well, Pad].pkl
 │   │   ├── pwell_allocations.pkl
 │   │   └── WELL_Candidates.pkl
+│   ├── prod_combined_subset_for_pete.csv
+│   ├── prod_subset_for_pete.csv
 │   ├── S1 Files/
 │   │   ├── combined_ipc.csv
 │   │   └── combined_ipc_ALL.csv
@@ -26118,6 +26120,7 @@ IntelligentEnergy/
 │   ├── __pycache__/
 │   │   ├── __init__.cpython-38.pyc
 │   │   ├── __init__.cpython-39.pyc
+│   │   ├── h2o_prediction.cpython-38.pyc
 │   │   ├── S1_base_generation.cpython-38.pyc
 │   │   ├── S2_ft_eng_physics.cpython-38.pyc
 │   │   ├── S3_weighting.cpython-38.pyc
@@ -26125,8 +26128,10 @@ IntelligentEnergy/
 │   │   ├── S4_ft_eng_math.cpython-38.pyc
 │   │   ├── S6_optimization.cpython-38.pyc
 │   │   ├── S7_prosteam_allocation.cpython-38.pyc
-│   │   └── S8_injsteam_allocation.cpython-38.pyc
+│   │   ├── S8_injsteam_allocation.cpython-38.pyc
+│   │   └── sagd_ensemble.cpython-38.pyc
 │   ├── _class/
+│   │   ├── _NAmodeling_bare_minimum.py
 │   │   └── S1F_base_generation.py
 │   ├── _multiprocessed/
 │   │   ├── __pycache__/
@@ -26137,7 +26142,8 @@ IntelligentEnergy/
 │   │   │   └── coordinates.cpython-38.pyc
 │   │   ├── coordinates.py
 │   │   └── pressure_proxies.py
-│   ├── modeling_bare_minimum.py
+│   ├── h2o_prediction.py
+│   ├── mapping.txt
 │   ├── S1_base_generation.py
 │   ├── S2_ft_eng_physics.py
 │   ├── S3_weighting.py
@@ -26145,7 +26151,8 @@ IntelligentEnergy/
 │   ├── S5_modeling.py
 │   ├── S6_optimization.py
 │   ├── S7_prosteam_allocation.py
-│   └── S8_injsteam_allocation.py
+│   ├── S8_injsteam_allocation.py
+│   └── sagd_ensemble.py
 ├── process_flow.drawio
 ├── R&D References/
 │   ├── Adaptive TS SVM.pdf

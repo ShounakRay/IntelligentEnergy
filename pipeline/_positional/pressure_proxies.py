@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 19-May-2021 12:05:44:443  GMT-0600
+# @Last modified time: 19-May-2021 15:05:51:513  GMT-0600
 # @License: [Private IP]
 
 
@@ -150,6 +150,31 @@ list(FINAL_FIELD_DATA)
 dict(FINAL_FIELD_DATA.isna().sum())
 
 FINAL_FIELD_DATA.to_csv('Data/field_data_pressures_all.csv')
+
+PROD_DATA_ORIG = pd.read_excel('Data/Isolated/OLT production data (rev 1).xlsx')
+PROD_DATA = PROD_DATA_ORIG[['(yyyy/mm/dd)', 'Pad', 'Well', 'UWI', 'Allocated Total Steam To Producer (m3)',
+                            'Metered Steam (m3/hr)', 'Metered Steam (m3/day)']]
+PROD_DATA.columns = ['Date', 'producer_pad', 'producer_well', 'uwi', 'Alloc_Steam_to_Producer',
+                     'Metered_Steam_Hourly', 'Metered_Steam_Daily']
+fig, ax = plt.subplots(figsize=(24, 12))
+_temp = PROD_DATA.groupby(['Date', 'producer_pad']).sum()['Alloc_Steam_to_Producer'].reset_index().sort_values('Date')
+_temp.set_index('Date').plot(kind='line', ax=ax, label='Alloc_Steam_to_Producer')
+_temp = PROD_DATA.groupby(['Date', 'producer_pad']).sum()['Metered_Steam_Daily'].reset_index().sort_values('Date')
+_temp.set_index('Date').plot(kind='line', ax=ax, label='Metered_Steam_Daily')
+plt.legend()
+
+fig, ax = plt.subplots(figsize=(24, 12))
+_temp = PROD_DATA.groupby(['Date', 'producer_pad']).sum()['Metered_Steam_Hourly'].reset_index().sort_values('Date')
+_temp.set_index('Date').plot(kind='line', ax=ax, label='Hourly')
+plt.legend()
+
+
+PROD_DATA.to_csv('Data/prod_subset_for_pete.csv')
+PROD_DATA['Date'] = pd.to_datetime(PROD_DATA['Date'])
+FINAL_FIELD_DATA.rename(columns={'date_metered': 'Date', 'PRO_UWI': 'uwi'}, inplace=True)
+COMBINED = pd.merge(FINAL_FIELD_DATA, PROD_DATA, how='inner', on=['Date', 'producer_well', 'uwi'])
+list(COMBINED)
+COMBINED.to_csv('Data/prod_combined_subset_for_pete.csv')
 
 _ = """
 #######################################################################################################################
