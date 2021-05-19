@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 17-May-2021 10:05:68:689  GMT-0600
+# @Last modified time: 17-May-2021 23:05:87:878  GMT-0600
 # @License: [Private IP]
 
 
@@ -285,7 +285,8 @@ see_performance(sparse_df, first_two=['Math_Eng', 'Weighted'],
                 x='Duration', y='Rel_Val_RMSE',
                 groupby_option='Group', kind='line', FIGSIZE=(21, 11))
 
-best, details = get_best_models(benchmarks[benchmarks['Math_Eng'] == False],
+benchmarks[benchmarks['Math_Eng'] == True].sort_values('Rel_Val_RMSE').reset_index(drop=True).loc[0]['path']
+best, details = get_best_models(benchmarks[benchmarks['Math_Eng'] == True],
                                 sort_by=['Rel_Val_RMSE'], top=10)
 
 _accessories.save_local_data_file(best, 'Data/Model Candidates/best_models.pkl')

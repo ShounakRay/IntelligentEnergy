@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 17-May-2021 10:05:47:471  GMT-0600
+# @Last modified time: 19-May-2021 12:05:76:760  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -75,7 +75,7 @@ y_delta = POS_TR[0] | POS_BR[0]
 
 OLD_DUPLICATES = ['PRO_Alloc_Oil', 'PRO_Pump_Speed']
 
-aggregation_dict = {'PRO_Adj_Pump_Speed': 'mean',
+aggregation_dict = {'PRO_Adj_Pump_Speed': 'sum',
                     # 'PRO_Pump_Speed': 'sum',
                     # 'PRO_Time_On': 'mean',
                     'PRO_Casing_Pressure': 'mean',
@@ -85,9 +85,13 @@ aggregation_dict = {'PRO_Adj_Pump_Speed': 'mean',
                     'PRO_Toe_Temp': 'mean',
                     'PRO_Adj_Alloc_Oil': 'sum',
                     'PRO_Alloc_Oil': 'sum',
+                    'PRO_Adj_Pump_Efficiency': 'mean',
+                    'PRO_Adj_Alloc_Water': 'sum',
                     # 'PRO_Duration': 'mean',
                     # 'PRO_Alloc_Oil': 'sum',
                     'PRO_Total_Fluid': 'sum',
+                    'PRO_Water': 'sum',
+                    'PRO_Chlorides': 'sum',
                     # 'PRO_Alloc_Water': 'sum',
                     'PRO_Alloc_Steam': 'sum',
                     'PRO_Water_cut': 'sum',
@@ -325,6 +329,7 @@ def euclidean_2d_distance(c1, c2):
 
 
 def get_coordinates(data_group):
+    """Work to be done here provided new positional data"""
     def get_injector_coordinates():
         if True:
             INJ_relcoords = {}
@@ -449,7 +454,7 @@ def get_coordinates(data_group):
 get_coordinates('INJECTION')
 
 
-def distance_matrix(injector_coordinates, producer_coordinates, save=True):
+def distance_matrix(injector_coordinates, producer_coordinates, save=False):
     pro_inj_distance = pd.DataFrame([], columns=injector_coordinates.keys(), index=producer_coordinates.keys())
     pro_inj_distance = pro_inj_distance.rename_axis('PRO_Well').reset_index()
     operat = 'mean'
@@ -473,7 +478,7 @@ def distance_matrix(injector_coordinates, producer_coordinates, save=True):
 
 def get_all_candidates(injection_coordinates, production_coordinates,
                        available_pads_transformed, available_pwells_transformed, pro_well_pad_relationship,
-                       rel_rad=50, save=True, plot=False, **kwargs):
+                       rel_rad=50, save=False, plot=False, **kwargs):
     def injector_candidates(production_pad, production_well,
                             injector_coordinates, production_coordinates, relative_radius=50,
                             pro_well_pad_relationship=pro_well_pad_relationship):
@@ -599,18 +604,34 @@ _ = """
 """
 
 
-def _INTELLIGENT_AGGREGATION(data=None, _return=True, flow_ingest=True, weights=True):
+def _INTELLIGENT_AGGREGATION(data=None, taxonomy=None, _return=True, flow_ingest=True, weights=True):
+    """PURPOSE: TO GENERATE WEIGHTS + AGGREGATE PRODUCER DATA TO PAD-LEVEL DATA
+       INPUTS:
+       1 – ONE MERGED DATASET, IDEALLY UNDERWENT PHYSICS ENGINEERING (BUT NOT A DEPENDENCY)
+       2 – A DICTIONARY OF WELL-PAD RELATIONSHIPS, BOTH FOR INJECTORS AND PRODUCERS
+       PROCESSING:
+       OUTPUT: 1 - A DATASET W/ SOME NEW PHYSICS-ENGINEERED FEATURES
+                   RESOLUTION: Per day, per producer pad, what is aggregate producer, injector steam, and fiber data?
+                               And – optionally – what are the weights of each instance?
+               2 – DISTANCE MATRIX
+                   This are the distances between all the injectors to each other.
+               3 – CANDIDATES
+                   This is a double-nested dictionary of candidates, on a producer-pad-level and producer-well-level
+    """
     if flow_ingest:
         _accessories._print('Ingesting PHYSICS ENGINEERED data from LAST STEP...',
                             color='LIGHTYELLOW_EX')
         DATASETS = {'FINALE': data}
+        _accessories._print('Ingesting well relationship data from saved data...', color='LIGHTYELLOW_EX')
+        INJ_PAD_KEYS = taxonomy['INJECTION']
+        PRO_PAD_KEYS = taxonomy['PRODUCTION']
     else:
         _accessories._print('Ingesting PHYSICS ENGINEERED data from SAVED DATA...', color='LIGHTYELLOW_EX')
         DATASETS = {'FINALE': _accessories.retrieve_local_data_file(
             'Data/S2 Files/combined_ipc_engineered_phys_ALL.csv')}
-    _accessories._print('Ingesting well relationship data from saved data...', color='LIGHTYELLOW_EX')
-    INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/Pickles/INJECTION_[Well, Pad].pkl', mode=2)
-    PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/Pickles/PRODUCTION_[Well, Pad].pkl', mode=2)
+        _accessories._print('Ingesting well relationship data from saved data...', color='LIGHTYELLOW_EX')
+        INJ_PAD_KEYS = _accessories.retrieve_local_data_file('Data/Pickles/INJECTION_[Well, Pad].pkl', mode=2)
+        PRO_PAD_KEYS = _accessories.retrieve_local_data_file('Data/Pickles/PRODUCTION_[Well, Pad].pkl', mode=2)
 
     _accessories._print('Minor processing...', color='LIGHTYELLOW_EX')
     DATASETS['FINALE'] = minor_processing(DATASETS['FINALE'], PRO_PAD_KEYS)
@@ -630,11 +651,13 @@ def _INTELLIGENT_AGGREGATION(data=None, _return=True, flow_ingest=True, weights=
                                                                        available_pads_transformed,
                                                                        available_pwells_transformed,
                                                                        rel_rad=relative_radius,
-                                                                       save=True,
+                                                                       save=False,
                                                                        plot=plot_geo,
                                                                        pro_well_pad_relationship=PRO_PAD_KEYS)
+    CANDIDATES = {'BY_PAD': candidates_by_prodpad,
+                  'BY_WELL': candidates_by_prodwell}
 
-    _ = distance_matrix(injector_coords, producer_coords, save=True)
+    DISTANCE_MATRIX = distance_matrix(injector_coords, producer_coords, save=False)
 
     _accessories._print('Determining PRODUCTION data aggregates...', color='LIGHTYELLOW_EX')
     DATASETS['PRODUCTION_AGGREGATES'] = produce_production_aggregates(DATASETS['FINALE'],
@@ -656,7 +679,7 @@ def _INTELLIGENT_AGGREGATION(data=None, _return=True, flow_ingest=True, weights=
     merged_df = merge(DATASETS, ['A', 'B', 'C', 'E', 'F'])
 
     if _return:
-        return merged_df
+        return merged_df, DISTANCE_MATRIX, CANDIDATES
     else:
         _accessories.save_local_data_file(merged_df, 'Data/S3 Files/combined_ipc_aggregates_ALL.csv')
 

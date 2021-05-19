@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: test.py
 # @Last modified by:   Ray
-# @Last modified time: 15-May-2021 12:05:45:455  GMT-0600
+# @Last modified time: 19-May-2021 12:05:44:443  GMT-0600
 # @License: [Private IP]
 
 
@@ -96,7 +96,7 @@ DATA_INJECTION = DATA_INJECTION_ORIG.reset_index(drop=True)
 DATA_INJECTION.columns = ['Date', 'Pad', 'Well', 'UWI_Identifier', 'Time_On',
                           'Alloc_Steam', 'Meter_Steam', 'Casing_Pressure',
                           'Tubing_Pressure', 'Reason', 'Comment']
-DATA_INJECTION_KEYS = ['Date', 'Pad', 'Well', 'Meter_Steam',
+DATA_INJECTION_KEYS = ['Date', 'Pad', 'Well', 'Alloc_Steam', 'Meter_Steam',
                        'Casing_Pressure', 'Tubing_Pressure']
 DATA_INJECTION = DATA_INJECTION[DATA_INJECTION_KEYS]
 DATA_INJECTION['Pressure'] = DATA_INJECTION.apply(pressure_lambda, axis=1)
@@ -108,26 +108,48 @@ DATA_INJECTION = filter_negatives(DATA_INJECTION,
 DATA_INJECTION = convert_to_date(DATA_INJECTION, 'Date')
 DATA_INJECTION = DATA_INJECTION.infer_objects()
 # > Pivot so columns feature all injection wells and cells are steam values
-DATA_INJECTION = DATA_INJECTION.pivot_table(['Meter_Steam', 'Pressure'],
+DATA_INJECTION = DATA_INJECTION.pivot_table(['Alloc_Steam', 'Meter_Steam', 'Pressure'],
                                             'Date', ['Well'], dropna=False)
 DATA_INJECTION.columns.names = (None, None)
 DATA_INJECTION_PRESS = DATA_INJECTION['Pressure']
+DATA_INJECTION_MSTEAM = DATA_INJECTION['Meter_Steam']
+DATA_INJECTION_ASTEAM = DATA_INJECTION['Alloc_Steam']
 
 DATA_INJECTION_PRESS.infer_objects().to_csv('Data/Injection_Pressure_Data.csv')
 
-list(DATA_INJECTION_PRESS.dropna(axis=1, how='all'))
-
 # Merge Pressure Data with Steam Data
 FIELD_DATA = pd.read_csv('Data/field_data.csv').infer_objects()
+
 DATA_INJECTION_PRESS.reset_index(drop=False, inplace=True)
 DATA_INJECTION_PRESS.columns = [c.lower() for c in list(DATA_INJECTION_PRESS)]
 
 FIELD_DATA['date'] = pd.to_datetime(FIELD_DATA['date'])
 DATA_INJECTION_PRESS['date'] = pd.to_datetime(DATA_INJECTION_PRESS['date'])
+list(FIELD_DATA)
 
-FINAL_FIELD_DATA = pd.merge(FIELD_DATA, DATA_INJECTION_PRESS, how='inner',
-                            on=['date'], suffixes=('_steam', '_pressure'))  # .dropna(axis=1, how='all')
-FINAL_FIELD_DATA.to_csv('Data/field_data_pressures.csv')
+# Merge allocated and metered steam into one
+steam_data = pd.merge(DATA_INJECTION_MSTEAM, DATA_INJECTION_ASTEAM, how='outer',
+                      on=['Date'], suffixes=('', '_allocated'))
+steam_data.columns = [c.lower() for c in list(steam_data)]
+steam_data = steam_data.reset_index(drop=False).rename(columns={'Date': 'date'})
+steam_data['date'] = pd.to_datetime(steam_data['date'])
+list(steam_data)
+
+
+FINAL_SP_DATA = pd.merge(steam_data, DATA_INJECTION_PRESS, how='outer',
+                         on=['date'], suffixes=('', '_pressure'))  # .dropna(axis=1, how='all')
+list(FINAL_SP_DATA)
+all_common_injs = sorted(list(set(list(FINAL_SP_DATA)).intersection(list(FIELD_DATA))))
+FINAL_FIELD_DATA = pd.merge(FIELD_DATA, FINAL_SP_DATA, how='outer',
+                            on=all_common_injs)
+list(FINAL_FIELD_DATA)
+FINAL_FIELD_DATA = FINAL_FIELD_DATA.dropna(axis=1, how='all')
+FINAL_FIELD_DATA.columns = [c + '_metered' if c in all_common_injs else c for c in list(FINAL_FIELD_DATA)]
+list(FINAL_FIELD_DATA)
+
+dict(FINAL_FIELD_DATA.isna().sum())
+
+FINAL_FIELD_DATA.to_csv('Data/field_data_pressures_all.csv')
 
 _ = """
 #######################################################################################################################

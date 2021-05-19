@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: master_execution.py
 # @Last modified by:   Ray
-# @Last modified time: 17-May-2021 23:05:25:250  GMT-0600
+# @Last modified time: 19-May-2021 12:05:48:482  GMT-0600
 # @License: [Private IP]
 
 import pandas as pd
@@ -367,32 +367,35 @@ _ = """
 """
 
 if __name__ == '__main__':
-    # GET DATA
-    # all_data = S1_BASE._INGESTION()
+    # NOTE: GET DATA
+    all_data, taxonomy = S1_BASE._INGESTION()
     # all_data.to_csv('S1_works.csv')
-    all_data = pd.read_csv('S1_works.csv').drop('Unnamed: 0', axis=1)
+    # all_data = pd.read_csv('S1_works.csv').drop('Unnamed: 0', axis=1)
 
-    # CONDUCT PHYSICS FEATURE ENGINEERING
-    # phys_engineered = S2_PHYS._FEATENG_PHYS(data=all_data)
+    # NOTE: CONDUCT PHYSICS FEATURE ENGINEERING
+    phys_engineered = S2_PHYS._FEATENG_PHYS(data=all_data)
     # phys_engineered.to_csv('S2_works.csv')
-    phys_engineered = pd.read_csv('S2_works.csv').drop('Unnamed: 0', axis=1)
+    # phys_engineered = pd.read_csv('S2_works.csv').drop('Unnamed: 0', axis=1)
 
-    # CONDUCT WEIGHTING
-    # aggregated = S3_WGHT._INTELLIGENT_AGGREGATION(data=phys_engineered, weights=False)
+    # NOTE: CONDUCT WEIGHTING (weights:=False for time speed-up)
+    aggregated, PI_distances, candidates = S3_WGHT._INTELLIGENT_AGGREGATION(data=phys_engineered,
+                                                                            taxonomy=taxonomy,
+                                                                            weights=False)
     # aggregated.to_csv('S3_works.csv')
     # aggregated = pd.read_csv('S3_works.csv').drop('Unnamed: 0', axis=1)
-    aggregated = pd.read_csv('Data/S3 Files/combined_ipc_aggregates_PWELL.csv').drop('Unnamed: 0', axis=1)
+    # aggregated = pd.read_csv('Data/S3 Files/combined_ipc_aggregates_PWELL.csv').drop('Unnamed: 0', axis=1)
     aggregated.rename(columns={'Steam': 'PRO_Alloc_Steam'}, inplace=True)
 
-    # CONDUCT OPTIMIZATION
-    aggregated['chloride_contrib'] = 0.5
-    aggregated['PRO_Chlorides'] = 2000
+    # NOTE: CONDUCT OPTIMIZATION
     phys_engineered['chloride_contrib'] = 0.5
-    # list(phys_engineered)
-    macro_results, chloride_output = S6_OPTM._OPTIMIZATION(data=phys_engineered, engineered=False,
+    macro_results, chloride_output = S6_OPTM._OPTIMIZATION(data=phys_engineered,
+                                                           well_interactions=candidates['BY_WELL'],
+                                                           aggregate_reference=aggregated,
+                                                           producer_taxonomy=taxonomy['PRODUCTION'],
+                                                           engineered=False,
                                                            today=False, singular_date='2020-12-01')
 
-    # CONDUCT WELL-ALLOCATION
+    # NOTE: CONDUCT WELL-ALLOCATION
     # TODO: This needs to be formatted as a dict
     well_allocation = {'AP2': 168.50638133970068,
                        'AP3': 158.77670562530514,
@@ -428,7 +431,7 @@ if __name__ == '__main__':
                        'FP5': 207.15013466550303,
                        'FP6': 120.53492563970951,
                        'FP7': 145.94637278362194}
-    well_allocation = None  # S7_SALL._PRODUCER_ALLOCATION()
+    # well_allocation = S7_SALL._PRODUCER_ALLOCATION()
 
     # CONDUCT INJECTOR-ALLOCATION
 

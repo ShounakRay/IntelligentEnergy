@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: feature_engineering.py
 # @Last modified by:   Ray
-# @Last modified time: 17-May-2021 16:05:56:569  GMT-0600
+# @Last modified time: 19-May-2021 10:05:39:398  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -113,6 +113,14 @@ _ = """
 
 
 def _FEATENG_PHYS(data=None, _return=True, flow_ingest=True):
+    """PURPOSE: TO GENERATE NEW FEATURES FROM DOMAIN SPECIFIC KNOWLEDGE
+       INPUTS:
+       1 – ONE MERGED DATASET
+       PROCESSING:
+       OUTPUT: A DATASET W/ SOME NEW PHYSICS-ENGINEERED FEATURES
+               RESOLUTION: Per day, per producer well, what is producer, injector steam, and fiber data + engineered?
+               NEW FEATURES: TODO [list here]
+    """
     if flow_ingest:
         _accessories._print('Ingesting JOINED DATA data from LAST STEP...', color='LIGHTYELLOW_EX')
         DATASETS = {'JOINED_SOURCE': data.infer_objects()}

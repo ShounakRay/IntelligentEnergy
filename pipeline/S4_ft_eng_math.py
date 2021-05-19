@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: ft_eng_math.py
 # @Last modified by:   Ray
-# @Last modified time: 17-May-2021 11:05:23:234  GMT-0600
+# @Last modified time: 19-May-2021 10:05:50:502  GMT-0600
 # @License: [Private IP]
 
 import itertools
@@ -80,7 +80,7 @@ def minor_processing(df):
     return df
 
 
-def generate_new_features(df, RESPONDER, group_colname='PRO_Pad', save=True, **kwargs):
+def generate_new_features(df, RESPONDER, group_colname='PRO_Pad', save=False, **kwargs):
     CORE_FEATURES = list(df.columns).copy()
 
     groupers = df[group_colname].unique()
@@ -215,27 +215,38 @@ _ = """
 """
 
 
-def _FEATENG_MATH(data=None, RESPONDER='PRO_Total_Fluid', skip_save=True):
-    if data is None:
+def _FEATENG_MATH(data=None, _return=True, flow_ingest=True, RESPONDER='PRO_Total_Fluid'):
+    """PURPOSE: TO GENERATE NEW FEATURES FROM STATISTICAL CHARACTERISTICS DYNAMICALLY DURING MODEL CREATION
+       INPUTS:
+       1 – ONE MERGED DATASET
+           > DEFINITELY UNDERWENT WELL-TO-PAD AGGREGATION (BUT NOT A DEPENDENCY)
+           > IDEALLY UNDERWENT PHYSICS FEATURE ENGINEERING (BUT NOT A DEPENDENCY)
+       PROCESSING:
+       OUTPUT: 1 – A DATASET W/ SOME NEW STATISTICALLY-ENGINEERED FEATURES, GROUPED BY PAD (OR WELL)
+                   RESOLUTION: Per day, per producer pad, what is producer, injector , and fiber data + engineered fts?
+                   NEW FEATURES: There is no definite list, always changes.
+               2 – LIST OF THE CORE FEATURES, PRE-ENGINEERING
+                   *Note: this is returned just for reference if ever needed, not actually used in `S5_modeling`x*
+    """
+    DATASETS = {}
+    if flow_ingest:
+        _accessories._print('Model-group specific data is loaded for feature engineering...', color='LIGHTYELLOW_EX')
+        DATASETS['WEIGHTED'] = data.infer_objects()
+    else:
         _accessories._print('Ingesting PHYSICS ENGINEERD, WEIGHTED data...', color='LIGHTYELLOW_EX')
         _accessories._print('WARNING: Mathematical feature engineering is isolated from modelling component.\n' +
                             'This is not representative of the production pipeline.')
-        loaded_data = _accessories.retrieve_local_data_file('Data/S3 Files/combined_ipc_aggregates.csv')
-    elif type(data) is pd.core.frame.DataFrame:
-        _accessories._print('Model-group specific data is loaded for feature engineering...', color='LIGHTYELLOW_EX')
-        loaded_data = data.infer_objects()
-    else:
-        raise ValueError('Incorrectly formatted data inputted. Not DataFrame or defaulted None.')
-
-    DATASETS = {'WEIGHTED': loaded_data}
+        DATASETS['WEIGHTED'] = _accessories.retrieve_local_data_file('Data/S3 Files/combined_ipc_aggregates.csv')
 
     _accessories._print('Minor processing on data...', color='LIGHTYELLOW_EX')
     DATASETS['WEIGHTED'] = minor_processing(DATASETS['WEIGHTED'])
 
     _accessories._print('Generating new features...', color='LIGHTYELLOW_EX')
-    groups_engdfs, CORE_FEATURES = generate_new_features(DATASETS['WEIGHTED'], RESPONDER, 'PRO_Pad')
+    groups_engdfs, CORE_FEATURES = generate_new_features(DATASETS['WEIGHTED'], RESPONDER, 'PRO_Pad', save=False)
 
-    if(not skip_save):
+    if _return:
+        return groups_engdfs, CORE_FEATURES
+    else:
         _accessories._print('Extracting specs of generated features...', color='LIGHTYELLOW_EX')
         all_new_dfs, all_new_fts, NEW_FEATURES = extract_specs(groups_engdfs, 'PRO_Pad', CORE_FEATURES)
 
@@ -245,8 +256,6 @@ def _FEATENG_MATH(data=None, RESPONDER='PRO_Total_Fluid', skip_save=True):
         _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
         _accessories.finalize_all(DATASETS, skip=[])
         _accessories.save_local_data_file(DATASETS['CONCATENATED'], 'Data/S4 Files/combined_ipc_engineered_math.csv')
-    else:
-        return groups_engdfs, CORE_FEATURES
 
 
 if __name__ == '__main__':

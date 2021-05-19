@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 17-May-2021 11:05:02:025  GMT-0600
+# @Last modified time: 19-May-2021 09:05:61:611  GMT-0600
 # @License: [Private IP]
 
 
@@ -187,12 +187,15 @@ def ingest_fiber(producer_wells, **kwargs):
     return aggregated_fiber
 
 
-def save_well_pad_relations(datasets, direc='Data/Pickles/', only=['INJECTION', 'PRODUCTION']):
+def generate_taxonomy(datasets, direc='Data/Pickles/', only=['INJECTION', 'PRODUCTION']):
+    structures = {}
     for name, df in datasets.items():
         if(name not in only):
             continue
-        structure = dict(zip(df['Well'], df['Pad']))
-        _accessories.save_local_data_file(structure, f'{direc}{name}_[Well, Pad].pkl')
+        structures[name] = dict(zip(df['Well'], df['Pad']))
+        # structure = dict(zip(df['Well'], df['Pad']))
+        # _accessories.save_local_data_file(structure, f'{direc}{name}_[Well, Pad].pkl')
+    return structures
 
 
 _ = """
@@ -203,9 +206,22 @@ _ = """
 
 
 def _INGESTION(_return=True, filter_by_fiber=False):
+    """PURPOSE: TO MERGE THREE DATASETS INTO ONE DATASET
+       INPUTS:
+       1 – INJECTION
+       2 – PRODUCTION
+       3 - PRODUCTION TEST
+       4 – FIBER/THERMOCOUPLE
+       PROCESSING:
+       OUTPUT: 1 – ONE MERGED DATASET (NO NEW FEATURES OR ANYTHING)
+                   RESOLUTION: Per day, per producer well, what is producer, injector steam, and fiber data?
+               2 – WELL-PAD RELATIONSHIPS (BOTH FOR INJECTORS AND PRODUCERS)
+                   *This information is returned to avoid an external file dependency*
+    """
+
     _accessories._print('Ingesting INJECTION, PRODUCTION, and PRODUCTION_TEST data...', color='LIGHTYELLOW_EX')
     DATASETS = ingest_sources(filepaths)
-    save_well_pad_relations(DATASETS)
+    structures = generate_taxonomy(DATASETS)
     filter_out(DATASETS)
 
     _accessories._print('Ingesting and transforming FIBER data...', color='LIGHTYELLOW_EX')
@@ -224,9 +240,10 @@ def _INGESTION(_return=True, filter_by_fiber=False):
     merged_df = merge(DATASETS)
 
     if _return:
-        return merged_df
+        return merged_df, structures
     else:
         _accessories.save_local_data_file(merged_df, 'Data/S1 Files/combined_ipc_ALL.csv')
+        # NOTE: Structure's is not intentionally saved. If you wish to save it locally, see `generate_taxonomy`
 
 
 if __name__ == '__main__':
