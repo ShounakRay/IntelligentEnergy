@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 19-May-2021 23:05:73:734  GMT-0600
+# @Last modified time: 20-May-2021 01:05:28:289  GMT-0600
 # @License: [Private IP]
 
 
@@ -607,12 +607,13 @@ def create_scenarios(pad_df, date, features, pad_steam_range, pad_chl_delta, ste
     scenario_df.loc[scenario_df['alloc_steam'] <= current_steam * (1 - steam_variance), 'steam_op_state'] = 'reduced'
     scenario_df.loc[scenario_df['alloc_steam'] == scenario_df['alloc_steam'].min(), 'steam_op_state'] = 'minimum'
 
-    print(list(scenario_df))
-
     # GET CURRENT CONDITIONS
     for f in features:
         if f not in scenario_df.columns:
-            scenario_df[f] = op_condition.iloc[-1][f]
+            if f in op_condition.columns:
+                scenario_df[f] = op_condition.iloc[-1][f]
+            else:
+                print(f'Skipping feature {f} in scenario table...')
 
     return scenario_df
 
@@ -641,16 +642,16 @@ def generate_optimization_table(field_df, pad_df, date, features, target,
         model_path = BEST_MODEL_PATHS.get(g)[0]
 
         if model_plan == 'H2O':
-            __test_df = test_df.copy()
-            __test_df.columns = [MAPPING.get(c) if MAPPING.get(c) != '' else c for c in __test_df.columns]
-            __test_df = __test_df[[c for c in __test_df.columns if c is not None]]
-            __features = [MAPPING.get(f) for f in features]
-            __target = MAPPING.get(target)
-            print('H2O MODEL INPUT: ' + str(['date', __target] + __features))
+            # __test_df = test_df.copy()
+            # __test_df.columns = [MAPPING.get(c) if MAPPING.get(c) != '' else c for c in __test_df.columns]
+            # __test_df = __test_df[[c for c in __test_df.columns if c is not None]]
+            # __features = [MAPPING.get(f) for f in features]
+            # __target = MAPPING.get(target)
+            # print('H2O MODEL INPUT: ' + str(['date', __target] + __features))
             models_outputs, metric_outputs, model = h2o_model_prediction(model_path,
-                                                                         __test_df[['Date', __target] +
-                                                                                   __features].copy(),
-                                                                         tolerable_rmse=rell.get(g).copy())
+                                                                         test_df[['date', target] +
+                                                                                 features].copy(),
+                                                                         tolerable_rmse=rell.get(g))
         elif model_plan == 'SKLEARN':
             print('SKLEARN MODEL INPUT: ' + str(features))
             # NOTE: There's some final filtering, if feature is not in subset_df, remove it.
@@ -667,15 +668,15 @@ def generate_optimization_table(field_df, pad_df, date, features, target,
         scenario_df['date'] = pd.to_datetime(date)
 
         if model_plan == 'H2O':
-            __scenario_df = scenario_df.copy()
-            __scenario_df.columns = [MAPPING.get(c) if MAPPING.get(c) != '' else c for c in __scenario_df.columns]
-            __scenario_df = __scenario_df[[c for c in __scenario_df.columns if c is not None]]
-            __features = [MAPPING.get(f) for f in features]
-            __target = MAPPING.get(target)
-            print('H2O MODEL INPUT: ' + str(['date', __target] + __features))
+            # __scenario_df = scenario_df.copy()
+            # __scenario_df.columns = [MAPPING.get(c) if MAPPING.get(c) != '' else c for c in __scenario_df.columns]
+            # __scenario_df = __scenario_df[[c for c in __scenario_df.columns if c is not None]]
+            # __features = [MAPPING.get(f) for f in features]
+            # __target = MAPPING.get(target)
+            # print('H2O MODEL INPUT: ' + str(['date', __target] + __features))
             scenario_df['pred'] = sorted(h2o_model_prediction(model_path,
-                                                              __scenario_df[['Date', __target] + __features].copy(),
-                                                              tolerable_rmse=rell.get(g).copy(),
+                                                              scenario_df[['date', target] + features].copy(),
+                                                              tolerable_rmse=rell.get(g),
                                                               just_predictions=True)['predicted'])
         elif model_plan == 'SKLEARN':
             print('SKLEARN MODEL INPUT: ' + str(features))

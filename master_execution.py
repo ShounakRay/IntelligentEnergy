@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: master_execution.py
 # @Last modified by:   Ray
-# @Last modified time: 19-May-2021 23:05:12:126  GMT-0600
+# @Last modified time: 20-May-2021 01:05:45:451  GMT-0600
 # @License: [Private IP]
 
 # from pipeline import S7_prosteam_allocation as S7_WALL
@@ -42,6 +42,40 @@ new = {'FP1': ['I37', 'I72', 'I70'],
        'EP5': ['I62', 'I57', 'I56', 'I54'],
        'EP6': ['I62', 'I56', 'I58', 'I55'],
        'EP7': ['I63', 'I56', 'I55']}
+# well_allocations = {'AP2': 168.50638133970068,
+#                     'AP3': 158.77670562530514,
+#                     'AP4': 218.1557318198097,
+#                     'AP5': 184.56816243995024,
+#                     'AP6': 193.2713740126074,
+#                     'AP7': 169.2051413545468,
+#                     'AP8': 172.03388085040683,
+#                     'BP1': 275.1545015663883,
+#                     'BP2': 199.0340338530178,
+#                     'BP3': 181.0507502880953,
+#                     'BP4': 108.6806995783778,
+#                     'BP5': 265.3717097531363,
+#                     'BP6': 214.94264461323525,
+#                     'CP1': 299.8409604774457,
+#                     'CP2': 101.34910855792296,
+#                     'CP3': 228.57072034063148,
+#                     'CP4': 151.64662099501112,
+#                     'CP5': 239.7184561911505,
+#                     'CP6': 184.13507125912707,
+#                     'CP7': 133.30833235009698,
+#                     'CP8': 42.308273124784144,
+#                     'EP2': 176.40490759899953,
+#                     'EP3': 244.58464252535686,
+#                     'EP4': 54.901433696492944,
+#                     'EP5': 78.25684769901943,
+#                     'EP6': 106.2963343631096,
+#                     'EP7': 250.1620315560527,
+#                     'FP1': 197.11805473487084,
+#                     'FP2': 219.36129581897654,
+#                     'FP3': 192.32563480401095,
+#                     'FP4': 117.3281237235291,
+#                     'FP5': 207.15013466550303,
+#                     'FP6': 120.53492563970951,
+#                     'FP7': 145.94637278362194}
 
 _ = """
 #######################################################################################################################
@@ -70,6 +104,7 @@ if __name__ == '__main__':
     aggregated.rename(columns={'Steam': 'PRO_Alloc_Steam'}, inplace=True)
 
     # NOTE: CONDUCT OPTIMIZATION
+    # TODO: Engineering Chloride Contribution
     phys_engineered['chloride_contrib'] = 0.5
     # WARNING: This dictionary addition doesn't actually matter if `PI_distances` is incomplete
     candidates['BY_WELL'] = dict(candidates['BY_WELL'], **new)
@@ -77,48 +112,10 @@ if __name__ == '__main__':
     well_allocations, well_sol, pad_sol, field_kpi = S6_OPTM._OPTIMIZATION(data=phys_engineered,
                                                                            date='2020-01-01',
                                                                            well_interactions=candidates['BY_WELL'],
-                                                                           model_plan='H2O')  # OR H2O
-    # ['date', 'uwi', 'producer_well', 'hours_on_prod', 'prod_casing_pressure', 'alloc_steam', 'prod_bhp_heel',
-    #  'prod_bhp_toe', 'prod_bht_heel', 'prod_bht_toe', 'bin_1', 'bin_2', 'bin_3', 'bin_4', 'bin_5', 'bin_6', 'bin_7',
-    #  'bin_8', 'pad', 'test_water', 'chlorides', 'pump_efficiency', 'total_fluid', 'test_water_cut', 'spm', 'oil',
-    #  'water', 'volume_per_stroke', 'chloride_contrib']
+                                                                           model_plan='SKLEARN')  # OR H2O
+
     # CREATING SCENARIO TABLE FOR: pad A
     # NOTE: CONDUCT WELL-ALLOCATION
-
-    # well_allocations = {'AP2': 168.50638133970068,
-    #                     'AP3': 158.77670562530514,
-    #                     'AP4': 218.1557318198097,
-    #                     'AP5': 184.56816243995024,
-    #                     'AP6': 193.2713740126074,
-    #                     'AP7': 169.2051413545468,
-    #                     'AP8': 172.03388085040683,
-    #                     'BP1': 275.1545015663883,
-    #                     'BP2': 199.0340338530178,
-    #                     'BP3': 181.0507502880953,
-    #                     'BP4': 108.6806995783778,
-    #                     'BP5': 265.3717097531363,
-    #                     'BP6': 214.94264461323525,
-    #                     'CP1': 299.8409604774457,
-    #                     'CP2': 101.34910855792296,
-    #                     'CP3': 228.57072034063148,
-    #                     'CP4': 151.64662099501112,
-    #                     'CP5': 239.7184561911505,
-    #                     'CP6': 184.13507125912707,
-    #                     'CP7': 133.30833235009698,
-    #                     'CP8': 42.308273124784144,
-    #                     'EP2': 176.40490759899953,
-    #                     'EP3': 244.58464252535686,
-    #                     'EP4': 54.901433696492944,
-    #                     'EP5': 78.25684769901943,
-    #                     'EP6': 106.2963343631096,
-    #                     'EP7': 250.1620315560527,
-    #                     'FP1': 197.11805473487084,
-    #                     'FP2': 219.36129581897654,
-    #                     'FP3': 192.32563480401095,
-    #                     'FP4': 117.3281237235291,
-    #                     'FP5': 207.15013466550303,
-    #                     'FP6': 120.53492563970951,
-    #                     'FP7': 145.94637278362194}
     # well_allocation = S7_SALL._PRODUCER_ALLOCATION()
 
     # CONDUCT INJECTOR-ALLOCATION
@@ -127,7 +124,7 @@ if __name__ == '__main__':
     injector_allocation = S8_SALL._INJECTOR_ALLOCATION(data=well_allocations,
                                                        candidates=candidates['BY_WELL'].copy(),
                                                        PI_distances=PI_distances)
-    # set(list(chain.from_iterable(candidates['BY_WELL'].values())))
+
     return pad_sol, well_sol, injector_allocation, field_kpi
 
     # store = {}
