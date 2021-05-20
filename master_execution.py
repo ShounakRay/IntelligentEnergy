@@ -3,11 +3,11 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: master_execution.py
 # @Last modified by:   Ray
-# @Last modified time: 20-May-2021 11:05:42:423  GMT-0600
+# @Last modified time: 20-May-2021 13:05:56:564  GMT-0600
 # @License: [Private IP]
 
 # from collections import Counter
-
+import pandas as pd
 # import numpy as np
 # import matplotlib.pyplot as plt
 # import pandas as pd
@@ -48,134 +48,134 @@ new = {'FP1': ['I37', 'I72', 'I70'],
        'EP6': ['I62', 'I56', 'I58', 'I55'],
        'EP7': ['I63', 'I56', 'I55']}
 # compare_df = pd.read_csv('Data/field_data.csv')
-taxonomy = {'INJECTION': {'CI06': 'C',
-                          'CI07': 'C',
-                          'CI08': 'C',
-                          'I02': 'A',
-                          'I03': 'A',
-                          'I04': 'A',
-                          'I05': 'A',
-                          'I06': '15-05',
-                          'I07': '15-05',
-                          'I08': '16-05',
-                          'I09': '16-05',
-                          'I10': '16-05',
-                          'I11': '16-05',
-                          'I12': '16-05',
-                          'I13': '16-05',
-                          'I14': '16-05',
-                          'I15': '11-05',
-                          'I16': '11-05',
-                          'I17': '11-05',
-                          'I18': '11-05',
-                          'I19': '10-05',
-                          'I20': '10-05',
-                          'I21': '10-05',
-                          'I22': '10-05',
-                          'I23': '09-05',
-                          'I24': '09-05',
-                          'I25': '09-05',
-                          'I26': '09-05',
-                          'I27': '09-05',
-                          'I28': '06-05',
-                          'I29': '06-05',
-                          'I30': '06-05',
-                          'I31': '06-05',
-                          'I32': '08-05',
-                          'I33': '08-05',
-                          'I34': '08-05',
-                          'I35': '08-05',
-                          'I36': '08-05',
-                          'I37': '08-05',
-                          'I38': '16-05',
-                          'I39': 'C1',
-                          'I40': 'C1',
-                          'I41': 'C1',
-                          'I42': 'C1',
-                          'I43': 'C1',
-                          'I44': 'C1',
-                          'I45': 'C1',
-                          'I46': 'C1',
-                          'I47': 'C1',
-                          'I48': 'C2',
-                          'I49': 'C2',
-                          'I50': 'C2',
-                          'I51': 'C2',
-                          'I52': 'E1',
-                          'I53': 'E1',
-                          'I54': 'E1',
-                          'I55': 'E1',
-                          'I56': 'E2',
-                          'I57': 'E2',
-                          'I58': 'E2',
-                          'I59': 'E2',
-                          'I60': 'E2',
-                          'I61': 'E3',
-                          'I62': 'E3',
-                          'I63': 'E3',
-                          'I64': 'F1',
-                          'I65': 'F1',
-                          'I66': 'F1',
-                          'I67': 'F1',
-                          'I68': 'F1',
-                          'I69': 'F2',
-                          'I70': 'F2',
-                          'I71': 'F2',
-                          'I72': 'F2',
-                          'I73': 'F2',
-                          'I74': 'F2',
-                          'I75': 'F2',
-                          'I76': 'F2',
-                          'I77': 'F2',
-                          'I78': 'F2',
-                          'I79': 'F2',
-                          'I80': 'E3',
-                          'I82': 'E3',
-                          'I83': 'E3',
-                          'I84': 'E3',
-                          'I85': 'D2',
-                          'I86': 'D2',
-                          'I87': 'D2',
-                          'I88': 'D2',
-                          'I89': 'D2',
-                          'I90': 'D3',
-                          'I91': 'D3',
-                          'I92': 'D3',
-                          'I93': 'D3'},
-            'PRODUCTION': {'AP2': 'A',
-                           'AP3': 'A',
-                           'AP4': 'A',
-                           'AP5': 'A',
-                           'AP6': 'A',
-                           'AP7': 'A',
-                           'AP8': 'A',
-                           'BP1': 'B',
-                           'BP2': 'B',
-                           'BP3': 'B',
-                           'BP4': 'B',
-                           'BP5': 'B',
-                           'BP6': 'B',
-                           'CP1': 'C',
-                           'CP2': 'C',
-                           'CP3': 'C',
-                           'CP4': 'C',
-                           'CP5': 'C',
-                           'CP6': 'C',
-                           'CP7': 'C',
-                           'CP8': 'C',
-                           'EP2': 'E',
-                           'EP3': 'E',
-                           'EP4': 'E',
-                           'EP5': 'E',
-                           'EP6': 'E',
-                           'EP7': 'E',
-                           'FP1': 'F',
-                           'FP2': 'F',
-                           'FP3': 'F',
-                           'FP4': 'F',
-                           'FP5': 'F',
-                           'FP6': 'F',
-                           'FP7': 'F'}}
+taxonomy_GLOBAL = {'INJECTION': {'CI06': 'C',
+                                 'CI07': 'C',
+                                 'CI08': 'C',
+                                 'I02': 'A',
+                                 'I03': 'A',
+                                 'I04': 'A',
+                                 'I05': 'A',
+                                 'I06': '15-05',
+                                 'I07': '15-05',
+                                 'I08': '16-05',
+                                 'I09': '16-05',
+                                 'I10': '16-05',
+                                 'I11': '16-05',
+                                 'I12': '16-05',
+                                 'I13': '16-05',
+                                 'I14': '16-05',
+                                 'I15': '11-05',
+                                 'I16': '11-05',
+                                 'I17': '11-05',
+                                 'I18': '11-05',
+                                 'I19': '10-05',
+                                 'I20': '10-05',
+                                 'I21': '10-05',
+                                 'I22': '10-05',
+                                 'I23': '09-05',
+                                 'I24': '09-05',
+                                 'I25': '09-05',
+                                 'I26': '09-05',
+                                 'I27': '09-05',
+                                 'I28': '06-05',
+                                 'I29': '06-05',
+                                 'I30': '06-05',
+                                 'I31': '06-05',
+                                 'I32': '08-05',
+                                 'I33': '08-05',
+                                 'I34': '08-05',
+                                 'I35': '08-05',
+                                 'I36': '08-05',
+                                 'I37': '08-05',
+                                 'I38': '16-05',
+                                 'I39': 'C1',
+                                 'I40': 'C1',
+                                 'I41': 'C1',
+                                 'I42': 'C1',
+                                 'I43': 'C1',
+                                 'I44': 'C1',
+                                 'I45': 'C1',
+                                 'I46': 'C1',
+                                 'I47': 'C1',
+                                 'I48': 'C2',
+                                 'I49': 'C2',
+                                 'I50': 'C2',
+                                 'I51': 'C2',
+                                 'I52': 'E1',
+                                 'I53': 'E1',
+                                 'I54': 'E1',
+                                 'I55': 'E1',
+                                 'I56': 'E2',
+                                 'I57': 'E2',
+                                 'I58': 'E2',
+                                 'I59': 'E2',
+                                 'I60': 'E2',
+                                 'I61': 'E3',
+                                 'I62': 'E3',
+                                 'I63': 'E3',
+                                 'I64': 'F1',
+                                 'I65': 'F1',
+                                 'I66': 'F1',
+                                 'I67': 'F1',
+                                 'I68': 'F1',
+                                 'I69': 'F2',
+                                 'I70': 'F2',
+                                 'I71': 'F2',
+                                 'I72': 'F2',
+                                 'I73': 'F2',
+                                 'I74': 'F2',
+                                 'I75': 'F2',
+                                 'I76': 'F2',
+                                 'I77': 'F2',
+                                 'I78': 'F2',
+                                 'I79': 'F2',
+                                 'I80': 'E3',
+                                 'I82': 'E3',
+                                 'I83': 'E3',
+                                 'I84': 'E3',
+                                 'I85': 'D2',
+                                 'I86': 'D2',
+                                 'I87': 'D2',
+                                 'I88': 'D2',
+                                 'I89': 'D2',
+                                 'I90': 'D3',
+                                 'I91': 'D3',
+                                 'I92': 'D3',
+                                 'I93': 'D3'},
+                   'PRODUCTION': {'AP2': 'A',
+                                  'AP3': 'A',
+                                  'AP4': 'A',
+                                  'AP5': 'A',
+                                  'AP6': 'A',
+                                  'AP7': 'A',
+                                  'AP8': 'A',
+                                  'BP1': 'B',
+                                  'BP2': 'B',
+                                  'BP3': 'B',
+                                  'BP4': 'B',
+                                  'BP5': 'B',
+                                  'BP6': 'B',
+                                  'CP1': 'C',
+                                  'CP2': 'C',
+                                  'CP3': 'C',
+                                  'CP4': 'C',
+                                  'CP5': 'C',
+                                  'CP6': 'C',
+                                  'CP7': 'C',
+                                  'CP8': 'C',
+                                  'EP2': 'E',
+                                  'EP3': 'E',
+                                  'EP4': 'E',
+                                  'EP5': 'E',
+                                  'EP6': 'E',
+                                  'EP7': 'E',
+                                  'FP1': 'F',
+                                  'FP2': 'F',
+                                  'FP3': 'F',
+                                  'FP4': 'F',
+                                  'FP5': 'F',
+                                  'FP6': 'F',
+                                  'FP7': 'F'}}
 
 _ = """
 #######################################################################################################################
@@ -184,14 +184,17 @@ _ = """
 """
 
 
-def MASTER_PIPELINE(all_data, skip_ingestion=True, weights=False, date='2020-01-01', model_plan='SKLEARN'):
+def MASTER_PIPELINE(all_data, skip_ingestion=True, weights=False, explore_radius=50, date='2020-01-01',
+                    model_plan='SKLEARN', expand_scope=0.1):
     # NOTE: GET DATA
     if not skip_ingestion:
         all_data, taxonomy = S1_BASE._INGESTION()
+        taxonomy_LOCAL = taxonomy.copy()
         # all_data.to_csv('starting_joined_data.csv')
     else:
         # Data imported
         # Taxonomy is hyper parameter
+        taxonomy_LOCAL = taxonomy_GLOBAL.copy()
         pass
 
     # NOTE: CONDUCT PHYSICS FEATURE ENGINEERING
@@ -199,8 +202,9 @@ def MASTER_PIPELINE(all_data, skip_ingestion=True, weights=False, date='2020-01-
 
     # NOTE: CONDUCT WEIGHTING (weights:=False for time speed-up)
     aggregated, PI_distances, candidates = S3_WGHT._INTELLIGENT_AGGREGATION(data=phys_engineered,
-                                                                            taxonomy=taxonomy,
-                                                                            weights=False)
+                                                                            taxonomy=taxonomy_LOCAL.copy(),
+                                                                            relative_radius=explore_radius,
+                                                                            weights=weights)
 
     # chl = compare_df.groupby(['date', 'producer_well'])['chloride_contrib'].sum().reset_index()
     # chl['Date'] = pd.to_datetime(chl['Date'])
@@ -216,9 +220,9 @@ def MASTER_PIPELINE(all_data, skip_ingestion=True, weights=False, date='2020-01-
     candidates['BY_WELL'] = dict(candidates['BY_WELL'], **new)
 
     well_allocations, well_sol, pad_sol, field_kpi = S6_OPTM._OPTIMIZATION(data=phys_engineered,
-                                                                           date='2020-01-01',
+                                                                           date=date,
                                                                            well_interactions=candidates['BY_WELL'],
-                                                                           model_plan='SKLEARN')  # OR H2O
+                                                                           model_plan=model_plan)  # OR H2O
 
     # CREATING SCENARIO TABLE FOR: pad A
     # NOTE: CONDUCT WELL-ALLOCATION
@@ -227,17 +231,31 @@ def MASTER_PIPELINE(all_data, skip_ingestion=True, weights=False, date='2020-01-
     # CONDUCT INJECTOR-ALLOCATION
 
     # Only for A and B since positional data for injectors is not parsed yet
+    local_candidates = {k: v for k, v in candidates['BY_WELL'].copy().items()
+                        if k in PI_distances['PRO_Well'].unique()}
     injector_allocation = S8_SALL._INJECTOR_ALLOCATION(data=well_allocations.copy(),
-                                                       candidates=candidates['BY_WELL'].copy(),
-                                                       PI_distances=PI_distances.copy())
+                                                       candidates=local_candidates,
+                                                       PI_distances=PI_distances.copy(),
+                                                       CLOSENESS_THRESH_PI=expand_scope,
+                                                       CLOSENESS_THRESH_II=expand_scope)
 
-    return pad_sol, well_sol, injector_allocation, field_kpi
+    return pad_sol, well_sol, injector_allocation, field_kpi, aggregated
 
     # store = {}
     # for group, df in injector_allocation.groupby('PRO_Well'):
     #     store[group] = df.set_index('Cand_Injector')['Cand_Proportion'].to_dict()
 
 
-pad_sol, well_sol, injector_allocation, field_kpi = MASTER_PIPELINE(weights=False,
-                                                                    date='2020-01-01',
-                                                                    model_plan='SKLEARN')
+# all_data = pd.read_csv('starting_joined_data.csv').drop('Unnamed: 0', 1)
+# all_data = all_data
+# weights = False
+# explore_radius = 50
+# date = '2020-01-01'
+# model_plan = 'SKLEARN'
+# expand_scope = 0.1
+pad_sol, well_sol, injector_allocation, field_kpi, aggregated = MASTER_PIPELINE(all_data=all_data,
+                                                                                weights=False,
+                                                                                explore_radius=50,
+                                                                                date='2020-01-01',
+                                                                                model_plan='SKLEARN',
+                                                                                expand_scope=0.1)

@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 20-May-2021 11:05:91:918  GMT-0600
+# @Last modified time: 20-May-2021 13:05:92:921  GMT-0600
 # @License: [Private IP]
 
 # import os
@@ -14,6 +14,8 @@ if __name__ == '__main__':
     # import matplotlib
     # matplotlib.use('Qt5Agg')
     import matplotlib.pyplot as plt
+
+import random
 
 import _references._accessories as _accessories
 import numpy as np
@@ -590,7 +592,7 @@ _ = """
 """
 
 
-def _INJECTOR_ALLOCATION(data=None, candidates=None, PI_distances=None,
+def _INJECTOR_ALLOCATION(data=None, candidates=None, PI_distances=None, injector_constraints={},
                          _return=True, flow_ingest=True,
                          CLOSENESS_THRESH_PI=0.1, CLOSENESS_THRESH_II=0.1):
     _accessories._print('Ingesting the positional data matrixes and candidate relationships...')
@@ -613,12 +615,14 @@ def _INJECTOR_ALLOCATION(data=None, candidates=None, PI_distances=None,
         DATASETS['PP_DIST_MATRIX'] = distance_matrix('PP', S3.get_coordinates(data_group='PRODUCTION'), scaled=False)
         DATASETS['PRO_CONSTRAINTS'] = _accessories.retrieve_local_data_file(DATA_PATH_ALLOCATIONS, mode=2)
 
-    _wells_available = DATASETS['PI_DIST_MATRIX']['PRO_Well'].unique()
-    candidates = {k: v for k, v in candidates.items() if k[0] in _wells_available}
+    # _wells_available = list(PI_distances['PRO_Well'].unique())
+    # print(_wells_available)
+    # candidates = {k: v for k, v in candidates.items() if k in _wells_available}
 
     # TEMP: Arbitrary contraints generation
-    # constraints = {inj: (random.randint(5, 29), random.randint(30, 60)) for inj in list(DATASETS['II_DIST_MATRIX'])}
-    constraints = data.copy()
+    if len(injector_constraints) == 0:
+        injector_constraints = {inj: (random.randint(5, 29), random.randint(30, 60))
+                                for inj in list(DATASETS['II_DIST_MATRIX'])}
 
     _accessories._print('Engineering impact area/overlap datasets...')
     impact_tracker_PI, isolates_PI = PI_imapcts(DATASETS['CANDIDATES'].copy(),
@@ -641,7 +645,7 @@ def _INJECTOR_ALLOCATION(data=None, candidates=None, PI_distances=None,
     # Fill the remaining steam allocation per injector based on pad level contraints
     suggestions = maximize_allocations(DATASETS['PRO_CONSTRAINTS'], accounted_units, units_remaining, decisions)
     _accessories._print('Tuning steam allocations to fit in constraints...')
-    suggestions = constrain_allocations(constraints, suggestions)
+    suggestions = constrain_allocations(injector_constraints, suggestions)
 
     _accessories._print('Finalizing and saving injection suggestion data...')
     suggestions = configure_minor(suggestions)
@@ -653,8 +657,8 @@ def _INJECTOR_ALLOCATION(data=None, candidates=None, PI_distances=None,
         _accessories.save_local_data_file(suggestions, 'Data/S8 Files/final_suggestions.csv')
 
 
-if __name__ == '__main__':
-    _INJECTOR_ALLOCATION()
+# if __name__ == '__main__':
+#     _INJECTOR_ALLOCATION()
 
 # SEARCH_SPACE = produce_search_space(CANDIDATES, PI_DIST_MATRIX, II_DIST_MATRIX, RESOLUTION=0.001)
 # plot_search_space(retrieve_search_space(min_bound=0.3, early=False), cmap=cm.turbo)

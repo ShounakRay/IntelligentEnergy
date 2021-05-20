@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: approach_alternative.py
 # @Last modified by:   Ray
-# @Last modified time: 20-May-2021 09:05:16:161  GMT-0600
+# @Last modified time: 20-May-2021 11:05:79:794  GMT-0600
 # @License: [Private IP]
 
 import math
@@ -66,7 +66,6 @@ plot_geo = False
 
 # Display hyperparams
 relative_radius = 50
-dimless_radius = relative_radius * 950
 focal_period = 20
 
 # Scaling, window constants
@@ -483,6 +482,8 @@ def distance_matrix(injector_coordinates, producer_coordinates, save=False):
 def get_all_candidates(injection_coordinates, production_coordinates,
                        available_pads_transformed, available_pwells_transformed, pro_well_pad_relationship,
                        rel_rad=50, save=False, plot=False, **kwargs):
+    dimless_radius = rel_rad * 950
+
     def injector_candidates(production_pad, production_well,
                             injector_coordinates, production_coordinates, relative_radius=50,
                             pro_well_pad_relationship=pro_well_pad_relationship):
@@ -608,7 +609,8 @@ _ = """
 """
 
 
-def _INTELLIGENT_AGGREGATION(data=None, taxonomy=None, _return=True, flow_ingest=True, weights=True):
+def _INTELLIGENT_AGGREGATION(data=None, taxonomy=None, relative_radius=50,
+                             _return=True, flow_ingest=True, weights=True):
     """PURPOSE: TO GENERATE WEIGHTS + AGGREGATE PRODUCER DATA TO PAD-LEVEL DATA
        INPUTS:
        1 – ONE MERGED DATASET, IDEALLY UNDERWENT PHYSICS ENGINEERING (BUT NOT A DEPENDENCY)
