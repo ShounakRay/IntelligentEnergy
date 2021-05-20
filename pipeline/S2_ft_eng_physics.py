@@ -3,49 +3,52 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: feature_engineering.py
 # @Last modified by:   Ray
-# @Last modified time: 19-May-2021 15:05:28:283  GMT-0600
+# @Last modified time: 20-May-2021 11:05:81:810  GMT-0600
 # @License: [Private IP]
 
 import os
-import sys
+# import sys
 from multiprocessing import Pool
 from typing import Final
 
 import pandas as pd
+# import _context_managers
+import pipeline._multiprocessed.defs as defs
+from _references import _accessories
 
-
-def ensure_cwd(expected_parent):
-    init_cwd = os.getcwd()
-    sub_dir = init_cwd.split('/')[-1]
-
-    if(sub_dir != expected_parent):
-        new_cwd = init_cwd
-        print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
-              f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
-    else:
-        new_cwd = init_cwd.replace('/' + sub_dir, '')
-        print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
-        os.chdir(new_cwd)
-
-
-if True:
-    try:
-        _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
-    except Exception:
-        _EXPECTED_PARENT_NAME = 'pipeline'
-        print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
-              f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
-    ensure_cwd(_EXPECTED_PARENT_NAME)
-    sys.path.insert(1, os.getcwd() + '/_references')
-    sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
-    import _accessories
-    # import _context_managers
-    import _multiprocessed.defs as defs
-
-    # import _traversal
+# def ensure_cwd(expected_parent):
+#     init_cwd = os.getcwd()
+#     sub_dir = init_cwd.split('/')[-1]
+#
+#     if(sub_dir != expected_parent):
+#         new_cwd = init_cwd
+#         print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
+#               f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
+#     else:
+#         new_cwd = init_cwd.replace('/' + sub_dir, '')
+#         print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
+#         os.chdir(new_cwd)
+#
+#
+# if True:
+#     try:
+#         _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
+#     except Exception:
+#         _EXPECTED_PARENT_NAME = 'pipeline'
+#         print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
+#               f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
+#     ensure_cwd(_EXPECTED_PARENT_NAME)
+#     sys.path.insert(1, os.getcwd() + '/_references')
+#     sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
+#     import _accessories
+#     # import _context_managers
+#     import _multiprocessed.defs as defs
+#
+#     # import _traversal
 
 
 # _traversal.print_tree_to_txt(PATH='_configs/FILE_STRUCTURE.txt')
+
 
 _ = """
 #######################################################################################################################
@@ -105,6 +108,15 @@ def allocation_factor(df):
     return df
 
 
+# group = 'A'
+# for group in [c for c in phys_engineered['PRO_Pad'].unique() if c in ['A', 'B', 'C', 'E', 'F']]:
+#     existing = phys_engineered.loc[phys_engineered['PRO_Pad'] == group][['Date', 'PRO_Chlorides']].sort_values('Date')
+#     existing_daily = existing.set_index('Date')['PRO_Chlorides']
+#     max_daily = existing.groupby('Date')['PRO_Chlorides'].sum().replace(0, existing.groupby('Date')['PRO_Chlorides'].sum().mean())
+#     proportion = pd.Series({date: this_day/max_daily.get(date) for date, this_day in existing_daily.items()})
+#     phys_engineered.loc[phys_engineered['PRO_Pad'] == group, ['chloride_contrib']] = list(proportion)
+
+
 _ = """
 #######################################################################################################################
 ##################################################   CORE EXECUTION  ##################################################
@@ -113,6 +125,10 @@ _ = """
 
 
 def _FEATENG_PHYS(data=None, _return=True, flow_ingest=True):
+    external_chloride_data = _accessories.retrieve_local_data_file(
+        'Data/temp_chloride_contribution_dependency.csv').drop('Unnamed: 0', 1)
+    external_chloride_data['Date'] = pd.to_datetime(external_chloride_data['Date'])
+
     """PURPOSE: TO GENERATE NEW FEATURES FROM DOMAIN SPECIFIC KNOWLEDGE
        INPUTS:
        1 – ONE MERGED DATASET
@@ -143,6 +159,9 @@ def _FEATENG_PHYS(data=None, _return=True, flow_ingest=True):
     _accessories._print('Health checks and saving...', color='LIGHTYELLOW_EX')
     DATASETS['THEORETICAL'].drop(NOT_REQUIRED, axis=1, inplace=True)
     _accessories.finalize_all(DATASETS, skip=[])
+
+    DATASETS['THEORETICAL'] = pd.merge(DATASETS['THEORETICAL'], external_chloride_data,
+                                       how='inner', on=['Date', 'PRO_Well'])
 
     if _return:
         return DATASETS['THEORETICAL']

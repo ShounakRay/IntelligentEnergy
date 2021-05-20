@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 19-May-2021 09:05:61:611  GMT-0600
+# @Last modified time: 20-May-2021 09:05:24:244  GMT-0600
 # @License: [Private IP]
 
 
@@ -13,36 +13,36 @@ from multiprocessing import Pool
 from typing import Final
 
 import pandas as pd
+from _references import _accessories
 
-
-def ensure_cwd(expected_parent):
-    init_cwd = os.getcwd()
-    sub_dir = init_cwd.split('/')[-1]
-
-    if(sub_dir != expected_parent):
-        new_cwd = init_cwd
-        print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
-              f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
-    else:
-        new_cwd = init_cwd.replace('/' + sub_dir, '')
-        print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
-        os.chdir(new_cwd)
-
-
-if True:
-    try:
-        _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
-    except Exception:
-        _EXPECTED_PARENT_NAME = 'pipeline'
-        print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
-              f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
-    ensure_cwd(_EXPECTED_PARENT_NAME)
-    sys.path.insert(1, os.getcwd() + '/_references')
-    sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
-    import _accessories
-
-    # import _context_managers
-    # import _traversal
+# def ensure_cwd(expected_parent):
+#     init_cwd = os.getcwd()
+#     sub_dir = init_cwd.split('/')[-1]
+#
+#     if(sub_dir != expected_parent):
+#         new_cwd = init_cwd
+#         print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
+#               f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
+#     else:
+#         new_cwd = init_cwd.replace('/' + sub_dir, '')
+#         print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
+#         os.chdir(new_cwd)
+#
+#
+# if True:
+#     try:
+#         _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
+#     except Exception:
+#         _EXPECTED_PARENT_NAME = 'pipeline'
+#         print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
+#               f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
+#     ensure_cwd(_EXPECTED_PARENT_NAME)
+#     sys.path.insert(1, os.getcwd() + '/_references')
+#     sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
+#     import _accessories
+#
+#     # import _context_managers
+#     # import _traversal
 
 # _traversal.print_tree_to_txt(PATH='_configs/FILE_STRUCTURE.txt')
 

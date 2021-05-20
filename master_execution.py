@@ -3,9 +3,14 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: master_execution.py
 # @Last modified by:   Ray
-# @Last modified time: 20-May-2021 01:05:45:451  GMT-0600
+# @Last modified time: 20-May-2021 11:05:97:976  GMT-0600
 # @License: [Private IP]
 
+from collections import Counter
+
+import numpy as np
+# import matplotlib.pyplot as plt
+import pandas as pd
 # from pipeline import S7_prosteam_allocation as S7_WALL
 # from pipeline import S4_ft_eng_math as S4_MATH --> Ignored: Used directly in S5_MODL
 # from pipeline import S5_modeling as S5_MODL --> Ignored: This is for model generation, not creation
@@ -42,40 +47,7 @@ new = {'FP1': ['I37', 'I72', 'I70'],
        'EP5': ['I62', 'I57', 'I56', 'I54'],
        'EP6': ['I62', 'I56', 'I58', 'I55'],
        'EP7': ['I63', 'I56', 'I55']}
-# well_allocations = {'AP2': 168.50638133970068,
-#                     'AP3': 158.77670562530514,
-#                     'AP4': 218.1557318198097,
-#                     'AP5': 184.56816243995024,
-#                     'AP6': 193.2713740126074,
-#                     'AP7': 169.2051413545468,
-#                     'AP8': 172.03388085040683,
-#                     'BP1': 275.1545015663883,
-#                     'BP2': 199.0340338530178,
-#                     'BP3': 181.0507502880953,
-#                     'BP4': 108.6806995783778,
-#                     'BP5': 265.3717097531363,
-#                     'BP6': 214.94264461323525,
-#                     'CP1': 299.8409604774457,
-#                     'CP2': 101.34910855792296,
-#                     'CP3': 228.57072034063148,
-#                     'CP4': 151.64662099501112,
-#                     'CP5': 239.7184561911505,
-#                     'CP6': 184.13507125912707,
-#                     'CP7': 133.30833235009698,
-#                     'CP8': 42.308273124784144,
-#                     'EP2': 176.40490759899953,
-#                     'EP3': 244.58464252535686,
-#                     'EP4': 54.901433696492944,
-#                     'EP5': 78.25684769901943,
-#                     'EP6': 106.2963343631096,
-#                     'EP7': 250.1620315560527,
-#                     'FP1': 197.11805473487084,
-#                     'FP2': 219.36129581897654,
-#                     'FP3': 192.32563480401095,
-#                     'FP4': 117.3281237235291,
-#                     'FP5': 207.15013466550303,
-#                     'FP6': 120.53492563970951,
-#                     'FP7': 145.94637278362194}
+# compare_df = pd.read_csv('Data/field_data.csv')
 
 _ = """
 #######################################################################################################################
@@ -83,29 +55,29 @@ _ = """
 #######################################################################################################################
 """
 
-if __name__ == '__main__':
+
+def MASTER_PIPELINE(weights=False, date='2020-01-01', model_plan='SKLEARN'):
     # NOTE: GET DATA
     all_data, taxonomy = S1_BASE._INGESTION()
-    # all_data.to_csv('S1_works.csv')
-    # all_data = pd.read_csv('S1_works.csv').drop('Unnamed: 0', axis=1)
 
     # NOTE: CONDUCT PHYSICS FEATURE ENGINEERING
     phys_engineered = S2_PHYS._FEATENG_PHYS(data=all_data)
-    # phys_engineered.to_csv('S2_works.csv')
-    # phys_engineered = pd.read_csv('S2_works.csv').drop('Unnamed: 0', axis=1)
 
     # NOTE: CONDUCT WEIGHTING (weights:=False for time speed-up)
     aggregated, PI_distances, candidates = S3_WGHT._INTELLIGENT_AGGREGATION(data=phys_engineered,
                                                                             taxonomy=taxonomy,
                                                                             weights=False)
-    # aggregated.to_csv('S3_works.csv')
-    # aggregated = pd.read_csv('S3_works.csv').drop('Unnamed: 0', axis=1)
-    # aggregated = pd.read_csv('Data/S3 Files/combined_ipc_aggregates_PWELL.csv').drop('Unnamed: 0', axis=1)
+
+    # chl = compare_df.groupby(['date', 'producer_well'])['chloride_contrib'].sum().reset_index()
+    # chl['Date'] = pd.to_datetime(chl['Date'])
+    # chl = chl.rename(columns={'date': 'Date', 'producer_well': 'PRO_Well'})
+    # chl.to_csv('Data/temp_chloride_contribution_dependency.csv')
+
     aggregated.rename(columns={'Steam': 'PRO_Alloc_Steam'}, inplace=True)
 
     # NOTE: CONDUCT OPTIMIZATION
     # TODO: Engineering Chloride Contribution
-    phys_engineered['chloride_contrib'] = 0.5
+    # phys_engineered['chloride_contrib'] = 0.5
     # WARNING: This dictionary addition doesn't actually matter if `PI_distances` is incomplete
     candidates['BY_WELL'] = dict(candidates['BY_WELL'], **new)
 
@@ -121,9 +93,9 @@ if __name__ == '__main__':
     # CONDUCT INJECTOR-ALLOCATION
 
     # Only for A and B since positional data for injectors is not parsed yet
-    injector_allocation = S8_SALL._INJECTOR_ALLOCATION(data=well_allocations,
+    injector_allocation = S8_SALL._INJECTOR_ALLOCATION(data=well_allocations.copy(),
                                                        candidates=candidates['BY_WELL'].copy(),
-                                                       PI_distances=PI_distances)
+                                                       PI_distances=PI_distances.copy())
 
     return pad_sol, well_sol, injector_allocation, field_kpi
 

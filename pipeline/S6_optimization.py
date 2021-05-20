@@ -3,34 +3,35 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 20-May-2021 01:05:28:289  GMT-0600
+# @Last modified time: 20-May-2021 09:05:51:518  GMT-0600
 # @License: [Private IP]
 
 
 import ast
-import datetime
-import os
+# import datetime
+# import os
 import subprocess
-import sys
+# import sys
 from typing import Final
 
-import h2o
+import _references._accessories as _accessories
 import numpy as np
 import pandas as pd
+from pipeline.h2o_prediction import h2o_model_prediction
+from pipeline.sagd_ensemble import genetic_ensemble as sagd_ensemble
 
-
-def ensure_cwd(expected_parent):
-    init_cwd = os.getcwd()
-    sub_dir = init_cwd.split('/')[-1]
-
-    if(sub_dir != expected_parent):
-        new_cwd = init_cwd
-        print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
-              f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
-    else:
-        new_cwd = init_cwd.replace('/' + sub_dir, '')
-        print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
-        os.chdir(new_cwd)
+# def ensure_cwd(expected_parent):
+#  init_cwd = os.getcwd()
+#   sub_dir = init_cwd.split('/')[-1]
+#
+#    if(sub_dir != expected_parent):
+#         new_cwd = init_cwd
+#         print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
+#               f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
+#     else:
+#         new_cwd = init_cwd.replace('/' + sub_dir, '')
+#         print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
+#         os.chdir(new_cwd)
 
 
 def check_java_dependency():
@@ -50,18 +51,16 @@ def check_java_dependency():
 
 
 if True:
-    try:
-        _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
-    except Exception:
-        _EXPECTED_PARENT_NAME = 'pipeline'
-        print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
-              f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
-    ensure_cwd(_EXPECTED_PARENT_NAME)
-    sys.path.insert(1, os.getcwd() + '/_references')
-    sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
-    import _accessories
-    from pipeline.h2o_prediction import h2o_model_prediction
-    from pipeline.sagd_ensemble import genetic_ensemble as sagd_ensemble
+    # try:
+    #     _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
+    # except Exception:
+    #     _EXPECTED_PARENT_NAME = 'pipeline'
+    #     print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
+    #           f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
+    # ensure_cwd(_EXPECTED_PARENT_NAME)
+    # sys.path.insert(1, os.getcwd() + '/_references')
+    # sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
+    # import _accessories
 
     # Check java dependency
     check_java_dependency()
@@ -594,9 +593,13 @@ def get_field_solution(field_df, date, macro_solution, chloride_solution, Op_Par
 
 
 def create_scenarios(pad_df, date, features, pad_steam_range, pad_chl_delta, steam_variance):
+
     # GET LATEST OPERATING SCENARIOS
     op_condition = pad_df[pad_df['date'] == date]
     current_steam = op_condition['alloc_steam'].sum()
+
+    print('SCENARIO FEATURES: ', features)
+    print('SCENARIO DATA: \n', op_condition)
 
     scenario_df = pd.DataFrame([{"alloc_steam": a}
                                 for a in range(int(pad_steam_range['min'] - pad_chl_delta),
@@ -647,24 +650,26 @@ def generate_optimization_table(field_df, pad_df, date, features, target,
             # __test_df = __test_df[[c for c in __test_df.columns if c is not None]]
             # __features = [MAPPING.get(f) for f in features]
             # __target = MAPPING.get(target)
-            # print('H2O MODEL INPUT: ' + str(['date', __target] + __features))
+            target_df = test_df[['date', target] + features].copy()
             models_outputs, metric_outputs, model = h2o_model_prediction(model_path,
-                                                                         test_df[['date', target] +
-                                                                                 features].copy(),
+                                                                         target_df,
                                                                          tolerable_rmse=rell.get(g))
+            scenario_df = create_scenarios(subset_df.copy(), date, features +
+                                           [target], steam_range[g], chl_delta[g], steam_variance)
+
         elif model_plan == 'SKLEARN':
-            print('SKLEARN MODEL INPUT: ' + str(features))
             # NOTE: There's some final filtering, if feature is not in subset_df, remove it.
             _features = [col for col in features if col in subset_df.columns]
+            print('INITIAL SKLEARN MODEL INPUT: ' + str(_features))
             models_outputs, metric_outputs, model = sagd_ensemble(subset_df[_features].copy(),
                                                                   subset_df[target].copy(),
                                                                   test_df[_features].copy(),
                                                                   test_df[target].copy())
+            scenario_df = create_scenarios(subset_df, date, _features +
+                                           [target], steam_range[g], chl_delta[g], steam_variance)
 
         ######################################################
 
-        scenario_df = create_scenarios(subset_df, date, features +
-                                       [target], steam_range[g], chl_delta[g], steam_variance)
         scenario_df['date'] = pd.to_datetime(date)
 
         if model_plan == 'H2O':
@@ -673,13 +678,14 @@ def generate_optimization_table(field_df, pad_df, date, features, target,
             # __scenario_df = __scenario_df[[c for c in __scenario_df.columns if c is not None]]
             # __features = [MAPPING.get(f) for f in features]
             # __target = MAPPING.get(target)
-            # print('H2O MODEL INPUT: ' + str(['date', __target] + __features))
+            __features = [f for f in features if f in list(scenario_df)]
+            target_df = scenario_df[['date', target] + __features].copy()
             scenario_df['pred'] = sorted(h2o_model_prediction(model_path,
-                                                              scenario_df[['date', target] + features].copy(),
+                                                              target_df,
                                                               tolerable_rmse=rell.get(g),
                                                               just_predictions=True)['predicted'])
         elif model_plan == 'SKLEARN':
-            print('SKLEARN MODEL INPUT: ' + str(features))
+            print('SCENARIO SKLEARN MODEL INPUT: ' + str(features))
             # NOTE: There's some final filtering, if feature is not in scenario_df, remove it.
             _features = [col for col in features if col in subset_df.columns]
             scenario_df['pred'] = sorted(model.predict(scenario_df[_features].copy()))
@@ -736,6 +742,8 @@ def create_group_data(field_df, group):
                                                       'total_fluid': 'sum',
                                                       'alloc_steam': 'sum',
                                                       'spm': 'sum',
+                                                      'prod_bht_heel': 'mean',
+                                                      'prod_bht_toe': 'mean',
                                                       }).reset_index().dropna().sort_values(['date', 'pad'])
 
     field_df['sor'] = field_df['alloc_steam'] / field_df['oil']

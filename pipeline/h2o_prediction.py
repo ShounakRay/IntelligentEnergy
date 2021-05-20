@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: h2o_prediction.py
 # @Last modified by:   Ray
-# @Last modified time: 20-May-2021 00:05:13:137  GMT-0600
+# @Last modified time: 20-May-2021 09:05:86:867  GMT-0600
 # @License: [Private IP]
 
 import ast
@@ -32,12 +32,17 @@ def h2o_model_prediction(model_path, new_data, tolerable_rmse, responder='PRO_To
                  start_h2o=SERVER_FORCE)
 
     # # Convert the dataframe so that feature names are compatible with h2O models
-    new_data.columns = [MAPPING.get(c) for c in new_data.columns if MAPPING.get(c) != '']
-    new_data = new_data[[c for c in new_data.columns if c != None]]
+    new_data = new_data.rename(columns=MAPPING)
+    new_data = new_data.rename(columns={'PRO_Alloc_Steam': 'Steam'})
+    # new_data.columns = [MAPPING.get(c) for c in new_data.columns if MAPPING.get(c) != '']
+    # new_data = new_data[[c for c in new_data.columns if c != None]]
 
     new_data['Date'] = pd.to_datetime(new_data['Date'])
     dates = new_data['Date'].copy()
     new_data = new_data.set_index('Date')
+
+    print('H2O MODEL INPUT: ' + str(list(new_data)))
+    print('H2O MODEL DATA: \n', new_data)
 
     # NOTE: Check if feature engineering is required (in which case, engineer new features!)
     with _accessories.suppress_stdout():

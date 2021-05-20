@@ -3,11 +3,11 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 20-May-2021 01:05:42:429  GMT-0600
+# @Last modified time: 20-May-2021 09:05:50:502  GMT-0600
 # @License: [Private IP]
 
-import os
-import sys
+# import os
+# import sys
 from typing import Final
 
 if __name__ == '__main__':
@@ -15,8 +15,7 @@ if __name__ == '__main__':
     # matplotlib.use('Qt5Agg')
     import matplotlib.pyplot as plt
 
-import random
-
+import _references._accessories as _accessories
 import numpy as np
 import pandas as pd
 import pipeline.S3_weighting as S3
@@ -28,34 +27,34 @@ from mpl_toolkits.mplot3d import Axes3D
 # TODO: Fiber Consideration
 
 
-def ensure_cwd(expected_parent):
-    init_cwd = os.getcwd()
-    sub_dir = init_cwd.split('/')[-1]
-
-    if(sub_dir != expected_parent):
-        new_cwd = init_cwd
-        print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
-              f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
-    else:
-        new_cwd = init_cwd.replace('/' + sub_dir, '')
-        print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
-        os.chdir(new_cwd)
-
-
-if True:
-    try:
-        _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
-    except Exception:
-        _EXPECTED_PARENT_NAME = 'pipeline'
-        print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
-              f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
-    ensure_cwd(_EXPECTED_PARENT_NAME)
-    sys.path.insert(1, os.getcwd() + '/_references')
-    sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
-    import _accessories
-    import _traversal
-
-_traversal.print_tree_to_txt(PATH='_configs/FILE_STRUCTURE.txt')
+# def ensure_cwd(expected_parent):
+#     init_cwd = os.getcwd()
+#     sub_dir = init_cwd.split('/')[-1]
+#
+#     if(sub_dir != expected_parent):
+#         new_cwd = init_cwd
+#         print(f'\x1b[91mWARNING: "{expected_parent}" folder was expected to be one level ' +
+#               f'lower than parent directory! Project CWD: "{sub_dir}" (may already be properly configured).\x1b[0m')
+#     else:
+#         new_cwd = init_cwd.replace('/' + sub_dir, '')
+#         print(f'\x1b[91mWARNING: Project CWD will be set to "{new_cwd}".')
+#         os.chdir(new_cwd)
+#
+#
+# if True:
+#     try:
+#         _EXPECTED_PARENT_NAME = os.path.abspath(__file__ + "/..").split('/')[-1]
+#     except Exception:
+#         _EXPECTED_PARENT_NAME = 'pipeline'
+#         print('\x1b[91mWARNING: Seems like you\'re running this in a Python interactive shell. ' +
+#               f'Expected parent is manually set to: "{_EXPECTED_PARENT_NAME}".\x1b[0m')
+#     ensure_cwd(_EXPECTED_PARENT_NAME)
+#     sys.path.insert(1, os.getcwd() + '/_references')
+#     sys.path.insert(1, os.getcwd() + '/' + _EXPECTED_PARENT_NAME)
+#     import _accessories
+#     import _traversal
+#
+# _traversal.print_tree_to_txt(PATH='_configs/FILE_STRUCTURE.txt')
 
 _ = """
 #######################################################################################################################
@@ -614,7 +613,7 @@ def _INJECTOR_ALLOCATION(data=None, candidates=None, PI_distances=None,
         DATASETS['PP_DIST_MATRIX'] = distance_matrix('PP', S3.get_coordinates(data_group='PRODUCTION'), scaled=False)
         DATASETS['PRO_CONSTRAINTS'] = _accessories.retrieve_local_data_file(DATA_PATH_ALLOCATIONS, mode=2)
 
-    _wells_available = data['PRO_Well'].unique()
+    _wells_available = DATASETS['PI_DIST_MATRIX']['PRO_Well'].unique()
     candidates = {k: v for k, v in candidates['BY_WELL'].items() if k[0] in _wells_available}
 
     # TEMP: Arbitrary contraints generation
