@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: master_execution.py
 # @Last modified by:   Ray
-# @Last modified time: 20-May-2021 11:05:83:839  GMT-0600
+# @Last modified time: 20-May-2021 11:05:42:423  GMT-0600
 # @License: [Private IP]
 
 # from collections import Counter
@@ -48,6 +48,134 @@ new = {'FP1': ['I37', 'I72', 'I70'],
        'EP6': ['I62', 'I56', 'I58', 'I55'],
        'EP7': ['I63', 'I56', 'I55']}
 # compare_df = pd.read_csv('Data/field_data.csv')
+taxonomy = {'INJECTION': {'CI06': 'C',
+                          'CI07': 'C',
+                          'CI08': 'C',
+                          'I02': 'A',
+                          'I03': 'A',
+                          'I04': 'A',
+                          'I05': 'A',
+                          'I06': '15-05',
+                          'I07': '15-05',
+                          'I08': '16-05',
+                          'I09': '16-05',
+                          'I10': '16-05',
+                          'I11': '16-05',
+                          'I12': '16-05',
+                          'I13': '16-05',
+                          'I14': '16-05',
+                          'I15': '11-05',
+                          'I16': '11-05',
+                          'I17': '11-05',
+                          'I18': '11-05',
+                          'I19': '10-05',
+                          'I20': '10-05',
+                          'I21': '10-05',
+                          'I22': '10-05',
+                          'I23': '09-05',
+                          'I24': '09-05',
+                          'I25': '09-05',
+                          'I26': '09-05',
+                          'I27': '09-05',
+                          'I28': '06-05',
+                          'I29': '06-05',
+                          'I30': '06-05',
+                          'I31': '06-05',
+                          'I32': '08-05',
+                          'I33': '08-05',
+                          'I34': '08-05',
+                          'I35': '08-05',
+                          'I36': '08-05',
+                          'I37': '08-05',
+                          'I38': '16-05',
+                          'I39': 'C1',
+                          'I40': 'C1',
+                          'I41': 'C1',
+                          'I42': 'C1',
+                          'I43': 'C1',
+                          'I44': 'C1',
+                          'I45': 'C1',
+                          'I46': 'C1',
+                          'I47': 'C1',
+                          'I48': 'C2',
+                          'I49': 'C2',
+                          'I50': 'C2',
+                          'I51': 'C2',
+                          'I52': 'E1',
+                          'I53': 'E1',
+                          'I54': 'E1',
+                          'I55': 'E1',
+                          'I56': 'E2',
+                          'I57': 'E2',
+                          'I58': 'E2',
+                          'I59': 'E2',
+                          'I60': 'E2',
+                          'I61': 'E3',
+                          'I62': 'E3',
+                          'I63': 'E3',
+                          'I64': 'F1',
+                          'I65': 'F1',
+                          'I66': 'F1',
+                          'I67': 'F1',
+                          'I68': 'F1',
+                          'I69': 'F2',
+                          'I70': 'F2',
+                          'I71': 'F2',
+                          'I72': 'F2',
+                          'I73': 'F2',
+                          'I74': 'F2',
+                          'I75': 'F2',
+                          'I76': 'F2',
+                          'I77': 'F2',
+                          'I78': 'F2',
+                          'I79': 'F2',
+                          'I80': 'E3',
+                          'I82': 'E3',
+                          'I83': 'E3',
+                          'I84': 'E3',
+                          'I85': 'D2',
+                          'I86': 'D2',
+                          'I87': 'D2',
+                          'I88': 'D2',
+                          'I89': 'D2',
+                          'I90': 'D3',
+                          'I91': 'D3',
+                          'I92': 'D3',
+                          'I93': 'D3'},
+            'PRODUCTION': {'AP2': 'A',
+                           'AP3': 'A',
+                           'AP4': 'A',
+                           'AP5': 'A',
+                           'AP6': 'A',
+                           'AP7': 'A',
+                           'AP8': 'A',
+                           'BP1': 'B',
+                           'BP2': 'B',
+                           'BP3': 'B',
+                           'BP4': 'B',
+                           'BP5': 'B',
+                           'BP6': 'B',
+                           'CP1': 'C',
+                           'CP2': 'C',
+                           'CP3': 'C',
+                           'CP4': 'C',
+                           'CP5': 'C',
+                           'CP6': 'C',
+                           'CP7': 'C',
+                           'CP8': 'C',
+                           'EP2': 'E',
+                           'EP3': 'E',
+                           'EP4': 'E',
+                           'EP5': 'E',
+                           'EP6': 'E',
+                           'EP7': 'E',
+                           'FP1': 'F',
+                           'FP2': 'F',
+                           'FP3': 'F',
+                           'FP4': 'F',
+                           'FP5': 'F',
+                           'FP6': 'F',
+                           'FP7': 'F'}}
 
 _ = """
 #######################################################################################################################
@@ -56,9 +184,15 @@ _ = """
 """
 
 
-def MASTER_PIPELINE(skip_ingestion=True, weights=False, date='2020-01-01', model_plan='SKLEARN'):
+def MASTER_PIPELINE(all_data, skip_ingestion=True, weights=False, date='2020-01-01', model_plan='SKLEARN'):
     # NOTE: GET DATA
-    all_data, taxonomy = S1_BASE._INGESTION()
+    if not skip_ingestion:
+        all_data, taxonomy = S1_BASE._INGESTION()
+        # all_data.to_csv('starting_joined_data.csv')
+    else:
+        # Data imported
+        # Taxonomy is hyper parameter
+        pass
 
     # NOTE: CONDUCT PHYSICS FEATURE ENGINEERING
     phys_engineered = S2_PHYS._FEATENG_PHYS(data=all_data)
