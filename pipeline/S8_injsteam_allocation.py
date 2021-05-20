@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 20-May-2021 09:05:50:502  GMT-0600
+# @Last modified time: 20-May-2021 11:05:91:918  GMT-0600
 # @License: [Private IP]
 
 # import os
@@ -614,7 +614,7 @@ def _INJECTOR_ALLOCATION(data=None, candidates=None, PI_distances=None,
         DATASETS['PRO_CONSTRAINTS'] = _accessories.retrieve_local_data_file(DATA_PATH_ALLOCATIONS, mode=2)
 
     _wells_available = DATASETS['PI_DIST_MATRIX']['PRO_Well'].unique()
-    candidates = {k: v for k, v in candidates['BY_WELL'].items() if k[0] in _wells_available}
+    candidates = {k: v for k, v in candidates.items() if k[0] in _wells_available}
 
     # TEMP: Arbitrary contraints generation
     # constraints = {inj: (random.randint(5, 29), random.randint(30, 60)) for inj in list(DATASETS['II_DIST_MATRIX'])}

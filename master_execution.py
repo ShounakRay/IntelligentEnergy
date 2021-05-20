@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: master_execution.py
 # @Last modified by:   Ray
-# @Last modified time: 20-May-2021 11:05:21:210  GMT-0600
+# @Last modified time: 20-May-2021 11:05:83:839  GMT-0600
 # @License: [Private IP]
 
 # from collections import Counter
@@ -56,7 +56,7 @@ _ = """
 """
 
 
-def MASTER_PIPELINE(weights=False, date='2020-01-01', model_plan='SKLEARN'):
+def MASTER_PIPELINE(skip_ingestion=True, weights=False, date='2020-01-01', model_plan='SKLEARN'):
     # NOTE: GET DATA
     all_data, taxonomy = S1_BASE._INGESTION()
 
@@ -102,3 +102,8 @@ def MASTER_PIPELINE(weights=False, date='2020-01-01', model_plan='SKLEARN'):
     # store = {}
     # for group, df in injector_allocation.groupby('PRO_Well'):
     #     store[group] = df.set_index('Cand_Injector')['Cand_Proportion'].to_dict()
+
+
+pad_sol, well_sol, injector_allocation, field_kpi = MASTER_PIPELINE(weights=False,
+                                                                    date='2020-01-01',
+                                                                    model_plan='SKLEARN')
