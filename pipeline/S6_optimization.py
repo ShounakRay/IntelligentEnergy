@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_optimization.py
 # @Last modified by:   Ray
-# @Last modified time: 19-May-2021 16:05:46:464  GMT-0600
+# @Last modified time: 19-May-2021 23:05:73:734  GMT-0600
 # @License: [Private IP]
 
 
@@ -607,6 +607,8 @@ def create_scenarios(pad_df, date, features, pad_steam_range, pad_chl_delta, ste
     scenario_df.loc[scenario_df['alloc_steam'] <= current_steam * (1 - steam_variance), 'steam_op_state'] = 'reduced'
     scenario_df.loc[scenario_df['alloc_steam'] == scenario_df['alloc_steam'].min(), 'steam_op_state'] = 'minimum'
 
+    print(list(scenario_df))
+
     # GET CURRENT CONDITIONS
     for f in features:
         if f not in scenario_df.columns:
@@ -636,25 +638,27 @@ def generate_optimization_table(field_df, pad_df, date, features, target,
         # NOTE: Only do feature engineering if needed (as in, the best model requires engineered features)
         # feature_engineering()
 
-        # models_outputs, metric_outputs, model = sagd_ensemble(subset_df[features],
-        #                                                       subset_df[target],
-        #                                                       test_df[features],
-        #                                                       test_df[target])
-
         model_path = BEST_MODEL_PATHS.get(g)[0]
 
         if model_plan == 'H2O':
             __test_df = test_df.copy()
             __test_df.columns = [MAPPING.get(c) if MAPPING.get(c) != '' else c for c in __test_df.columns]
             __test_df = __test_df[[c for c in __test_df.columns if c is not None]]
+            __features = [MAPPING.get(f) for f in features]
+            __target = MAPPING.get(target)
+            print('H2O MODEL INPUT: ' + str(['date', __target] + __features))
             models_outputs, metric_outputs, model = h2o_model_prediction(model_path,
-                                                                         __test_df[['date', target] + features].copy(),
-                                                                         tolerable_rmse=rell.get(g))
+                                                                         __test_df[['Date', __target] +
+                                                                                   __features].copy(),
+                                                                         tolerable_rmse=rell.get(g).copy())
         elif model_plan == 'SKLEARN':
-            models_outputs, metric_outputs, model = sagd_ensemble(subset_df[features],
-                                                                  subset_df[target],
-                                                                  test_df[features],
-                                                                  test_df[target])
+            print('SKLEARN MODEL INPUT: ' + str(features))
+            # NOTE: There's some final filtering, if feature is not in subset_df, remove it.
+            _features = [col for col in features if col in subset_df.columns]
+            models_outputs, metric_outputs, model = sagd_ensemble(subset_df[_features].copy(),
+                                                                  subset_df[target].copy(),
+                                                                  test_df[_features].copy(),
+                                                                  test_df[target].copy())
 
         ######################################################
 
@@ -666,12 +670,18 @@ def generate_optimization_table(field_df, pad_df, date, features, target,
             __scenario_df = scenario_df.copy()
             __scenario_df.columns = [MAPPING.get(c) if MAPPING.get(c) != '' else c for c in __scenario_df.columns]
             __scenario_df = __scenario_df[[c for c in __scenario_df.columns if c is not None]]
+            __features = [MAPPING.get(f) for f in features]
+            __target = MAPPING.get(target)
+            print('H2O MODEL INPUT: ' + str(['date', __target] + __features))
             scenario_df['pred'] = sorted(h2o_model_prediction(model_path,
-                                                              __scenario_df[['date', target] + features],
-                                                              tolerable_rmse=rell.get(g),
+                                                              __scenario_df[['Date', __target] + __features].copy(),
+                                                              tolerable_rmse=rell.get(g).copy(),
                                                               just_predictions=True)['predicted'])
         elif model_plan == 'SKLEARN':
-            scenario_df['pred'] = sorted(model.predict(scenario_df[features]))
+            print('SKLEARN MODEL INPUT: ' + str(features))
+            # NOTE: There's some final filtering, if feature is not in scenario_df, remove it.
+            _features = [col for col in features if col in subset_df.columns]
+            scenario_df['pred'] = sorted(model.predict(scenario_df[_features].copy()))
 
         scenario_df[group] = g
 
@@ -793,58 +803,57 @@ _ = """
 """
 
 
-def setup_and_server(SECURED=SECURED, IP_LINK=IP_LINK, PORT=PORT, SERVER_FORCE=SERVER_FORCE):
-    # Initialize the cluster
-    h2o.init(https=SECURED,
-             ip=IP_LINK,
-             port=PORT,
-             start_h2o=SERVER_FORCE)
+# def setup_and_server(SECURED=SECURED, IP_LINK=IP_LINK, PORT=PORT, SERVER_FORCE=SERVER_FORCE):
+#     # Initialize the cluster
+#     h2o.init(https=SECURED,
+#              ip=IP_LINK,
+#              port=PORT,
+#              start_h2o=SERVER_FORCE)
+#
+#
+# def shutdown_confirm(h2o_instance: type(h2o)) -> None:
+#     """Terminates the provided H2O cluster.
+#
+#     Parameters
+#     ----------
+#     cluster : type(h2o)
+#         The H2O instance where the server was initialized.
+#
+#     Returns
+#     -------
+#     None
+#         Nothing. ValueError may be raised during processing and cluster metrics may be printed.
+#
+#     """
+#     # """DATA SANITATION"""
+#     # _provided_args = locals()
+#     # name = sys._getframe(0).f_code.co_name
+#     # _expected_type_args = {'h2o_instance': [type(h2o)]}
+#     # _expected_value_args = {'h2o_instance': None}
+#     # util_data_type_sanitation(_provided_args, _expected_type_args, name)
+#     # util_data_range_sanitation(_provided_args, _expected_value_args, name)
+#     # """END OF DATA SANITATION"""
+#
+#     # SHUT DOWN the cluster after you're done working with it
+#     h2o_instance.remove_all()
+#     h2o_instance.cluster().shutdown()
 
-
-def shutdown_confirm(h2o_instance: type(h2o)) -> None:
-    """Terminates the provided H2O cluster.
-
-    Parameters
-    ----------
-    cluster : type(h2o)
-        The H2O instance where the server was initialized.
-
-    Returns
-    -------
-    None
-        Nothing. ValueError may be raised during processing and cluster metrics may be printed.
-
-    """
-    # """DATA SANITATION"""
-    # _provided_args = locals()
-    # name = sys._getframe(0).f_code.co_name
-    # _expected_type_args = {'h2o_instance': [type(h2o)]}
-    # _expected_value_args = {'h2o_instance': None}
-    # util_data_type_sanitation(_provided_args, _expected_type_args, name)
-    # util_data_range_sanitation(_provided_args, _expected_value_args, name)
-    # """END OF DATA SANITATION"""
-
-    # SHUT DOWN the cluster after you're done working with it
-    h2o_instance.remove_all()
-    h2o_instance.cluster().shutdown()
-
-
-def configure_aggregates(aggregate_results, aggregate_reference, rell, grouper='pad'):
-    aggregate_results['allowable_rmse'] = aggregate_results[grouper].apply(lambda x: rell.get(x))
-    aggregate_results['rel_rmse'] = (aggregate_results['rmse']) - aggregate_results['allowable_rmse']
-    aggregate_results.columns = ['PRO_Pad',
-                                 'Reccomended_Steam',
-                                 'Predicted_Total_Fluid',
-                                 'exchange_rate',
-                                 'RMSE',
-                                 'Accuracy',
-                                 'Algorithm',
-                                 'Date',
-                                 'Tolerable_RMSE',
-                                 'Relative_RMSE']
-    aggregate_results = pd.merge(aggregate_results, aggregate_reference, on=['Date', 'PRO_Pad'])
-
-    return aggregate_results
+# def configure_aggregates(aggregate_results, aggregate_reference, rell, grouper='pad'):
+#     aggregate_results['allowable_rmse'] = aggregate_results[grouper].apply(lambda x: rell.get(x))
+#     aggregate_results['rel_rmse'] = (aggregate_results['rmse']) - aggregate_results['allowable_rmse']
+#     aggregate_results.columns = ['PRO_Pad',
+#                                  'Reccomended_Steam',
+#                                  'Predicted_Total_Fluid',
+#                                  'exchange_rate',
+#                                  'RMSE',
+#                                  'Accuracy',
+#                                  'Algorithm',
+#                                  'Date',
+#                                  'Tolerable_RMSE',
+#                                  'Relative_RMSE']
+#     aggregate_results = pd.merge(aggregate_results, aggregate_reference, on=['Date', 'PRO_Pad'])
+#
+#     return aggregate_results
 
 
 _ = """
@@ -853,19 +862,19 @@ _ = """
 #######################################################################################################################
 """
 
-date = '2020-12-01'
-steam_available = 6000
-steam_variance = 0.25
-pad_steam_constraint = {}
-well_steam_constraint = {}
-well_pump_constraint = {}
-watercut_source = 'recent_water_cut'
-chl_steam_percent = 0.1
-pres_steam_percent = 0.15
-recent_days = 45
-hist_days = 365
-target = 'total_fluid'
-group = 'pad'
+# date = '2020-12-01'
+# steam_available = 6000
+# steam_variance = 0.25
+# pad_steam_constraint = {}
+# well_steam_constraint = {}
+# well_pump_constraint = {}
+# watercut_source = 'recent_water_cut'
+# chl_steam_percent = 0.1
+# pres_steam_percent = 0.15
+# recent_days = 45
+# hist_days = 365
+# target = 'total_fluid'
+# group = 'pad'
 
 # field_df = pd.read_csv('Data/field_data_pressures.csv').drop('Unnamed: 0', axis=1)
 

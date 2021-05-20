@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: S6_steam_allocation.py
 # @Last modified by:   Ray
-# @Last modified time: 19-May-2021 12:05:60:604  GMT-0600
+# @Last modified time: 19-May-2021 22:05:72:720  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -614,11 +614,16 @@ def _INJECTOR_ALLOCATION(data=None, candidates=None, PI_distances=None,
         DATASETS['PP_DIST_MATRIX'] = distance_matrix('PP', S3.get_coordinates(data_group='PRODUCTION'), scaled=False)
         DATASETS['PRO_CONSTRAINTS'] = _accessories.retrieve_local_data_file(DATA_PATH_ALLOCATIONS, mode=2)
 
-    # Arbitrary contraints generation
-    constraints = {inj: (random.randint(5, 29), random.randint(30, 60)) for inj in list(DATASETS['II_DIST_MATRIX'])}
+    _pads_available = data['PRO_Pad'].unique()
+    candidates = {k: v for k, v in candidates['BY_WELL'].items() if k[0] in _pads_available}
+
+    # TEMP: Arbitrary contraints generation
+    # constraints = {inj: (random.randint(5, 29), random.randint(30, 60)) for inj in list(DATASETS['II_DIST_MATRIX'])}
+    constraints = data.copy()
 
     _accessories._print('Engineering impact area/overlap datasets...')
-    impact_tracker_PI, isolates_PI = PI_imapcts(DATASETS['CANDIDATES'].copy(), DATASETS['PI_DIST_MATRIX'].copy(),
+    impact_tracker_PI, isolates_PI = PI_imapcts(DATASETS['CANDIDATES'].copy(),
+                                                DATASETS['PI_DIST_MATRIX'].copy(),
                                                 CLOSENESS_THRESH_PI=CLOSENESS_THRESH_PI)
     impact_tracker_II, isolates_II = II_impacts(DATASETS['II_DIST_MATRIX'].copy(),
                                                 CLOSENESS_THRESH_II=CLOSENESS_THRESH_II)
