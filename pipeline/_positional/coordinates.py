@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: coordinate_playground.py
 # @Last modified by:   Ray
-# @Last modified time: 11-May-2021 16:05:20:204  GMT-0600
+# @Last modified time: 01-Jun-2021 16:06:98:980  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -67,37 +67,148 @@ _ = """
 """
 
 
-def get_producer_positions(rell_data=rell_data, liner_path=LINER_PATH, cut_liner=True, up_scalar=100):
+def replace_tab(s, tabstop=20, look_for='\t'):
+    result = str()
+    for c in s:
+        if c == look_for:
+            while (len(result) % tabstop != 0):
+                result += ' '
+        else:
+            result += c
+    return result
+
+
+def custon_convert_dict_to_df(diction):
+    # REFORMAT
+    dfs = []
+    for key, value in diction.items():
+        df_local = pd.DataFrame(value, columns=['UTM_Northing', 'UTM_Easting'])
+        df_local['PRO_Well'] = key
+        dfs.append(df_local)
+    final = pd.concat(dfs)
+    final['PRO_Pad'] = final['PRO_Well'].apply(lambda x: rell_data.get(x))
+
+    return final
+
+
+def new_get_producer_positions(rell_data=rell_data, up_scalar=100, ignore=[]):
+    prowells = list(_accessories.retrieve_local_data_file('Data/Pickles/PRODUCTION_[Well, Pad].pkl', mode=2).keys())
+    path = '/Users/Ray/Documents/GitHub/IntelligentEnergy/Data/Horizontal Well Liner Coordinates (NAD 83, 12N).xlsx'
+    all = []
+    rename_dict = {'MD': 'Depth',
+                   'UTM X': 'Eastings',
+                   'UTM Y': 'Northings'}
+    liner_bounds = pd.read_excel(LINER_PATH).infer_objects().set_index('Well')
+
+    for pwell in prowells:
+        # pwell = 'BP3'
+        print(f'Well: {pwell}')
+        data = pd.read_excel(path, sheet_name=pwell).rename(columns=rename_dict).dropna(axis=0, how='any')
+        data['PRO_Well'] = pwell
+
+        start_bound = liner_bounds.loc[pwell, 'Liner Start (mD)']
+        end_bound = liner_bounds.loc[pwell, 'Liner End (mD)']
+
+        if pwell in ['BP3', 'BP4', 'BP5']:
+            data = data[(data['Eastings'] > 566697.025)]
+        else:
+            data = data[(data['Depth'] > start_bound) & (data['Depth'] < end_bound)]
+
+        # data['Northings'].plot()
+        # data['Eastings'].plot()
+        # data.set_index('Eastings')['Northings'].plot()
+
+        print(data.head(5))
+
+        all.append(data.infer_objects())
+
+    cumulative = pd.concat(all).reset_index(drop=True).dropna(
+        axis=0, how='all').drop('Depth', axis=1).set_index('PRO_Well')
+    cumulative['Coord'] = tuple(zip(cumulative['Northings'], cumulative['Eastings']))
+    cumulative.drop(['Northings', 'Eastings'], axis=1, inplace=True)
+    cumulative = cumulative.groupby('PRO_Well').sum()
+    cumulative['Coord'] = cumulative['Coord'].apply(lambda x: [(x[i], x[i + 1])
+                                                               for i in range(len(x) - 1) if i % 2 == 0])
+    subsets = cumulative['Coord'].to_dict()
+    for pwell, coordinates in subsets.copy().items():
+        if pwell in ignore:
+            del subsets[pwell]
+    subsets = _accessories.norm_base(subsets, out_of_scope=True, up_scalar=up_scalar)
+
+    return subsets
+
+
+def old_get_producer_positions(rell_data=rell_data, liner_path=LINER_PATH, cut_liner=True, up_scalar=100,
+                               only=[]):
     liner_bounds = pd.read_excel(liner_path).infer_objects().set_index('Well')
     f_paths = [f for f in sorted(['Data/Coordinates/' + c for c in list(os.walk('Data/Coordinates'))[0][2]])
                if ('BPRI' in f)]
     rell_data = _accessories.retrieve_local_data_file('Data/Pickles/PRODUCTION_[Well, Pad].pkl', mode=2)
-    all_wells = sorted(list(rell_data.keys()))
+    all_wells = sorted(list(rell_data.keys())) + ['I2']
+
+    # keywords = ['measured', 'vertical', 'dogleg']
+    expected_columns = ['Depth', 'Incl', 'Azim', 'SubSea_Depth', 'Vertical_Depth', 'Local_Northing',
+                        'Local_Easting', 'UTM_Northing', 'UTM_Easting', 'Vertical_Section', 'Dogleg']
 
     subsets = {}
     all_positions = {}
+    # file_path = f_paths[2]
+
     for file_path in f_paths:
-        well_group = str([group for group in all_wells + ['I2'] if group in file_path][0])
+        well_group = str([group for group in all_wells if group in file_path][0])
         lines = open(file_path, 'r', errors='ignore').readlines()
+        # lines = [line.replace('\t', ',') for line in lines]
+        # lines = [line.replace('\n', '') for line in lines
+        #          if ((len(set(line)) > 12) & (len(set(line)) < 30)) | any([kw in line.lower() for kw in keywords])]
+        # lines = [line for line in lines if line.startswith(' ')]
+        # _ = [print(len(set(line))) for line in lines]
 
         try:
+            reached = False
             data_line = [line.split('\n') for line in ''.join(
                 map(str, lines)).split('\n\n') if 'Local Coordinates' in line][0]
+            reached = True
             data_line = [line.split('\t') for line in data_line if line != '']
+            skip = False
+            print(f'SUCCESSFUL {well_group}')
         except Exception:
-            data_line = [line[0].split('\t') for line in data_line if line != '']
+            if reached:
+                print(f'EXCEPTION: {well_group}')
+                data_line = [line[0].split('\t') for line in data_line if line != '']
+                skip = False
+            else:
+                print(f'ISSUE: {well_group}')
+                # # TAB-DELIMITED
+                # # header = [replace_tab(''.join(map(str, [col + '\t' for col in expected_columns])))]
+                # lines = [replace_tab(line) for line in lines if line != '']
+                # lines = ''.join(lines).split('\n\n')[0].split('\n')
+                # min_length = min([len(line) for line in lines]) - 1
+                # lines = [line[:min_length] + '\n' for line in lines]
+                #
+                # col_n = len([i for i in list(lines[0].strip()) if i != ' '])
+                # dummy_columns = ''.join(map(str, ['col_' + str(i) + ' ' for i in range(col_n)])) + '\n'
+                # str_obj_input = StringIO(dummy_columns + ''.join(map(str, lines)))
+                # df = pd.read_csv(str_obj_input, delim_whitespace=True, error_bad_lines=False).infer_objects()
+                # df = df.dropna(axis=0, how='all').dropna(axis=1, how='all')
+                # df = df[df.columns[df.nunique() > 2]]
+                #
+                # revised_columns = expected_columns + ['dummy' for i in range(len(list(df)) - len(expected_columns))]
+                # df.columns = revised_columns
+                #
+                # skip = True
+                # raise ValueError()
 
-        data_start_index = sorted([data_line.index(line) for line in data_line if '0.0' in line[0]])[0]
-        data_string = data_line[data_start_index:]
-        data_string = [re.sub(' +', ' ', line[0].strip()) + '\n' for line in data_string]
-        dummy_columns = ''.join(map(str, ['col_' + str(i) + ' '
-                                          for i in range(len(data_string[0].split(' ')))])) + '\n'
-        str_obj_input = StringIO(dummy_columns + ''.join(map(str, data_string)))
-        df = pd.read_csv(str_obj_input, delim_whitespace=True, error_bad_lines=False)
-        # df = pd.read_csv(str_obj_input, sep=' ', error_bad_lines=False).dropna(1).infer_objects()
-        df = df.select_dtypes(np.number)
-        df.columns = ['Depth', 'Incl', 'Azim', 'SubSea_Depth', 'Vertical_Depth', 'Local_Northing',
-                      'Local_Easting', 'UTM_Northing', 'UTM_Easting', 'Vertical_Section', 'Dogleg']
+        if not skip:
+            data_start_index = sorted([data_line.index(line) for line in data_line if '0.0' in line[0]])[0]
+            data_string = data_line[data_start_index:]
+            data_string = [re.sub(' +', ' ', line[0].strip()) + '\n' for line in data_string]
+            dummy_columns = ''.join(map(str, ['col_' + str(i) + ' '
+                                              for i in range(len(data_string[0].split(' ')))])) + '\n'
+            str_obj_input = StringIO(dummy_columns + ''.join(map(str, data_string)))
+            df = pd.read_csv(str_obj_input, delim_whitespace=True, error_bad_lines=False)
+            # df = pd.read_csv(str_obj_input, sep=' ', error_bad_lines=False).dropna(1).infer_objects()
+            df = df.select_dtypes(np.number)
+            df.columns = expected_columns
 
         if cut_liner:
             # Constrain data based on liner bounds
@@ -112,12 +223,13 @@ def get_producer_positions(rell_data=rell_data, liner_path=LINER_PATH, cut_liner
         subsets[well_group] = final_df[['UTM_Northing', 'UTM_Easting']].values.tolist()
 
     # Normalize the coordinates
-    subsets = _accessories.norm_base(subsets, out_of_scope=True, up_scalar=up_scalar)
-    for well_group, df in all_positions.items():
-        df['UTM_Northing'] = [tup[0] for tup in subsets.get(well_group)]
-        df['UTM_Easting'] = [tup[1] for tup in subsets.get(well_group)]
+    only = all_wells if len(only) == 0 else only
+    for pwell, coordinates in subsets.copy().items():
+        if pwell not in only:
+            del subsets[pwell]
+    subsets_FINAL = _accessories.norm_base(subsets, out_of_scope=True, up_scalar=up_scalar)
 
-    return all_positions, subsets
+    return subsets_FINAL
 
 
 def get_injector_coordinates(path=INJECTOR_COORDINATE_PATH, up_scalar=100):
@@ -144,16 +256,16 @@ def plot_positions(rell_data=rell_data, producer_data=None, injector_data=None,
                    for_pads=['A', 'B', 'C', 'D', 'E', 'F', 'I2'], annotate='PI'):
     fig_opened = False
     if producer_data is not None:
-        _temp = {k: v for k, v in producer_data.items() if rell_data.get(k) in for_pads}
+        producer_data = producer_data[producer_data['PRO_Pad'].isin(for_pads)]
         fig_2, ax_2 = plt.subplots(nrows=1, ncols=1, figsize=(15, 12))
         fig_opened = True
+        ax_2.set_xlabel('UTM_Easting')
         ax_2.set_ylabel('UTM_Northing')
-        ax_2.set_ylabel('Local_Northing')
-        for well, df in _temp.items():
-            last_point = tuple(df[['UTM_Easting', 'UTM_Northing']].tail(1).reset_index(drop=True).iloc[0])
+        for well, df in producer_data.groupby('PRO_Well'):
+            last_point = tuple(df[['UTM_Easting', 'UTM_Northing']].iloc[-1])
             if 'P' in annotate:
                 ax_2.annotate(well, last_point)
-            df.plot(x='UTM_Easting', y='UTM_Northing', ax=ax_2, label=well, legend=None)
+            df.plot(x='UTM_Easting', y='UTM_Northing', label=well, legend=None, ax=ax_2)
         plt.tight_layout()
 
     if injector_data is not None:
@@ -172,14 +284,19 @@ _ = """
 #######################################################################################################################
 """
 
+
 if __name__ == '__main__':
     # CALCULATE PRODUCER POSITIONS
-    all_positions, subsets = get_producer_positions(cut_liner=True, up_scalar=100)
+    subsets_new = new_get_producer_positions(rell_data=rell_data, up_scalar=100, ignore=['CP1'])
+    producer_coordinates = custon_convert_dict_to_df(subsets_new)
     injector_coordinates = get_injector_coordinates(up_scalar=100)
+    injector_coordinates['I71'] = (77.8037, 5.97304)
 
     # PLOT POSITIONS
-    plot_positions(producer_data=all_positions, injector_data=injector_coordinates,
-                   annotate='I', rell_data=rell_data)
+    plot_positions(producer_data=producer_coordinates, injector_data=injector_coordinates,
+                   annotate='IP', rell_data=rell_data)
+
+    _accessories.save_local_data_file(injector_coordinates, 'Data/Coordinates/inj_coordinates.pkl')
 
 # EOF
 

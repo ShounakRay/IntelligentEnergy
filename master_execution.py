@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: master_execution.py
 # @Last modified by:   Ray
-# @Last modified time: 20-May-2021 13:05:56:564  GMT-0600
+# @Last modified time: 20-May-2021 13:05:27:278  GMT-0600
 # @License: [Private IP]
 
 # from collections import Counter
@@ -253,9 +253,9 @@ def MASTER_PIPELINE(all_data, skip_ingestion=True, weights=False, explore_radius
 # date = '2020-01-01'
 # model_plan = 'SKLEARN'
 # expand_scope = 0.1
-pad_sol, well_sol, injector_allocation, field_kpi, aggregated = MASTER_PIPELINE(all_data=all_data,
-                                                                                weights=False,
-                                                                                explore_radius=50,
-                                                                                date='2020-01-01',
-                                                                                model_plan='SKLEARN',
-                                                                                expand_scope=0.1)
+# pad_sol, well_sol, injector_allocation, field_kpi, aggregated = MASTER_PIPELINE(all_data=all_data,
+#                                                                                 weights=False,
+#                                                                                 explore_radius=50,
+#                                                                                 date='2020-01-01',
+#                                                                                 model_plan='SKLEARN',
+#                                                                                 expand_scope=0.1)
