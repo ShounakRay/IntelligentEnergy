@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: extracontent.py
 # @Last modified by:   Ray
-# @Last modified time: 11-May-2021 15:05:91:913  GMT-0600
+# @Last modified time: 11-Jun-2021 16:06:32:323  GMT-0600
 # @License: [Private IP]
 
 # DATA_INJECTION_STEAM.set_index('Date')[well].plot(figsize=(24, 8))
@@ -585,3 +585,193 @@
 # fig.suptitle('Coordinates Bounded by Provided Liner Depths XLSX File')
 # plt.savefig('Modeling Reference Files/Candidate Selection Images/provided_coordinate_plots.png',
 #             bbox_inches='tight')
+
+# NOTE: IPC_MODULE S8_INJECTION
+# def macro_constrain_allocations(constraints, suggestions, data):
+#     current_summed = suggestions.groupby('Candidate_Injector')['Candidate_Units'].sum()
+#     delta_tracker = {}
+#     for injector, bounds in constraints.items():
+#         """FORCE INSIDE CONSTRAINTS"""
+#         group_df = suggestions[suggestions['Candidate_Injector'] == injector]
+#         minima, maxima = bounds
+#         # Check if total steam is greater than constraints
+#         current_value = current_summed[injector]
+#         delta = 0
+#
+#         exceeds = True if current_value > maxima else Falsee
+#         # > If so, multiply individual values by p: {0 < p < 1} for maxima to be reached
+#         # >> Over * p = Maxima --> p = Maxima/Over
+#         if exceeds:
+#             p = maxima / current_value
+#             suggestions.loc[group_df.index, 'Candidate_Units'] = suggestions.loc[group_df.index, 'Candidate_Units'] * p
+#             delta = -1 * sum(suggestions.loc[group_df.index, 'Candidate_Units'] * (1 - p))
+#
+#         below = True if current_value < minima else False
+#         # > If so, multiply individual values by p: {1 < p < ∞} for minima to be reached
+#         # >> Below * p = Minima --> p = Minima/Below
+#         if below:
+#             p = minima / current_value
+#             suggestions.loc[group_df.index, 'Candidate_Units'] = suggestions.loc[group_df.index, 'Candidate_Units'] * p
+#             delta = sum(suggestions.loc[group_df.index, 'Candidate_Units'] * (p - 1))
+#
+#         delta_tracker[injector] = delta
+#         print(f'Delta for {injector}: {delta}, Original: {current_value} --> ({minima}, {maxima})')
+#
+#         """ZERO-SUM FULFILLMENT"""
+#         # if delta != 0.0:
+#         #     # For current injector delta, find all connecting producer wells
+#         #     # For each producer well, find candidate proportions for this specific injector > Normalize
+#         #     pwell_connections = group_df.set_index('PRO_Well')['Candidate_Proportion']
+#         #     pwell_connections = pwell_connections / sum(pwell_connections)
+#         #     # Distribute injector delta proportionally to each producer well
+#         #     pwell_distribution = pwell_connections * delta
+#         #     # For each producer well and its allocated "extra," find other candidates that aren't above maxima > Normalize
+#         #     for pwell, extra in pwell_distribution.items():
+#         #         pwell_frame = suggestions[suggestions['PRO_Well'] == pwell]
+#         #         link = pwell_frame.set_index('Candidate_Injector')['Candidate_Units']
+#         #         link = link.apply(lambda v: v if v <= constraints.get(v, (0, 100))[1] else None).dropna()
+#         #         # Distribute producer-specific delta to these specific wells
+#         #         # >> But, make sure to respect relative, injector proportions
+#         #         micro_dist = pwell_frame[pwell_frame['Candidate_Injector'].isin(link.index)].set_index('Candidate_Injector')[
+#         #             'Candidate_Proportion']
+#         #         micro_dist = micro_dist / sum(micro_dist)
+#         #         # >> Only distribute until a single maxima is reached
+#         #         # print(micro_dist)
+#         #         link = link + (micro_dist * extra)
+#         #         # print(link)
+#         #         # link = dict(link)
+#         #         # inj_of_max = max(link, key=link.get)
+#         #         # p_maximum = constraints.get(inj_of_max, (0, 100))[1] / link[inj_of_max]
+#         #         # link = {k: v * p for k, v in link.items()}
+#         #         for inj, new_units in link.items():
+#         #             suggestions.loc[pwell_frame[pwell_frame['Candidate_Injector'] == inj].index,
+#         #                             'Candidate_Units'] = new_units
+#
+#         # Move on to next injector and repeat...
+#
+#     final_vector = sum(delta_tracker.values())
+#     print(f'SUMMED: {final_vector}')
+#     current_sum = suggestions['Candidate_Units'].sum().sum()
+#     available_sum = sum(data.values())
+#     p = available_sum / current_sum
+#     print(f'NOW: {current_sum}, LATER: {available_sum}')
+#     suggestions['Candidate_Units'] *= p
+#     final_sum = suggestions['Candidate_Units'].sum().sum()
+#     print(f'FINAL: {final_sum}')
+#     if delta > 0:   # Lots of reccomendations pushed up to minima
+#         # Push everything down a little bit
+#         pass
+#     elif delta < 0:   # Lots of reccomendations pushed down to maxima
+#         # Push everything up a little bit
+#         pass
+#
+#     return suggestions
+
+# NOTE: IPC_MODULE S8_INJECTION
+# def produce_search_space(CANDIDATES, PI_DIST_MATRIX, II_DIST_MATRIX, RESOLUTION=RESOLUTION):
+#     def optimal_injectors(isolates_PI, isolates_II):
+#         return tuple(set([e for e in isolates_PI if e in isolates_II] + [e for e in isolates_II if e in isolates_PI]))
+#
+#     # 3 minutes and 15 seconds: RES = 0.025
+#     # _ : RES = 0.01
+#     search_space = {}
+#     for thresh_PI in np.arange(0.0, 1 + RESOLUTION, RESOLUTION):
+#         print(f'thresh_PI: {thresh_PI}')
+#         search_space[thresh_PI] = {}
+#         for thresh_II in np.arange(0.0, 1 + RESOLUTION, RESOLUTION):
+#             impact_tracker_PI, isolates_PI = PI_imapcts(CANDIDATES, PI_DIST_MATRIX,
+#                                                         CLOSENESS_THRESH_PI=thresh_PI)
+#             impact_tracker_II, isolates_II = II_impacts(II_DIST_MATRIX,
+#                                                         CLOSENESS_THRESH_II=thresh_II)
+#             optimals = optimal_injectors(isolates_PI, isolates_II)
+#             search_space[thresh_PI][thresh_II] = optimals
+#     search_space_df = pd.DataFrame(search_space).reset_index().infer_objects()
+#     _accessories.save_local_data_file(search_space_df, 'Data/S8 Files/threshold_search_space.csv')
+#     print('SAVED')
+#
+#     return search_space_df
+#
+# def retrieve_search_space(min_bound=0.5, early=False):
+#     search_space = _accessories.retrieve_local_data_file(
+#         'Data/S8 Files/threshold_search_space.csv').drop('Unnamed: 0', 1)
+#
+#     if early:
+#         return search_space
+#
+#     search_space_df = search_space.set_index('index').applymap(lambda x: len(x)).reset_index()
+#     search_space_df = pd.melt(search_space_df, id_vars='index', value_vars=list(search_space_df)[1:]).infer_objects()
+#     search_space_df.columns = ['thresh_PI', 'thresh_II', 'n_optimal']
+#     search_space_df['thresh_II'] = search_space_df['thresh_II'].astype(float)
+#     search_space_df['thresh_PI'] = search_space_df['thresh_PI'].astype(float)
+#     search_space_df = search_space_df[(search_space_df['thresh_PI'] < min_bound) &
+#                                       (search_space_df['thresh_II'] < min_bound)].reset_index(drop=True)
+#
+#     return search_space_df
+#
+# SEARCH_SPACE = produce_search_space(CANDIDATES, PI_DIST_MATRIX, II_DIST_MATRIX, RESOLUTION=0.001)
+# plot_search_space(retrieve_search_space(min_bound=0.3, early=False), cmap=cm.turbo)
+
+# NOTE: IPC_MODULE S8_INJECTION
+# def plot_search_space(search_space_df, cmap=cm.turbo):
+#     ax = Axes3D(plt.figure())
+#     ax.plot_trisurf(search_space_df['thresh_PI'], search_space_df['thresh_II'], search_space_df['n_optimal'],
+#                     cmap=cmap)
+#     plt.title('Search Space When Finding Optimal Injectors')
+#     ax.set_xlabel('thresh_PI')
+#     ax.set_ylabel('thresh_II')
+#     ax.set_zlabel('n_optimal')
+#     plt.tight_layout()
+#     plt.show()
+
+# NOTE: IPC_MODULE S8_INJECTION
+# def plot_relative_allocations(suggestions):
+#     fig, ax = plt.subplots(figsize=(10, 28), nrows=len(suggestions['PRO_Well'].unique()))
+#     for pwell, group_df in suggestions.groupby('PRO_Well'):
+#         axis = ax[list(suggestions['PRO_Well'].unique()).index(pwell)]
+#         axis.set_title(f'Production Well: {pwell}')
+#         group_df.plot(x='Candidate_Injector', y='Candidate_Proportion', ax=axis, kind='bar')
+#     plt.tight_layout()
+#
+# def plot_producer_delta(suggestions):
+#     _temp = suggestions[['PRO_Well', 'Delta']].drop_duplicates().reset_index(drop=True).set_index('PRO_Well')
+#     fig, ax = plt.subplots(figsize=(12, 8))
+#     _temp.plot(kind='bar', ax=ax)
+#     plt.title('Delta from original allocation to revised allocation')
+
+# NOTE: IPC_MODULE S3_Weighting Weight EDA
+# _ = """
+# ####################################
+# ###########  WEIGHT EDA ############
+# ####################################
+# """
+# MAX = 150.0
+# def plot_weights_eda(df, groupby_val, groupby_col, time_col='Date', weight_col='weight', col_thresh=None):
+#     plt.figure(figsize=(30, 20))
+#     _temp = df[df[groupby_col] == groupby_val].sort_values(time_col).reset_index(drop=True)
+#     if(col_thresh is None):
+#         iter_cols = _temp.columns
+#     else:
+#         iter_cols = _temp.columns[:col_thresh]
+#     # Plot all features (normalized to 100 max)
+#     for col in [c for c in iter_cols if c not in ['Date', 'PRO_Pad', 'PRO_Well', 'weight', 'PRO_Alloc_Oil']]:
+#         __temp = _temp[['Date', col]].copy().fillna(_temp[col].mean())
+#         __temp[col] = MAX * __temp[col] / (MAX if max(__temp[col]) is np.nan else max(__temp[col]))
+#         # plt.hist(__temp[col], bins=100)
+#         if(col in ['PRO_Adj_Alloc_Oil', 'Steam', 'PRO_Adj_Pump_Speed']):
+#             lw = 0.75
+#         else:
+#             lw = 0.3
+#         plt.plot(__temp[time_col], __temp[col], linewidth=lw, label=col)
+#     plt.legend(loc='upper left', ncol=2)
+#
+#     # # Plot weight
+#     plt.plot(_temp[time_col], _temp[weight_col])
+#     plt.title(f'Weight Time Series for {groupby_col} = {groupby_val}')
+#     plt.savefig(f'Manipulation Reference Files/Weight TS {groupby_col} = {groupby_val}.png')
+# for pad in available_pads_transformed:
+#     plot_weights_eda(COMBINED_AGGREGATES, groupby_val=pad, groupby_col='PRO_Pad',
+#                      time_col='Date', weight_col='weight')
+# for pwell in available_pwells_transformed:
+#     plot_weights_eda(COMBINED_AGGREGATES_PWELL, groupby_val=pwell,
+#                      groupby_col='PRO_Well', time_col='Date', weight_col='weight')
+# os.system('say finished weight exploratory analysis')

@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: AUTO-IPC_Real_Manipulation.py
 # @Last modified by:   Ray
-# @Last modified time: 19-Mar-2021 11:03:14:146  GMT-0600
+# @Last modified time: 09-Jul-2021 17:07:34:346  GMT-0600
 # @License: [Private IP]
 
 
@@ -637,7 +637,6 @@ for line_num, ins_text in list(insertions.items()):
     # # Insert node and edge data in html file
     with open('nx_visjs_TAILOR.html', 'r') as b:
         lines = b.readlines()
-
     with open('nx_visjs_TAILOR.html', 'w') as b:
         for i, line in enumerate(lines):
             if i == line_num:

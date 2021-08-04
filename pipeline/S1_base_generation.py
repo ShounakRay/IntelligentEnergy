@@ -3,12 +3,12 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: base_generation.py
 # @Last modified by:   Ray
-# @Last modified time: 20-May-2021 09:05:24:244  GMT-0600
+# @Last modified time: 15-Jun-2021 15:06:42:422  GMT-0600
 # @License: [Private IP]
 
 
+import math
 import os
-import sys
 from multiprocessing import Pool
 from typing import Final
 
@@ -103,16 +103,7 @@ def filter_out(datasets, FORMAT=FORMAT_COLUMNS, CHOICE=CHOICE_COLUMNS):
 def merge(DATASETS):
     df = pd.merge(DATASETS['PRODUCTION'], DATASETS['FIBER'], how='outer', on=['Date', 'PRO_Well'])
     df = pd.merge(df, DATASETS['INJECTION_TABLE'], how='outer', on=['Date'])
-
-    # group = 'PRO_Well'
-    # df = df.copy()
-    # for g in df[group].unique():
-    #     gdf = df[df[group] == g].reset_index(drop=True)
-    #     _accessories._print(f'"{g}" grouped by "{group}"')
-    #     print(dict(gdf.isna().sum() / len(gdf)))
-
     df = pd.merge(df, DATASETS['PRODUCTION_TEST'], how='left', on=['Date', 'PRO_Well'])
-
     df = df.dropna(subset=['PRO_UWI'], how='all').reset_index(drop=True)
 
     return df
@@ -128,6 +119,31 @@ def ingest_sources(filepaths):
     DATASETS = {'INJECTION': inj, 'PRODUCTION': pro, 'PRODUCTION_TEST': protest}
 
     return DATASETS
+
+
+def pressure_lambda(row):
+    """Picks the available pressure out of casing and tubing pressures.
+
+    Parameters
+    ----------
+    row : Series
+        The row in the respective DataFrame.
+
+    Returns
+    -------
+    int or nan (float)
+        The chosen pressure.
+
+    """
+    if not math.isnan(row['INJ_Casing_BHP']):
+        # if Casing_Pressure exists
+        return row['INJ_Casing_BHP']
+    elif not math.isnan(row['INJ_Tubing_Pressure']):
+        # if Casing_Pressure doesn't exist but Tubing_Pressure does
+        return row['INJ_Tubing_Pressure']
+    else:
+        # If neither Casing_Pressure or Tubing_Pressure exist
+        return math.nan
 
 
 def ingest_fiber(producer_wells, **kwargs):
@@ -223,6 +239,7 @@ def _INGESTION(_return=True, filter_by_fiber=False):
     DATASETS = ingest_sources(filepaths)
     structures = generate_taxonomy(DATASETS)
     filter_out(DATASETS)
+    DATASETS['INJECTION']
 
     _accessories._print('Ingesting and transforming FIBER data...', color='LIGHTYELLOW_EX')
     producer_wells = get_fiber_pwells(fiber_dir)
@@ -232,8 +249,15 @@ def _INGESTION(_return=True, filter_by_fiber=False):
     if filter_by_fiber:
         _temp = DATASETS['PRODUCTION']
         DATASETS['PRODUCTION'] = _temp[_temp['PRO_Well'].isin(producer_wells)]
-    DATASETS['INJECTION_TABLE'] = pd.pivot_table(DATASETS['INJECTION'], values='INJ_Meter_Steam',
-                                                 index='Date', columns='INJ_Well').reset_index()
+
+    DATASETS['INJECTION']['INJ_Pressure'] = DATASETS['INJECTION'].apply(pressure_lambda, axis=1)
+    DATASETS['INJECTION'].drop(['INJ_Casing_BHP', 'INJ_Tubing_Pressure'], axis=1, inplace=True)
+
+    steam_data = pd.pivot_table(DATASETS['INJECTION'], values='INJ_Meter_Steam',
+                                index='Date', columns='INJ_Well').reset_index()
+    press_data = pd.pivot_table(DATASETS['INJECTION'], values='INJ_Pressure',
+                                index='Date', columns='INJ_Well').reset_index()
+    DATASETS['INJECTION_TABLE'] = pd.merge(steam_data, press_data, on='Date', how='outer', suffixes=('', '_pressure'))
 
     _accessories._print('Merging and saving...', color='LIGHTYELLOW_EX')
     _accessories.finalize_all(DATASETS, skip=[])
@@ -242,7 +266,7 @@ def _INGESTION(_return=True, filter_by_fiber=False):
     if _return:
         return merged_df, structures
     else:
-        _accessories.save_local_data_file(merged_df, 'Data/S1 Files/combined_ipc_ALL.csv')
+        _accessories.save_local_data_file(merged_df, 'Data/S1 Files/combined_ipc_ALL_press.csv')
         # NOTE: Structure's is not intentionally saved. If you wish to save it locally, see `generate_taxonomy`
 
 

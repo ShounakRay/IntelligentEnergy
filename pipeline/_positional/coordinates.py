@@ -3,7 +3,7 @@
 # @Email:  rijshouray@gmail.com
 # @Filename: coordinate_playground.py
 # @Last modified by:   Ray
-# @Last modified time: 01-Jun-2021 16:06:98:980  GMT-0600
+# @Last modified time: 03-Jun-2021 13:06:20:204  GMT-0600
 # @License: [Private IP]
 
 import os
@@ -78,7 +78,7 @@ def replace_tab(s, tabstop=20, look_for='\t'):
     return result
 
 
-def custon_convert_dict_to_df(diction):
+def custom_convert_dict_to_df(diction):
     # REFORMAT
     dfs = []
     for key, value in diction.items():
@@ -284,11 +284,12 @@ _ = """
 #######################################################################################################################
 """
 
-
 if __name__ == '__main__':
     # CALCULATE PRODUCER POSITIONS
     subsets_new = new_get_producer_positions(rell_data=rell_data, up_scalar=100, ignore=['CP1'])
-    producer_coordinates = custon_convert_dict_to_df(subsets_new)
+    subsets_cp1 = {'CP1': old_get_producer_positions(up_scalar=100)['CP1']}
+    subsets_final = dict(subsets_new, **subsets_cp1)
+    producer_coordinates = custom_convert_dict_to_df(subsets_final)
     injector_coordinates = get_injector_coordinates(up_scalar=100)
     injector_coordinates['I71'] = (77.8037, 5.97304)
 
@@ -297,6 +298,24 @@ if __name__ == '__main__':
                    annotate='IP', rell_data=rell_data)
 
     _accessories.save_local_data_file(injector_coordinates, 'Data/Coordinates/inj_coordinates.pkl')
+    _accessories.save_local_data_file(producer_coordinates, 'Data/Coordinates/prod_coordinates.csv')
+
+
+_ = """
+#######################################################################################################################
+###############################################   INJECTOR EXPLORATION   ##############################################
+#######################################################################################################################
+"""
+
+INJECTION_DATA = _accessories.retrieve_local_data_file('Data/Isolated/OLT injection data.xlsx')
+
+INJECTION_DATA[INJECTION_DATA['Well'] == 'I28'].sort_values(
+    'Date (yyyy/mm/dd)').set_index('Date (yyyy/mm/dd)')['Metered Steam (m3)'].plot()
+
+filt = INJECTION_DATA[(INJECTION_DATA['Metered Steam (m3)'] > 5) & (INJECTION_DATA['Metered Steam (m3)'] < 250)]
+plt.figure(figsize=(26, 16))
+_ = filt.groupby('Well')['Metered Steam (m3)'].plot(kind='hist', bins=200, legend=False, stacked=False)
+
 
 # EOF
 
